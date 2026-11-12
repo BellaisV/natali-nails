@@ -594,10 +594,6 @@
     </div>
   </div>
 
-  
-  </div>
-
-
   <!-- MODAL: ПРОФІЛЬ КЛІЄНТКИ (Редагування профілю) -->
   <div v-if="showProfileModal" @click.self="showProfileModal = false" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-end sm:items-center justify-center p-0 sm:p-4">
     <div class="bg-[#1C1715] text-white w-full max-w-sm rounded-t-3xl sm:rounded-3xl p-6 space-y-4 border border-white/15 shadow-2xl text-left">
@@ -627,14 +623,14 @@
           <input v-model="profileForm.phone" type="tel" placeholder="+380..." class="w-full bg-white/5 border border-white/20 rounded-xl p-3 text-sm text-white font-bold focus:border-amber-400 focus:outline-none">
         </div>
 
-
-
         <button @click="saveClientProfile" class="w-full bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 text-stone-950 font-black py-3 rounded-xl shadow-lg transition active:scale-95 flex items-center justify-center space-x-1.5 mt-2">
           <i class="fa-solid fa-check"></i>
           <span>Зберегти зміни</span>
         </button>
       </div>
     </div>
+  </div>
+
   </div>
 
 <script>
