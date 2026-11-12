@@ -1,5 +1,7 @@
+import re
 import os
 import json
+import base64
 import sqlite3
 import secrets
 import html
@@ -68,6 +70,134 @@ def get_db():
     conn = sqlite3.connect(DB_FILE)
     conn.row_factory = sqlite3.Row
     return conn
+
+
+# --- Multi-Language Service Translation Engine ---
+NAIL_TERMS_MAP = [
+    (r"milky nude|clean girl", {
+        "uk": "Clean Girl: Milky Nude (Комплекс)",
+        "en": "Clean Girl: Milky Nude (Full Care)",
+        "es": "Clean Girl: Milky Nude (Completo)",
+        "de": "Clean Girl: Milky Nude (Komplex)",
+        "va": "Clean Girl: Milky Nude (Complet)",
+        "ru": "Clean Girl: Milky Nude (Комплекс)"
+    }),
+    (r"японський|japanese|японский", {
+        "uk": "Японський еко-манікюр (P.Shine / Masura)",
+        "en": "Japanese Eco-Manicure (P.Shine / Masura)",
+        "es": "Manicura ecológica japonesa (P.Shine / Masura)",
+        "de": "Japanische Öko-Maniküre (P.Shine / Masura)",
+        "va": "Manicura ecològica japonesa",
+        "ru": "Японский эко-маникюр (P.Shine / Masura)"
+    }),
+    (r"micro-french|френч|french", {
+        "uk": "Трендовий Micro-French / Оксамитовий френч",
+        "en": "Trendy Micro-French / Velvet French",
+        "es": "Micro-French de tendencia / Francesa terciopelo",
+        "de": "Trendiger Micro-French / Samt French",
+        "va": "Micro-French de tendència / Francesa vellut",
+        "ru": "Трендовый Micro-French / Бархатный френч"
+    }),
+    (r"cat eye|котяче око|кошачий глаз", {
+        "uk": "Velvet Cat Eye (Оксамитове котяче око)",
+        "en": "Velvet Cat Eye Gel Polish",
+        "es": "Esmaltado Ojo de Gato Terciopelo (Cat Eye)",
+        "de": "Velvet Cat Eye Maniküre",
+        "va": "Ull de Gat Vellut (Cat Eye)",
+        "ru": "Бархатный кошачий глаз (Cat Eye)"
+    }),
+    (r"гігієнічний|комбінований|апаратний|класичний манікюр", {
+        "uk": "Гігієнічний апаратний манікюр + догляд",
+        "en": "Hardware / Russian Manicure + Care",
+        "es": "Manicura combinada / rusa con cuidado nutritivo",
+        "de": "Kombinierte Apparat-Maniküre + Pflege",
+        "va": "Manicura combinada / russa amb cura nutritiva",
+        "ru": "Аппаратный / комбинированный маникюр + уход"
+    }),
+    (r"нарощування|моделювання|extensions", {
+        "uk": "Нарощування та моделювання нігтів (гель / полігель)",
+        "en": "Nail Extensions & Sculpting (Gel / Polygel)",
+        "es": "Extensiones y modelado de uñas (Gel / Poligel)",
+        "de": "Nagelverlängerung & Modellage (Gel / Polygel)",
+        "va": "Extensions i modelatge d'ungles (Gel / Poligel)",
+        "ru": "Наращивание и моделирование ногтей (гель / полигель)"
+    }),
+    (r"корекція нарощених|корекція|refill", {
+        "uk": "Корекція нарощених нігтів",
+        "en": "Nail Extension Refill / Correction",
+        "es": "Relleno / Corrección de extensiones de uñas",
+        "de": "Auffüllen / Nagelkorrektur",
+        "va": "Farciment / Correcció d'extensions d'ungles",
+        "ru": "Коррекция нарощенных ногтей"
+    }),
+    (r"зняття|removal|retirada", {
+        "uk": "Зняття старого покриття",
+        "en": "Old Polish / Gel Removal",
+        "es": "Retirada de esmalte o gel antiguo",
+        "de": "Altmaterial / Gellack entfernen",
+        "va": "Retirada d'esmalt o gel antic",
+        "ru": "Снятие старого покрытия"
+    }),
+    (r"педикюр з покриттям", {
+        "uk": "Педикюр з покриттям гель-лак",
+        "en": "Pedicure with Gel Polish",
+        "es": "Pedicura con esmalte semipermanente",
+        "de": "Pediküre mit Gellack",
+        "va": "Pedicura amb esmalt semipermanent",
+        "ru": "Педикюр с покрытием гель-лак"
+    }),
+    (r"педикюр", {
+        "uk": "Педикюр гігієнічний / класичний",
+        "en": "Classic Spa Pedicure",
+        "es": "Pedicura higiénica completa",
+        "de": "Klassische Pediküre",
+        "va": "Pedicura completa",
+        "ru": "Педикюр гигиенический / классический"
+    }),
+    (r"spa|парафін|paraffin", {
+        "uk": "SPA-догляд для рук (холодний парафін)",
+        "en": "SPA Hand Treatment (Cold Paraffin Therapy)",
+        "es": "Tratamiento SPA para manos (Parafina fría)",
+        "de": "SPA Handpflege (Kaltes Paraffin)",
+        "va": "Tractament SPA per a mans (Parafina freda)",
+        "ru": "SPA-уход для рук (холодный парафин)"
+    }),
+    (r"ремонт|repair", {
+        "uk": "Ремонт 1 нігтя / нарощування кутика",
+        "en": "1 Nail Repair / Corner Restoration",
+        "es": "Reparación de 1 uña / Reconstrucción de esquina",
+        "de": "Reparatur von 1 Nagel",
+        "va": "Reparació d'1 ungla",
+        "ru": "Ремонт 1 ногтя / донаращивание уголка"
+    }),
+    (r"манікюр з покриттям|гель[\s-]лак", {
+        "uk": "Манікюр з покриттям гель-лак",
+        "en": "Manicure with Gel Polish",
+        "es": "Manicura con esmalte semipermanente",
+        "de": "Maniküre mit Gellack",
+        "va": "Manicura amb esmalt semipermanent",
+        "ru": "Маникюр с покрытием гель-лак"
+    }),
+]
+
+def auto_translate_service(name: str, description: str = "") -> dict:
+    name_clean = (name or "").strip()
+    desc_clean = (description or "").strip()
+    name_l = name_clean.lower()
+
+    res_names = {"uk": name_clean, "en": name_clean, "es": name_clean, "va": name_clean, "de": name_clean, "ru": name_clean}
+    for pat, tr in NAIL_TERMS_MAP:
+        if re.search(pat, name_l, re.IGNORECASE):
+            for lang in ["uk", "en", "es", "va", "de", "ru"]:
+                if lang in tr:
+                    res_names[lang] = tr[lang]
+            break
+
+    res_descs = {"uk": desc_clean, "en": desc_clean, "es": desc_clean, "va": desc_clean, "de": desc_clean, "ru": desc_clean}
+    return {
+        "name": res_names,
+        "description": res_descs
+    }
 
 def init_db():
     conn = get_db()
@@ -186,6 +316,38 @@ def init_db():
     except Exception:
         pass
 
+    # Ensure master_avatar column exists
+    try:
+        cursor.execute("ALTER TABLE settings ADD COLUMN master_avatar TEXT DEFAULT ''")
+    except Exception:
+        pass
+
+    # Ensure client avatar_url column exists
+    try:
+        cursor.execute("ALTER TABLE clients ADD COLUMN avatar_url TEXT DEFAULT ''")
+    except Exception:
+        pass
+
+    # Ensure service translations column exists
+    try:
+        cursor.execute("ALTER TABLE services ADD COLUMN translations TEXT DEFAULT '{}'")
+    except Exception:
+        pass
+
+    # Populate translations for existing services if empty
+    try:
+        cursor.execute("SELECT id, name, description, translations FROM services")
+        for s_row in cursor.fetchall():
+            sid = s_row["id"]
+            sname = s_row["name"]
+            sdesc = s_row["description"] or ""
+            strans = s_row["translations"] or ""
+            if not strans or strans == "{}":
+                gen_tr = json.dumps(auto_translate_service(sname, sdesc), ensure_ascii=False)
+                cursor.execute("UPDATE services SET translations = ? WHERE id = ?", (gen_tr, sid))
+    except Exception:
+        pass
+
     conn.commit()
     conn.close()
 
@@ -206,6 +368,7 @@ class ServiceCreate(BaseModel):
     duration_minutes: int = Field(..., gt=0, le=480)
     description: Optional[str] = ""
     is_active: Optional[int] = 1
+    translations: Optional[str] = "{}"
 
 class ClientCreate(BaseModel):
     name: str = Field(..., min_length=2, max_length=100)
@@ -253,6 +416,14 @@ class SettingsUpdate(BaseModel):
     accept_card: Optional[int] = 1
     accept_paypal: Optional[int] = 1
     accept_cash: Optional[int] = 1
+    master_avatar: Optional[str] = ""
+
+class MasterAvatarUpdate(BaseModel):
+    master_avatar: str
+
+class ClientAvatarUpdate(BaseModel):
+    phone: str
+    avatar_url: str
 
 class PublicBookingRequest(BaseModel):
     client_name: str = Field(..., min_length=2, max_length=80)
@@ -268,6 +439,8 @@ class ClientLoginRequest(BaseModel):
     provider: str
     phone: str
     name: Optional[str] = ""
+    instagram: Optional[str] = ""
+    avatar_url: Optional[str] = ""
 
 class ReviewCreate(BaseModel):
     client_name: str
@@ -342,7 +515,7 @@ def change_pin(data: ChangePinRequest):
 def get_settings():
     conn = get_db()
     cursor = conn.cursor()
-    cursor.execute("SELECT master_name, studio_name, phone, instagram, telegram, address, work_start, work_end, slot_step, currency, about, bizum_phone, paypal_link, card_ua, card_es, accept_bizum, accept_card, accept_paypal, accept_cash FROM settings WHERE id = 1")
+    cursor.execute("SELECT master_name, studio_name, phone, instagram, telegram, address, work_start, work_end, slot_step, currency, about, bizum_phone, paypal_link, card_ua, card_es, accept_bizum, accept_card, accept_paypal, accept_cash, master_avatar FROM settings WHERE id = 1")
     row = cursor.fetchone()
     conn.close()
     return dict(row) if row else {}
@@ -357,17 +530,29 @@ def update_settings(data: SettingsUpdate):
         telegram = ?, address = ?, work_start = ?, work_end = ?,
         slot_step = ?, currency = ?, about = ?,
         bizum_phone = ?, paypal_link = ?, card_ua = ?, card_es = ?,
-        accept_bizum = ?, accept_card = ?, accept_paypal = ?, accept_cash = ?
+        accept_bizum = ?, accept_card = ?, accept_paypal = ?, accept_cash = ?,
+        master_avatar = COALESCE(NULLIF(?, ''), master_avatar)
     WHERE id = 1
     """, (sanitize_text(data.master_name), sanitize_text(data.studio_name), sanitize_text(data.phone), sanitize_text(data.instagram),
           sanitize_text(data.telegram), sanitize_text(data.address), data.work_start, data.work_end,
           data.slot_step, data.currency, sanitize_text(data.about),
           sanitize_text(data.bizum_phone), sanitize_text(data.paypal_link),
           sanitize_text(data.card_ua), sanitize_text(data.card_es),
-          data.accept_bizum, data.accept_card, data.accept_paypal, data.accept_cash))
+          data.accept_bizum, data.accept_card, data.accept_paypal, data.accept_cash,
+          data.master_avatar or ''))
     conn.commit()
     conn.close()
     return {"status": "ok"}
+
+
+@app.post("/api/settings/avatar")
+def update_master_avatar(data: MasterAvatarUpdate):
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("UPDATE settings SET master_avatar = ? WHERE id = 1", (data.master_avatar,))
+    conn.commit()
+    conn.close()
+    return {"status": "ok", "master_avatar": data.master_avatar}
 
 @app.post("/api/settings/toggle-currency")
 def toggle_currency():
@@ -399,33 +584,49 @@ def get_services(active_only: bool = False):
         cursor.execute("SELECT * FROM services ORDER BY category, price")
     rows = cursor.fetchall()
     conn.close()
-    return [dict(r) for r in rows]
+    results = []
+    for r in rows:
+        d = dict(r)
+        try:
+            d["translations"] = json.loads(d.get("translations") or "{}")
+        except Exception:
+            d["translations"] = {}
+        results.append(d)
+    return results
 
 @app.post("/api/services")
 def create_service(data: ServiceCreate):
     conn = get_db()
     cursor = conn.cursor()
+    safe_name = sanitize_text(data.name)
+    safe_desc = sanitize_text(data.description)
+    tr_obj = auto_translate_service(safe_name, safe_desc)
+    tr_json = json.dumps(tr_obj, ensure_ascii=False)
     cursor.execute("""
-    INSERT INTO services (name, category, price, duration_minutes, description, is_active)
-    VALUES (?, ?, ?, ?, ?, ?)
-    """, (sanitize_text(data.name), sanitize_text(data.category), data.price, data.duration_minutes, sanitize_text(data.description), data.is_active))
+    INSERT INTO services (name, category, price, duration_minutes, description, is_active, translations)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+    """, (safe_name, sanitize_text(data.category), data.price, data.duration_minutes, safe_desc, data.is_active, tr_json))
     conn.commit()
     new_id = cursor.lastrowid
     conn.close()
-    return {"id": new_id, "status": "created"}
+    return {"id": new_id, "status": "created", "translations": tr_obj}
 
 @app.put("/api/services/{service_id}")
 def update_service(service_id: int, data: ServiceCreate):
     conn = get_db()
     cursor = conn.cursor()
+    safe_name = sanitize_text(data.name)
+    safe_desc = sanitize_text(data.description)
+    tr_obj = auto_translate_service(safe_name, safe_desc)
+    tr_json = json.dumps(tr_obj, ensure_ascii=False)
     cursor.execute("""
     UPDATE services SET
-        name = ?, category = ?, price = ?, duration_minutes = ?, description = ?, is_active = ?
+        name = ?, category = ?, price = ?, duration_minutes = ?, description = ?, is_active = ?, translations = ?
     WHERE id = ?
-    """, (sanitize_text(data.name), sanitize_text(data.category), data.price, data.duration_minutes, sanitize_text(data.description), data.is_active, service_id))
+    """, (safe_name, sanitize_text(data.category), data.price, data.duration_minutes, safe_desc, data.is_active, tr_json, service_id))
     conn.commit()
     conn.close()
-    return {"status": "ok"}
+    return {"status": "ok", "translations": tr_obj}
 
 @app.delete("/api/services/{service_id}")
 def delete_service(service_id: int):
@@ -684,28 +885,60 @@ def delete_transaction(t_id: int):
 
 # --- VIP Client Club & Loyalty Endpoints ---
 
+@app.post("/api/client/avatar")
+def update_client_avatar(data: ClientAvatarUpdate):
+    conn = get_db()
+    cursor = conn.cursor()
+    phone_clean = sanitize_text(data.phone)
+    cursor.execute("UPDATE clients SET avatar_url = ? WHERE phone = ? OR phone LIKE ?", (data.avatar_url, phone_clean, f"%{phone_clean[-9:]}%"))
+    conn.commit()
+    conn.close()
+    return {"status": "ok", "avatar_url": data.avatar_url}
+
 @app.post("/api/client/login")
 def client_login(data: ClientLoginRequest):
     conn = get_db()
     cursor = conn.cursor()
 
     phone_clean = sanitize_text(data.phone)
+    safe_name = sanitize_text(data.name)
+    safe_insta = sanitize_text(data.instagram)
+    safe_avatar = data.avatar_url or ''
+
     cursor.execute("SELECT * FROM clients WHERE phone LIKE ? OR phone LIKE ?", (f"%{phone_clean}%", f"%{phone_clean[-9:]}%"))
     client = cursor.fetchone()
 
     if not client:
-        # Check if they have an appointment
         cursor.execute("SELECT * FROM appointments WHERE client_phone LIKE ? OR client_phone LIKE ? ORDER BY id DESC LIMIT 1", (f"%{phone_clean}%", f"%{phone_clean[-9:]}%"))
         any_app = cursor.fetchone()
-        client_name = sanitize_text(data.name) or (any_app["client_name"] if any_app else "Клієнтка")
+        client_name = safe_name or (any_app["client_name"] if any_app else "Клієнтка")
         
         cursor.execute("""
-        INSERT INTO clients (name, phone, points, vip_tier, unlocked_emojis, created_at)
-        VALUES (?, ?, 50, 'Gold VIP', '💅,✨,💖', ?)
-        """, (client_name, phone_clean, datetime.now().isoformat()))
+        INSERT INTO clients (name, phone, instagram, avatar_url, points, vip_tier, unlocked_emojis, created_at)
+        VALUES (?, ?, ?, ?, 50, 'Gold VIP', '💅,✨,💖', ?)
+        """, (client_name, phone_clean, safe_insta, safe_avatar, datetime.now().isoformat()))
         conn.commit()
         cursor.execute("SELECT * FROM clients WHERE phone = ?", (phone_clean,))
         client = cursor.fetchone()
+    else:
+        # Update instagram / avatar / name if provided and not already present
+        up_fields = []
+        up_params = []
+        if safe_name and client["name"] in ("Клієнтка", ""):
+            up_fields.append("name = ?")
+            up_params.append(safe_name)
+        if safe_insta and not client["instagram"]:
+            up_fields.append("instagram = ?")
+            up_params.append(safe_insta)
+        if safe_avatar and not client["avatar_url"]:
+            up_fields.append("avatar_url = ?")
+            up_params.append(safe_avatar)
+        if up_fields:
+            up_params.append(client["id"])
+            cursor.execute(f"UPDATE clients SET {', '.join(up_fields)} WHERE id = ?", up_params)
+            conn.commit()
+            cursor.execute("SELECT * FROM clients WHERE id = ?", (client["id"],))
+            client = cursor.fetchone()
 
     cursor.execute("SELECT COUNT(*) FROM appointments WHERE (client_phone = ? OR client_phone LIKE ?) AND status = 'completed'", (client["phone"], f"%{client['phone'][-9:]}%"))
     completed_count = cursor.fetchone()[0]
@@ -764,6 +997,58 @@ def redeem_reward(data: RedeemRequest):
     conn.close()
     return {"status": "ok", "points": new_points, "unlocked_emojis": new_emojis_str}
 
+
+class VipRewardCreate(BaseModel):
+    icon: Optional[str] = "💎"
+    title: str = Field(..., min_length=2, max_length=120)
+    description: Optional[str] = ""
+    cost: int = Field(..., gt=0)
+    reward_type: Optional[str] = "discount"
+
+@app.get("/api/vip/rewards")
+def get_vip_rewards():
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM vip_rewards WHERE is_active = 1 ORDER BY cost ASC")
+    rows = cursor.fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+@app.post("/api/vip/rewards")
+def create_vip_reward(data: VipRewardCreate):
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("""
+    INSERT INTO vip_rewards (icon, title, description, cost, reward_type)
+    VALUES (?, ?, ?, ?, ?)
+    """, (sanitize_text(data.icon), sanitize_text(data.title), sanitize_text(data.description), data.cost, data.reward_type or 'discount'))
+    conn.commit()
+    rid = cursor.lastrowid
+    conn.close()
+    return {"id": rid, "status": "created"}
+
+@app.put("/api/vip/rewards/{reward_id}")
+def update_vip_reward(reward_id: int, data: VipRewardCreate):
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("""
+    UPDATE vip_rewards SET
+        icon = ?, title = ?, description = ?, cost = ?, reward_type = ?
+    WHERE id = ?
+    """, (sanitize_text(data.icon), sanitize_text(data.title), sanitize_text(data.description), data.cost, data.reward_type or 'discount', reward_id))
+    conn.commit()
+    conn.close()
+    return {"status": "ok"}
+
+@app.delete("/api/vip/rewards/{reward_id}")
+def delete_vip_reward(reward_id: int):
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM vip_rewards WHERE id = ?", (reward_id,))
+    conn.commit()
+    conn.close()
+    return {"status": "deleted"}
+
 @app.get("/api/reviews")
 def get_reviews():
     conn = get_db()
@@ -798,10 +1083,17 @@ def add_review(data: ReviewCreate):
 def get_public_info():
     conn = get_db()
     cursor = conn.cursor()
-    cursor.execute("SELECT master_name, studio_name, phone, instagram, telegram, address, currency, about, bizum_phone, paypal_link, card_ua, card_es, accept_bizum, accept_card, accept_paypal, accept_cash FROM settings WHERE id = 1")
+    cursor.execute("SELECT master_name, studio_name, phone, instagram, telegram, address, currency, about, bizum_phone, paypal_link, card_ua, card_es, accept_bizum, accept_card, accept_paypal, accept_cash, master_avatar FROM settings WHERE id = 1")
     settings = dict(cursor.fetchone() or {})
-    cursor.execute("SELECT id, name, category, price, duration_minutes, description FROM services WHERE is_active = 1 ORDER BY category, price")
-    services = [dict(r) for r in cursor.fetchall()]
+    cursor.execute("SELECT id, name, category, price, duration_minutes, description, translations FROM services WHERE is_active = 1 ORDER BY category, price")
+    services = []
+    for r in cursor.fetchall():
+        d = dict(r)
+        try:
+            d["translations"] = json.loads(d.get("translations") or "{}")
+        except Exception:
+            d["translations"] = {}
+        services.append(d)
     conn.close()
     return {"settings": settings, "services": services}
 
@@ -917,6 +1209,64 @@ def serve_book():
 @app.get("/client")
 def serve_client_club():
     return FileResponse("static/client.html")
+
+@app.get("/download/ios-profile")
+def download_ios_profile():
+    icon_b64 = ""
+    try:
+        with open("static/icon-192.png", "rb") as f:
+            icon_b64 = base64.b64encode(f.read()).decode("utf-8")
+    except Exception:
+        pass
+    
+    mobileconfig = f"""<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>PayloadContent</key>
+    <array>
+        <dict>
+            <key>FullScreen</key>
+            <true/>
+            <key>Icon</key>
+            <data>{icon_b64}</data>
+            <key>IsRemovable</key>
+            <true/>
+            <key>Label</key>
+            <string>Natali Nails</string>
+            <key>PayloadDescription</key>
+            <string>Natali Nails Privé Web App</string>
+            <key>PayloadDisplayName</key>
+            <string>Natali Nails</string>
+            <key>PayloadIdentifier</key>
+            <string>com.natalinails.webclip</string>
+            <key>PayloadType</key>
+            <string>com.apple.webClip.managed</string>
+            <key>PayloadUUID</key>
+            <string>c734914a-1111-4444-a111-000000000001</string>
+            <key>PayloadVersion</key>
+            <integer>1</integer>
+            <key>URL</key>
+            <string>https://natali-nails.onrender.com</string>
+        </dict>
+    </array>
+    <key>PayloadDisplayName</key>
+    <string>Natali Nails Privé</string>
+    <key>PayloadIdentifier</key>
+    <string>com.natalinails.profile</string>
+    <key>PayloadRemovalDisallowed</key>
+    <false/>
+    <key>PayloadType</key>
+    <string>Configuration</string>
+    <key>PayloadUUID</key>
+    <string>c734914a-2222-4444-b222-000000000002</string>
+    <key>PayloadVersion</key>
+    <integer>1</integer>
+</dict>
+</plist>"""
+    return Response(content=mobileconfig, media_type="application/x-apple-aspen-config", headers={
+        "Content-Disposition": 'attachment; filename="NataliNails.mobileconfig"'
+    })
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
 

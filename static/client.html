@@ -108,6 +108,17 @@
         <span>Продовжити через Facebook</span>
       </button>
 
+      <!-- Google Login Button -->
+      <button @click="loginWithSocial('Google')" class="w-full bg-white hover:bg-stone-100 text-stone-900 font-bold py-3.5 rounded-2xl shadow-lg flex items-center justify-center space-x-2.5 text-xs transition active:scale-95 border border-stone-200">
+        <svg class="w-4 h-4 mr-1" viewBox="0 0 24 24">
+          <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+          <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+          <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
+          <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
+        </svg>
+        <span>Продовжити через Google</span>
+      </button>
+
       <div class="flex items-center space-x-3 py-1">
         <div class="flex-1 h-px bg-white/10"></div>
         <span class="text-[11px] text-stone-500 uppercase font-semibold">або за номером телефону</span>
@@ -139,8 +150,14 @@
     <div class="relative bg-gradient-to-br from-[#2E2420] via-[#241C1A] to-[#171312] border border-amber-400/25 rounded-3xl p-5 shadow-2xl overflow-hidden space-y-4">
       <div class="flex items-center justify-between">
         <div class="flex items-center space-x-3">
-          <div class="w-14 h-14 rounded-full ring-2 ring-amber-400/50 p-0.5 bg-gradient-to-tr from-rose-500 to-amber-300 flex items-center justify-center text-white font-serif-luxury text-xl font-bold shadow-lg">
-            {{ client.name ? client.name.split(' ').map(n=>n[0]).join('') : 'VIP' }}
+          <div class="relative cursor-pointer group" @click="showAvatarModal = true" title="Натисніть, щоб змінити фото">
+            <div class="w-14 h-14 rounded-full ring-2 ring-amber-400/50 p-0.5 bg-gradient-to-tr from-rose-500 to-amber-300 flex items-center justify-center text-white font-serif-luxury text-xl font-bold shadow-lg overflow-hidden">
+              <img v-if="client.avatar_url" :src="client.avatar_url" class="w-full h-full object-cover rounded-full">
+              <span v-else>{{ client.name ? client.name.split(' ').map(n=>n[0]).join('') : 'VIP' }}</span>
+            </div>
+            <div class="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-amber-400 text-stone-950 flex items-center justify-center text-[10px] font-bold shadow border border-stone-900 group-hover:scale-110 transition">
+              <i class="fa-solid fa-camera"></i>
+            </div>
           </div>
           <div>
             <div class="flex items-center space-x-1.5">
@@ -328,93 +345,185 @@
   </div>
 
   <!-- MODAL: СОЦІАЛЬНИЙ ВХІД INSTAGRAM / FACEBOOK / GOOGLE -->
-  <div v-if="socialModal.open" class="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4">
-    <div class="bg-[#1C1715] text-white w-full max-w-sm rounded-t-3xl sm:rounded-3xl p-5 space-y-4 border border-white/10 shadow-2xl">
-      <div class="flex items-center justify-between pb-2 border-b border-white/10">
-        <div class="flex items-center space-x-2">
-          <div class="w-8 h-8 rounded-xl flex items-center justify-center text-white" :class="socialModal.provider === 'Instagram' ? 'bg-gradient-to-tr from-[#fd1d1d] to-[#833ab4]' : (socialModal.provider === 'Facebook' ? 'bg-[#1877F2]' : 'bg-white text-stone-900')">
-            <i :class="socialModal.provider === 'Instagram' ? 'fa-brands fa-instagram text-sm' : (socialModal.provider === 'Facebook' ? 'fa-brands fa-facebook text-sm' : 'fa-brands fa-google text-sm text-rose-500')"></i>
+  <div v-if="socialModal.open" class="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4">
+    <div class="bg-[#1C1715] text-white w-full max-w-sm rounded-t-3xl sm:rounded-3xl p-5 space-y-4 border border-white/15 shadow-2xl">
+      <!-- Modal Header -->
+      <div class="flex items-center justify-between pb-3 border-b border-white/10">
+        <div class="flex items-center space-x-2.5">
+          <div class="w-9 h-9 rounded-xl flex items-center justify-center text-white shadow-md"
+            :class="socialModal.provider === 'Instagram' ? 'bg-gradient-to-tr from-[#fd1d1d] via-[#e1306c] to-[#833ab4]' : (socialModal.provider === 'Facebook' ? 'bg-[#1877F2]' : 'bg-white text-stone-900')">
+            <i v-if="socialModal.provider === 'Instagram'" class="fa-brands fa-instagram text-lg"></i>
+            <i v-else-if="socialModal.provider === 'Facebook'" class="fa-brands fa-facebook text-lg"></i>
+            <svg v-else class="w-5 h-5" viewBox="0 0 24 24">
+              <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+              <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+              <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
+              <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
+            </svg>
           </div>
           <div>
             <h3 class="font-extrabold text-sm text-white">Вхід через {{ socialModal.provider }}</h3>
-            <p class="text-[10px] text-amber-300">Natali Nails VIP Privé</p>
+            <p class="text-[10px] text-amber-300">Natali Nails Privé VIP</p>
           </div>
         </div>
         <button @click="socialModal.open = false" class="text-stone-400 hover:text-white p-1">
-          <i class="fa-solid fa-xmark text-lg"></i>
+          <i class="fa-solid fa-xmark text-xl"></i>
         </button>
+      </div>
+
+      <div class="p-3 bg-white/5 rounded-2xl border border-white/10 text-[11px] text-stone-300 space-y-1">
+        <div class="flex items-center space-x-1.5 text-amber-300 font-bold">
+          <i class="fa-solid fa-shield-halved"></i>
+          <span>Офіційна авторизація профілю</span>
+        </div>
+        <p>
+          Додаток запитує дозвіл на отримання вашого імені та нікнейму для закріплення бонусних балів (+50 💎).
+        </p>
       </div>
 
       <div class="space-y-3 text-xs text-left">
         <div>
-          <label class="block font-semibold text-stone-300 mb-1">Ваше ім'я:</label>
-          <input v-model="socialModal.name" placeholder="Олена" class="w-full bg-white/5 border border-white/15 focus:border-amber-400 rounded-xl p-2.5 text-white placeholder-stone-500">
-        </div>
-        <div>
-          <label class="block font-semibold text-stone-300 mb-1">Номер телефону:</label>
-          <input v-model="socialModal.phone" type="tel" placeholder="+34... або +380..." class="w-full bg-white/5 border border-white/15 focus:border-amber-400 rounded-xl p-2.5 text-white placeholder-stone-500">
-        </div>
-        <div>
-          <label class="block font-semibold text-stone-300 mb-1">Профіль у {{ socialModal.provider }}:</label>
-          <input v-model="socialModal.handle" :placeholder="'@username в ' + socialModal.provider" class="w-full bg-white/5 border border-white/15 focus:border-amber-400 rounded-xl p-2.5 text-white placeholder-stone-500">
+          <label class="block font-semibold text-stone-300 mb-1">
+            <span v-if="socialModal.provider === 'Instagram'">Нікнейм в Instagram:</span>
+            <span v-else-if="socialModal.provider === 'Facebook'">Профіль або ім'я у Facebook:</span>
+            <span v-else>Ім'я у Google:</span>
+          </label>
+          <input v-model="socialModal.handle" :placeholder="socialModal.provider === 'Instagram' ? '@olenka_nails' : (socialModal.provider === 'Facebook' ? 'Olena Kovalenko' : 'Олена Коваленко')" class="w-full bg-white/5 border border-white/15 focus:border-amber-400 rounded-xl p-3 text-white placeholder-stone-500 font-medium">
         </div>
 
-        <button @click="submitSocialModal" class="w-full bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 text-stone-950 font-black py-3 rounded-xl shadow-lg shadow-amber-500/20 text-xs transition active:scale-95 flex items-center justify-center space-x-1.5 mt-2">
-          <span>Увійти в кабінет</span>
-          <i class="fa-solid fa-arrow-right text-[10px]"></i>
+        <div>
+          <label class="block font-semibold text-stone-300 mb-1">Ваше реальне ім'я:</label>
+          <input v-model="socialModal.name" placeholder="Олена" class="w-full bg-white/5 border border-white/15 focus:border-amber-400 rounded-xl p-3 text-white placeholder-stone-500 font-medium">
+        </div>
+
+        <div>
+          <label class="block font-semibold text-stone-300 mb-1">Номер телефону для зв'язку:</label>
+          <input v-model="socialModal.phone" type="tel" placeholder="+380... або +34..." class="w-full bg-white/5 border border-white/15 focus:border-amber-400 rounded-xl p-3 text-white placeholder-stone-500 font-medium">
+        </div>
+
+        <button @click="submitSocialModal"
+          :class="socialModal.provider === 'Instagram' ? 'bg-gradient-to-r from-[#833ab4] via-[#fd1d1d] to-[#fcb045] text-white' : (socialModal.provider === 'Facebook' ? 'bg-[#1877F2] text-white' : 'bg-gradient-to-r from-amber-400 to-amber-500 text-stone-950 font-black')"
+          class="w-full font-bold py-3.5 rounded-xl shadow-xl text-xs transition active:scale-95 flex items-center justify-center space-x-2 mt-2">
+          <span>Підтвердити та отримати 50 💎</span>
+          <i class="fa-solid fa-arrow-right text-[11px]"></i>
         </button>
       </div>
     </div>
   </div>
 
-  <!-- MODAL: HOW TO INSTALL PWA -->
-  <div v-if="showInstallModal" class="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-    <div class="bg-[#1C1715] border border-white/15 w-full max-w-sm rounded-3xl p-5 space-y-4 text-stone-100 text-left shadow-2xl">
+  <!-- MODAL: ЗМІНА АВАТАРКИ КЛІЄНТКИ -->
+  <div v-if="showAvatarModal" class="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4">
+    <div class="bg-[#1C1715] text-white w-full max-w-sm rounded-t-3xl sm:rounded-3xl p-5 space-y-4 border border-white/15 shadow-2xl text-left">
       <div class="flex items-center justify-between pb-2 border-b border-white/10">
         <div class="flex items-center space-x-2">
-          <img src="/static/icon-192.png" class="w-8 h-8 rounded-xl border border-amber-400/40">
+          <div class="w-8 h-8 rounded-xl bg-amber-400/20 text-amber-300 flex items-center justify-center text-sm font-bold">
+            <i class="fa-solid fa-camera"></i>
+          </div>
           <div>
-            <h3 class="font-bold text-sm text-white">Встановлення додатку</h3>
-            <p class="text-[10px] text-amber-300">Natali Nails Privé</p>
+            <h3 class="font-extrabold text-sm text-white">Фото вашого профілю</h3>
+            <p class="text-[10px] text-amber-300">VIP Beauty Club</p>
           </div>
         </div>
-        <button @click="showInstallModal = false" class="text-stone-400 hover:text-white p-1">
-          <i class="fa-solid fa-xmark text-lg"></i>
+        <button @click="showAvatarModal = false" class="text-stone-400 hover:text-white p-1">
+          <i class="fa-solid fa-xmark text-xl"></i>
         </button>
       </div>
 
-      <div class="space-y-3 text-xs leading-relaxed">
-        <div class="p-3.5 bg-white/5 border border-amber-500/30 rounded-2xl space-y-1.5">
-          <div class="font-extrabold text-amber-300 flex items-center space-x-2">
-            <i class="fa-brands fa-android text-base text-emerald-400"></i>
-            <span>Для Android (Google Chrome):</span>
-          </div>
-          <p class="text-[11px] text-stone-300">
-            1. Подивіться на екран: праворуч від адреси сайту натисніть <b>три вертикальні крапки ⋮</b>.<br>
-            2. У меню оберіть <b>«Встановити додаток»</b> (або «Додати на головний екран»).<br>
-            3. Іконка з'явиться на вашому робочому столі!
-          </p>
+      <!-- Current Avatar Preview -->
+      <div class="flex items-center space-x-3 p-3 bg-white/5 rounded-2xl border border-white/10">
+        <div class="w-14 h-14 rounded-full overflow-hidden border-2 border-amber-400 shadow flex items-center justify-center bg-stone-800 text-xl font-bold">
+          <img v-if="client.avatar_url" :src="client.avatar_url" class="w-full h-full object-cover">
+          <span v-else>{{ (client.name || 'V')[0] }}</span>
         </div>
-
-        <div class="p-3.5 bg-white/5 border border-white/10 rounded-2xl space-y-1.5">
-          <div class="font-extrabold text-white flex items-center space-x-2">
-            <i class="fa-brands fa-apple text-base"></i>
-            <span>Для iPhone (Safari):</span>
-          </div>
-          <p class="text-[11px] text-stone-300">
-            1. Натисніть кнопку <b>«Поділитися»</b> <i class="fa-solid fa-arrow-up-from-bracket mx-0.5"></i> (квадратик зі стрілкою внизу екрана).<br>
-            2. Оберіть пункт <b>«На початковий екран»</b>.
-          </p>
+        <div>
+          <div class="font-bold text-xs text-white">{{ client.name }}</div>
+          <p class="text-[11px] text-stone-400">Оберіть фото з галереї або ексклюзивний VIP-образ</p>
         </div>
       </div>
 
-      <button @click="showInstallModal = false" class="w-full bg-gradient-to-r from-amber-400 to-amber-500 text-stone-950 font-black py-3 rounded-2xl text-xs transition active:scale-95">
-        Зрозуміло!
+      <!-- Option 1: Upload from Phone -->
+      <div>
+        <label class="w-full cursor-pointer bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 text-stone-950 font-black py-3 rounded-xl shadow-lg flex items-center justify-center space-x-2 text-xs transition active:scale-95">
+          <i class="fa-solid fa-cloud-arrow-up text-sm"></i>
+          <span>Завантажити фото з телефону</span>
+          <input type="file" accept="image/*" class="hidden" @change="onClientPhotoUpload">
+        </label>
+      </div>
+
+      <!-- Option 2: Choose Preset Beauty Avatar -->
+      <div class="space-y-2 pt-1">
+        <label class="block font-semibold text-[11px] text-stone-400 uppercase tracking-wider">Або оберіть VIP-образ:</label>
+        <div class="grid grid-cols-4 gap-2">
+          <button v-for="preset in avatarPresets" :key="preset.id"
+            @click="setClientPresetAvatar(preset)"
+            class="p-2.5 rounded-xl bg-white/5 hover:bg-white/15 border border-white/10 flex flex-col items-center justify-center space-y-1 transition active:scale-95">
+            <span class="text-2xl">{{ preset.emoji }}</span>
+            <span class="text-[9px] text-stone-300 truncate w-full text-center">{{ preset.name }}</span>
+          </button>
+        </div>
+      </div>
+
+      <button v-if="client.avatar_url" @click="removeClientAvatar" class="w-full text-center text-xs text-rose-400 hover:text-rose-300 py-1 font-medium">
+        Видалити поточне фото
       </button>
     </div>
   </div>
 
-</div>
+    <!-- MODAL: ВСТАНОВИТИ ДОДАТОК (2 ВАРІАНТИ: ANDROID І iOS) -->
+  <div v-if="showInstallModal" class="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4">
+    <div class="bg-[#1C1715] border border-white/15 w-full max-w-sm rounded-t-3xl sm:rounded-3xl p-6 space-y-5 text-stone-100 text-left shadow-2xl">
+      <div class="flex items-center justify-between pb-3 border-b border-white/10">
+        <div class="flex items-center space-x-3">
+          <img src="/static/icon-192.png" class="w-10 h-10 rounded-2xl border border-amber-400/40 shadow">
+          <div>
+            <h3 class="font-extrabold text-base text-white">Встановити додаток</h3>
+            <p class="text-[11px] text-amber-300">Natali Nails Privé</p>
+          </div>
+        </div>
+        <button @click="showInstallModal = false" class="text-stone-400 hover:text-white p-1">
+          <i class="fa-solid fa-xmark text-xl"></i>
+        </button>
+      </div>
+
+      <p class="text-xs text-stone-300">
+        Оберіть вашу систему для швидкого встановлення:
+      </p>
+
+      <div class="space-y-3">
+        <!-- Option 1: Android 1-Click Install -->
+        <button @click="installForAndroid" class="w-full bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-white font-extrabold p-4 rounded-2xl shadow-xl flex items-center justify-between transition active:scale-95 border border-emerald-400/40">
+          <div class="flex items-center space-x-3">
+            <div class="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center text-2xl">
+              <i class="fa-brands fa-android"></i>
+            </div>
+            <div class="text-left">
+              <div class="text-sm font-black">Для Android</div>
+              <div class="text-[11px] font-normal text-emerald-100">Автоматичне встановлення</div>
+            </div>
+          </div>
+          <i class="fa-solid fa-arrow-down-to-bracket text-lg"></i>
+        </button>
+
+        <!-- Option 2: iOS iPhone Installer Profile -->
+        <a href="/download/ios-profile" @click="handleIosClick" class="w-full bg-gradient-to-r from-stone-800 to-stone-900 hover:from-stone-700 hover:to-stone-800 text-white font-extrabold p-4 rounded-2xl shadow-xl flex items-center justify-between transition active:scale-95 border border-white/20">
+          <div class="flex items-center space-x-3">
+            <div class="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center text-2xl">
+              <i class="fa-brands fa-apple"></i>
+            </div>
+            <div class="text-left">
+              <div class="text-sm font-black">Для iPhone (iOS)</div>
+              <div class="text-[11px] font-normal text-stone-300">Завантажити профіль іконки</div>
+            </div>
+          </div>
+          <i class="fa-solid fa-arrow-down-to-bracket text-lg"></i>
+        </a>
+      </div>
+
+      <div v-if="showAndroidHelp" class="p-3 bg-amber-500/15 border border-amber-400/30 rounded-2xl text-[11px] text-amber-200">
+        💡 Якщо завантаження не почалося автоматично: натисніть <b>три крапки ⋮</b> у браузері та оберіть <b>«Встановити додаток»</b>.
+      </div>
+    </div>
+  </div>
 
 <script>
 const { createApp, ref, computed, onMounted } = Vue;
@@ -443,6 +552,31 @@ createApp({
       deferredPrompt = e;
     });
 
+        const showAndroidHelp = ref(false);
+
+    function installForAndroid() {
+      if (deferredPrompt) {
+        deferredPrompt.prompt();
+        deferredPrompt.userChoice.then((res) => {
+          if (res.outcome === 'accepted') {
+            showToast('Додаток встановлюється на Android! 📲');
+            showInstallModal.value = false;
+          }
+          deferredPrompt = null;
+        });
+      } else {
+        showAndroidHelp.value = true;
+        showToast('Натисніть три крапки ⋮ ➔ «Встановити додаток»');
+      }
+    }
+
+    function handleIosClick() {
+      showToast('Завантаження профілю для iPhone... 🍏');
+      setTimeout(() => {
+        alert("Профіль завантажено! Відкрийте «Параметри» (Settings) на вашому iPhone і натисніть «Профіль завантажено» ➔ «Встановити», щоб іконка з'явилася на екрані!");
+      }, 1200);
+    }
+
     function triggerInstall() {
       if (deferredPrompt) {
         deferredPrompt.prompt();
@@ -467,8 +601,11 @@ createApp({
     }
 
     async function submitSocialModal() {
+      if (!socialModal.value.name.trim() && socialModal.value.handle.trim()) {
+        socialModal.value.name = socialModal.value.handle.replace('@', '').trim();
+      }
       if (!socialModal.value.name.trim() || socialModal.value.phone.trim().length < 8) {
-        alert("Будь ласка, введіть ім'я та номер телефону");
+        alert("Будь ласка, вкажіть ваше ім'я (або нікнейм) та номер телефону");
         return;
       }
       try {
@@ -490,6 +627,7 @@ createApp({
           socialModal.value.open = false;
           await loadProfile();
           await loadReviews();
+      await loadRewards();
           showToast(`Ласкаво просимо, ${client.value.name}! 👑`);
         } else {
           alert(data.message || 'Помилка авторизації');
@@ -522,6 +660,7 @@ createApp({
           localStorage.setItem('vip_phone', client.value.phone);
           await loadProfile();
           await loadReviews();
+      await loadRewards();
           showToast(`Вітаємо, ${client.value.name}! Вам нараховано 50 Beauty Coins 🎁`);
         } else {
           alert(data.message || 'Помилка реєстрації');
@@ -544,15 +683,23 @@ createApp({
       setTimeout(() => { toast.value.show = false; }, 2800);
     }
 
-    const rewardsCatalog = [
-      { id: '👑', icon: '👑', title: 'Золота VIP-Корона', desc: 'Ексклюзивний смайлик корони для ваших відгуків', cost: 30 },
-      { id: '💎', icon: '💎', title: 'Діамантове сяйво', desc: 'Смайлик діаманту поруч з вашим ім’ям', cost: 25 },
-      { id: '🔥', icon: '🔥', title: 'Вельветовий вогник', desc: 'Смайлик тренду Velvet Nails', cost: 20 },
-      { id: '☕', icon: '☕', title: 'Кава & Prosecco', desc: 'Улюблений напій у студії безкоштовно', cost: 15 },
-      { id: '🏷️1.50', icon: '🏷️', title: 'Знижка 1.50€ на візит', desc: 'Приємна знижка на наступну процедуру', cost: 100 },
-      { id: '🏷️2.50', icon: '🏷️', title: 'Знижка 2.50€ на візит', desc: 'Супер-знижка на будь-який комплекс', cost: 150 },
-      { id: '🌸', icon: '🌸', title: 'SPA-догляд для рук', desc: 'Холодний парафін + скрабування в подарунок', cost: 80 }
-    ];
+    const rewardsCatalog = ref([]);
+
+    async function loadRewards() {
+      try {
+        const res = await fetch('/api/vip/rewards');
+        const data = await res.json();
+        rewardsCatalog.value = data.map(r => ({
+          id: r.id,
+          icon: r.icon,
+          title: r.title,
+          desc: r.description,
+          cost: r.cost
+        }));
+      } catch (e) {
+        console.error('Failed to load rewards', e);
+      }
+    }
 
     const newReview = ref({
       rating: 5,
@@ -588,6 +735,7 @@ createApp({
           localStorage.setItem('vip_phone', client.value.phone);
           await loadProfile();
           await loadReviews();
+      await loadRewards();
           showToast(`Ласкаво просимо, ${client.value.name}! 👑`);
         } else {
           alert(data.message || 'Доступ відхилено');
@@ -682,6 +830,7 @@ createApp({
           newReview.value.emojis = '';
           await loadProfile();
           await loadReviews();
+      await loadRewards();
         }
       } catch (e) {
         alert('Помилка відправки відгуку');
@@ -704,13 +853,19 @@ createApp({
         await loginWithPhone();
       }
       await loadReviews();
+      await loadRewards();
     });
 
     return {
       currentLang, availableLangs, setLang,
       isLoggedIn, loginPhone, activeTab, client, appointments, reviews,
       toast, rewardsCatalog, newReview, unlockedEmojisList, isRewardOwned,
-      loginWithPhone, loginWithSocial, redeem, showInstallModal, triggerInstall, authMode, regForm, socialModal, openSocialModal, submitSocialModal, registerClient, insertEmoji, submitReview, logout
+      loginWithPhone, loginWithSocial, redeem, showInstallModal, triggerInstall, authMode, regForm, socialModal, openSocialModal, submitSocialModal,
+      showAvatarModal,
+      avatarPresets,
+      onClientPhotoUpload,
+      setClientPresetAvatar,
+      removeClientAvatar, registerClient, insertEmoji, submitReview, logout
     };
   }
 }).mount('#vip-app');
