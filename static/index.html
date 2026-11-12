@@ -42,41 +42,125 @@
   </style>
 </head>
 <body class="bg-stone-100 text-stone-800 antialiased pb-24">
-<div id="app" class="max-w-md mx-auto min-h-screen bg-stone-50 flex flex-col shadow-2xl relative">
+<div id="app" class="max-w-md lg:max-w-6xl mx-auto min-h-screen bg-stone-50 flex flex-col shadow-2xl relative lg:my-6 lg:rounded-3xl lg:border lg:border-stone-200 lg:overflow-hidden">
 
-  <!-- SECURITY PASSWORD LOCK SCREEN (Екран блокування) -->
-  <div v-if="!isUnlocked" class="fixed inset-0 z-50 bg-[#1C1715] text-white flex flex-col justify-center items-center p-6 space-y-6">
-    <div class="w-20 h-20 rounded-3xl bg-gradient-to-tr from-rose-500/20 to-amber-400/20 border border-amber-400/40 flex items-center justify-center text-amber-300 text-3xl shadow-2xl">
-      <i class="fa-solid fa-lock"></i>
-    </div>
-
-    <div class="text-center space-y-1.5">
-      <span class="text-[10px] uppercase font-bold tracking-widest text-amber-400">Security Gate</span>
-      <h2 class="text-2xl font-bold font-serif-luxury text-white">Natali Nails Privé</h2>
-      <p class="text-xs text-stone-400">Введіть пароль майстра для входу в кабінет</p>
-    </div>
-
-    <!-- Password Input Box -->
-    <div class="w-full max-w-xs space-y-3">
-      <div class="relative">
-        <input :type="showPassword ? 'text' : 'password'" v-model="pinInput" @keyup.enter="submitPin"
-          placeholder="Введіть пароль..."
-          class="w-full bg-white/5 border border-white/20 focus:border-amber-400 rounded-2xl py-3.5 pl-4 pr-11 text-sm text-white placeholder-stone-500 focus:outline-none">
-        <button type="button" @click="showPassword = !showPassword" class="absolute right-3.5 top-3.5 text-stone-400 hover:text-white text-sm">
-          <i :class="showPassword ? 'fa-solid fa-eye-slash' : 'fa-solid fa-eye'"></i>
-        </button>
+  <!-- SECURITY / CLIENT GATE SCREEN -->
+  <div v-if="!isUnlocked" class="fixed inset-0 z-50 bg-[#1C1715] text-white flex flex-col justify-between p-6 overflow-y-auto hide-scrollbar">
+    <!-- Top Bar with App Name & Install Button -->
+    <div class="flex items-center justify-between pt-1">
+      <div class="flex items-center space-x-2">
+        <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-rose-500 to-amber-400 flex items-center justify-center text-white text-xs shadow-md">
+          <i class="fa-solid fa-crown text-[10px]"></i>
+        </div>
+        <span class="font-serif-luxury font-bold text-sm tracking-wide text-amber-200">Natali Nails Privé</span>
       </div>
-
-      <button @click="submitPin" class="w-full bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-stone-950 font-black py-3.5 rounded-2xl shadow-xl shadow-amber-500/20 text-xs transition active:scale-95 flex items-center justify-center space-x-2">
-        <span>Увійти в кабінет</span>
-        <i class="fa-solid fa-arrow-right text-[11px]"></i>
+      <button @click="showInstallModal = true" class="bg-white/10 hover:bg-white/20 text-white text-[10px] font-bold px-3 py-1.5 rounded-full border border-white/15 flex items-center space-x-1.5 shadow-sm active:scale-95 transition">
+        <i class="fa-solid fa-download text-[10px] text-amber-300"></i>
+        <span>Встановити додаток</span>
       </button>
+    </div>
 
-      <div class="bg-white/5 rounded-2xl p-3 border border-white/10 text-center">
-        <p class="text-[11px] text-stone-400">
-          🔑 Встановлений пароль: <b class="text-amber-300 cursor-pointer" @click="pinInput = '1997Bellais1997$'">1997Bellais1997$</b>
+    <!-- VIEW 1: CLIENT REGISTRATION & LOGIN -->
+    <div v-if="gateMode === 'client'" class="my-auto py-4 space-y-5 text-center max-w-sm mx-auto w-full">
+      <div class="space-y-2">
+        <div class="w-20 h-20 rounded-3xl bg-gradient-to-tr from-rose-500/20 via-amber-400/20 to-transparent border border-amber-400/30 flex items-center justify-center mx-auto shadow-2xl text-amber-300 text-3xl">
+          <i class="fa-solid fa-gem animate-pulse"></i>
+        </div>
+        <h2 class="text-3xl font-bold font-serif-luxury text-white tracking-tight">Natali Nails Privé</h2>
+        <p class="text-xs text-stone-300 leading-relaxed px-2">
+          Простір естетики Quiet Luxury, бездоганного манікюру та VIP-привілеїв для клієнток.
         </p>
       </div>
+
+      <!-- Registration Card with Options -->
+      <div class="bg-white/5 border border-white/10 rounded-3xl p-5 space-y-4 shadow-xl backdrop-blur-md">
+        <div class="text-left pb-1 border-b border-white/10 flex items-center justify-between">
+          <div>
+            <h3 class="font-bold text-sm text-white">Зареєструватися / Увійти</h3>
+            <p class="text-[10px] text-amber-300 font-semibold">Отримайте 50 Beauty Coins у подарунок 🎁</p>
+          </div>
+          <span class="text-xs text-amber-400">✨</span>
+        </div>
+
+        <div class="space-y-2.5">
+          <!-- Instagram Button -->
+          <button @click="openSocialClientModal('Instagram')" class="w-full bg-gradient-to-r from-[#833ab4] via-[#fd1d1d] to-[#fcb045] hover:opacity-95 text-white font-bold py-3.5 rounded-2xl shadow-lg shadow-rose-900/30 flex items-center justify-center space-x-2 text-xs transition active:scale-95">
+            <i class="fa-brands fa-instagram text-base"></i>
+            <span>Продовжити через Instagram</span>
+          </button>
+
+          <!-- Facebook Button -->
+          <button @click="openSocialClientModal('Facebook')" class="w-full bg-[#1877F2] hover:bg-[#166fe5] text-white font-bold py-3.5 rounded-2xl shadow-lg shadow-blue-900/30 flex items-center justify-center space-x-2 text-xs transition active:scale-95">
+            <i class="fa-brands fa-facebook text-base"></i>
+            <span>Продовжити через Facebook</span>
+          </button>
+
+          <!-- Google Button -->
+          <button @click="openSocialClientModal('Google')" class="w-full bg-white hover:bg-stone-100 text-stone-900 font-bold py-3.5 rounded-2xl shadow-lg flex items-center justify-center space-x-2 text-xs transition active:scale-95">
+            <i class="fa-brands fa-google text-base text-rose-500"></i>
+            <span>Продовжити через Google</span>
+          </button>
+
+          <!-- Phone Button -->
+          <button @click="openSocialClientModal('Phone')" class="w-full bg-white/10 hover:bg-white/20 text-white font-bold py-3 rounded-2xl border border-white/15 flex items-center justify-center space-x-2 text-xs transition active:scale-95">
+            <i class="fa-solid fa-mobile-screen text-amber-400"></i>
+            <span>За номером телефону</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Quick booking link without registration -->
+      <div>
+        <a href="/book" class="inline-flex items-center space-x-1.5 text-xs text-rose-300 hover:text-white font-semibold underline underline-offset-4 transition">
+          <i class="fa-solid fa-calendar-check text-[11px]"></i>
+          <span>Записатися онлайн без реєстрації ➔</span>
+        </a>
+      </div>
+    </div>
+
+    <!-- VIEW 2: MASTER LOGIN SCREEN -->
+    <div v-else-if="gateMode === 'master'" class="my-auto py-6 space-y-6 text-center max-w-xs mx-auto w-full">
+      <div class="w-16 h-16 rounded-3xl bg-gradient-to-tr from-amber-500/20 to-amber-400/20 border border-amber-400/40 flex items-center justify-center text-amber-300 text-2xl mx-auto shadow-2xl">
+        <i class="fa-solid fa-lock"></i>
+      </div>
+
+      <div class="space-y-1">
+        <span class="text-[10px] uppercase font-bold tracking-widest text-amber-400">Security Gate</span>
+        <h2 class="text-xl font-bold font-serif-luxury text-white">Кабінет майстра Natali</h2>
+        <p class="text-xs text-stone-400">Введіть пароль для доступу до CRM</p>
+      </div>
+
+      <!-- Password Input Box -->
+      <form @submit.prevent="submitPin" class="space-y-3">
+        <div class="relative">
+          <input :type="showPassword ? 'text' : 'password'" v-model="pinInput" name="password" autocomplete="current-password"
+            placeholder="Введіть пароль..."
+            class="w-full bg-white/5 border border-white/20 focus:border-amber-400 rounded-2xl py-3.5 pl-4 pr-11 text-sm text-white placeholder-stone-500 focus:outline-none">
+          <button type="button" @click="showPassword = !showPassword" class="absolute right-3.5 top-3.5 text-stone-400 hover:text-white text-sm">
+            <i :class="showPassword ? 'fa-solid fa-eye-slash' : 'fa-solid fa-eye'"></i>
+          </button>
+        </div>
+
+        <button type="submit" class="w-full bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-stone-950 font-black py-3.5 rounded-2xl shadow-xl shadow-amber-500/20 text-xs transition active:scale-95 flex items-center justify-center space-x-2">
+          <span>Увійти в кабінет</span>
+          <i class="fa-solid fa-arrow-right text-[11px]"></i>
+        </button>
+      </form>
+
+      <div>
+        <button @click="gateMode = 'client'" class="text-xs text-stone-400 hover:text-white flex items-center justify-center space-x-1 mx-auto transition">
+          <i class="fa-solid fa-arrow-left text-[10px]"></i>
+          <span>Назад до входу для клієнтів</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Bottom Discrete Master Switcher -->
+    <div class="text-center pb-2 pt-3">
+      <button v-if="gateMode === 'client'" @click="gateMode = 'master'" class="text-[11px] text-stone-500 hover:text-amber-300 flex items-center justify-center space-x-1.5 mx-auto transition">
+        <i class="fa-solid fa-shield-halved text-[10px]"></i>
+        <span>Вхід для майстра Natali 🔒</span>
+      </button>
     </div>
   </div>
 
@@ -92,6 +176,25 @@
           <h1 class="font-bold text-sm leading-tight text-white">{{ settings.studio_name || 'Natali Nails Privé' }}</h1>
           <p class="text-[11px] text-rose-300 font-medium">{{ settings.master_name }}</p>
         </div>
+      </div>
+
+      <!-- Desktop Navigation Tabs -->
+      <div class="hidden lg:flex items-center space-x-1 bg-white/10 p-1 rounded-xl text-xs font-semibold">
+        <button @click="currentTab = 'schedule'" :class="currentTab === 'schedule' ? 'bg-rose-600 text-white shadow' : 'text-stone-300 hover:text-white'" class="px-3 py-1.5 rounded-lg transition">
+          <i class="fa-regular fa-calendar-days mr-1.5"></i>{{ t('tab_schedule') }}
+        </button>
+        <button @click="currentTab = 'finance'" :class="currentTab === 'finance' ? 'bg-rose-600 text-white shadow' : 'text-stone-300 hover:text-white'" class="px-3 py-1.5 rounded-lg transition">
+          <i class="fa-solid fa-wallet mr-1.5"></i>{{ t('tab_finance') }}
+        </button>
+        <button @click="currentTab = 'clients'" :class="currentTab === 'clients' ? 'bg-rose-600 text-white shadow' : 'text-stone-300 hover:text-white'" class="px-3 py-1.5 rounded-lg transition">
+          <i class="fa-solid fa-users mr-1.5"></i>{{ t('tab_clients') }}
+        </button>
+        <button @click="currentTab = 'services'" :class="currentTab === 'services' ? 'bg-rose-600 text-white shadow' : 'text-stone-300 hover:text-white'" class="px-3 py-1.5 rounded-lg transition">
+          <i class="fa-solid fa-wand-magic-sparkles mr-1.5"></i>{{ t('tab_services') }}
+        </button>
+        <button @click="currentTab = 'settings'" :class="currentTab === 'settings' ? 'bg-rose-600 text-white shadow' : 'text-stone-300 hover:text-white'" class="px-3 py-1.5 rounded-lg transition">
+          <i class="fa-solid fa-gear mr-1.5"></i>{{ t('tab_settings') }}
+        </button>
       </div>
 
       <div class="flex items-center space-x-1.5">
@@ -402,7 +505,10 @@
                 {{ c.name.slice(0, 2).toUpperCase() }}
               </div>
               <div>
-                <h3 class="font-bold text-stone-900 text-sm">{{ c.name }}</h3>
+                <div class="flex items-center space-x-1.5">
+                  <h3 class="font-bold text-stone-900 text-sm">{{ c.name }}</h3>
+                  <span v-if="c.is_vip" class="text-amber-500 text-xs" title="VIP Схвалено"><i class="fa-solid fa-crown"></i></span>
+                </div>
                 <p class="text-xs text-stone-500">{{ c.phone }}</p>
               </div>
             </div>
@@ -418,16 +524,30 @@
 
           <div class="pt-2 border-t border-stone-100 flex items-center justify-between text-xs">
             <div class="flex items-center space-x-2">
-              <a :href="'tel:' + c.phone" class="text-stone-600 hover:text-stone-900 bg-stone-100 px-2 py-1 rounded-md font-semibold">
+              <a :href="'tel:' + c.phone" class="text-stone-600 hover:text-stone-900 bg-stone-100 px-2 py-1 rounded-md font-semibold text-[11px]">
                 <i class="fa-solid fa-phone mr-1"></i>{{ t('btn_call') }}
               </a>
-              <a :href="'viber://chat?number=' + (c.phone || '').replace('+', '')" class="text-purple-600 bg-purple-50 px-2 py-1 rounded-md font-semibold">
+              <a :href="'viber://chat?number=' + (c.phone || '').replace('+', '')" class="text-purple-600 bg-purple-50 px-2 py-1 rounded-md font-semibold text-[11px]">
                 <i class="fa-brands fa-viber mr-1"></i>Viber
               </a>
             </div>
-            <button @click="quickBookClient(c)" class="text-rose-600 font-bold hover:underline">
-              {{ t('btn_book_client') }}
-            </button>
+            <div class="flex items-center space-x-1.5">
+              <!-- VIP CROWN TOGGLE -->
+              <button @click="toggleClientVip(c)" :class="c.is_vip ? 'bg-amber-400 text-stone-950 shadow-md font-bold' : 'bg-stone-100 text-stone-400 hover:text-amber-500'" class="px-2 py-1 rounded-lg text-xs flex items-center space-x-1 transition active:scale-95" :title="c.is_vip ? 'VIP статус активний (натисніть щоб зняти)' : 'Надати VIP статус'">
+                <i class="fa-solid fa-crown text-[10px]"></i>
+                <span class="text-[10px]">{{ c.is_vip ? 'VIP 👑' : 'VIP' }}</span>
+              </button>
+
+              <button @click="quickBookClient(c)" class="text-rose-600 font-bold hover:underline text-[11px]">
+                {{ t('btn_book_client') }}
+              </button>
+              <button @click="editClient(c)" class="w-7 h-7 rounded-lg bg-stone-100 text-stone-600 hover:text-stone-900 flex items-center justify-center text-xs transition" title="Редагувати">
+                <i class="fa-regular fa-pen-to-square"></i>
+              </button>
+              <button @click="deleteClient(c.id, c.name)" class="w-7 h-7 rounded-lg bg-rose-50 text-rose-500 hover:bg-rose-100 hover:text-rose-700 flex items-center justify-center text-xs transition" title="Видалити клієнта">
+                <i class="fa-regular fa-trash-can"></i>
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -489,11 +609,11 @@
         <div class="space-y-2 text-xs pt-1">
           <div>
             <label class="block text-[11px] text-stone-400 mb-0.5">Старий пароль</label>
-            <input v-model="pinChange.old_pin" type="text" placeholder="1997Bellais1997$" class="w-full bg-white/5 border border-white/10 rounded-xl p-2.5 text-white placeholder-stone-500 text-xs font-mono">
+            <input v-model="pinChange.old_pin" type="password" placeholder="••••••••" class="w-full bg-white/5 border border-white/10 rounded-xl p-2.5 text-white placeholder-stone-500 text-xs font-mono">
           </div>
           <div>
             <label class="block text-[11px] text-stone-400 mb-0.5">Новий пароль</label>
-            <input v-model="pinChange.new_pin" type="text" placeholder="Введіть новий пароль" class="w-full bg-white/5 border border-white/10 rounded-xl p-2.5 text-white placeholder-stone-500 text-xs font-mono">
+            <input v-model="pinChange.new_pin" type="password" placeholder="••••••••" class="w-full bg-white/5 border border-white/10 rounded-xl p-2.5 text-white placeholder-stone-500 text-xs font-mono">
           </div>
         </div>
         <button @click="changePin" class="w-full bg-amber-400 hover:bg-amber-300 text-stone-950 font-bold py-2.5 rounded-xl text-xs transition active:scale-95 shadow">
@@ -599,8 +719,8 @@
       </div>
     </main>
 
-    <!-- Bottom Navigation Tab Bar -->
-    <nav class="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-stone-200 max-w-md mx-auto">
+    <!-- Bottom Navigation Tab Bar (Тільки для мобільних) -->
+    <nav class="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-stone-200 max-w-md lg:hidden mx-auto shadow-lg">
       <div class="flex items-center justify-around py-2 px-1">
         <button @click="currentTab = 'schedule'" :class="currentTab === 'schedule' ? 'text-rose-600 font-bold' : 'text-stone-400 hover:text-stone-600'" class="flex flex-col items-center flex-1 py-1 transition">
           <i class="fa-regular fa-calendar-days text-lg"></i>
@@ -920,6 +1040,46 @@
     </div>
   </div>
 
+  <!-- MODAL: КЛІЄНТСЬКА РЕЄСТРАЦІЯ / ВХІД ЧЕРЕЗ СОЦМЕРЕЖІ -->
+  <div v-if="clientAuthModal.open" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4">
+    <div class="bg-[#1C1715] text-white w-full max-w-sm rounded-t-3xl sm:rounded-3xl p-5 space-y-4 border border-white/10 shadow-2xl">
+      <div class="flex items-center justify-between pb-2 border-b border-white/10">
+        <div class="flex items-center space-x-2">
+          <div class="w-8 h-8 rounded-xl flex items-center justify-center text-white" :class="clientAuthModal.provider === 'Instagram' ? 'bg-gradient-to-tr from-[#fd1d1d] to-[#833ab4]' : (clientAuthModal.provider === 'Facebook' ? 'bg-[#1877F2]' : (clientAuthModal.provider === 'Google' ? 'bg-white text-stone-900' : 'bg-amber-500 text-stone-950'))">
+            <i :class="clientAuthModal.provider === 'Instagram' ? 'fa-brands fa-instagram text-sm' : (clientAuthModal.provider === 'Facebook' ? 'fa-brands fa-facebook text-sm' : (clientAuthModal.provider === 'Google' ? 'fa-brands fa-google text-sm text-rose-500' : 'fa-solid fa-mobile-screen text-xs'))"></i>
+          </div>
+          <div>
+            <h3 class="font-extrabold text-sm text-white">Реєстрація у VIP Club</h3>
+            <p class="text-[10px] text-amber-300">через {{ clientAuthModal.provider }} (+50 балів 🎁)</p>
+          </div>
+        </div>
+        <button @click="clientAuthModal.open = false" class="text-stone-400 hover:text-white p-1">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <div class="space-y-3 text-xs text-left">
+        <div>
+          <label class="block font-semibold text-stone-300 mb-1">Ваше ім'я:</label>
+          <input v-model="clientAuthModal.name" placeholder="Олена" class="w-full bg-white/5 border border-white/15 focus:border-amber-400 rounded-xl p-2.5 text-white placeholder-stone-500">
+        </div>
+        <div>
+          <label class="block font-semibold text-stone-300 mb-1">Номер телефону:</label>
+          <input v-model="clientAuthModal.phone" type="tel" placeholder="+34... або +380..." class="w-full bg-white/5 border border-white/15 focus:border-amber-400 rounded-xl p-2.5 text-white placeholder-stone-500">
+        </div>
+        <div v-if="clientAuthModal.provider !== 'Phone'">
+          <label class="block font-semibold text-stone-300 mb-1">Нікнейм або профіль {{ clientAuthModal.provider }}:</label>
+          <input v-model="clientAuthModal.handle" :placeholder="'@username в ' + clientAuthModal.provider" class="w-full bg-white/5 border border-white/15 focus:border-amber-400 rounded-xl p-2.5 text-white placeholder-stone-500">
+        </div>
+
+        <button @click="submitClientSocialAuth" class="w-full bg-gradient-to-r from-amber-400 via-amber-300 to-amber-500 hover:opacity-95 text-stone-950 font-black py-3 rounded-xl shadow-lg shadow-amber-500/20 text-xs transition active:scale-95 flex items-center justify-center space-x-1.5 mt-2">
+          <span>Отримати 50 балів та увійти</span>
+          <i class="fa-solid fa-arrow-right text-[10px]"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+
 </div>
 
 <script>
@@ -927,11 +1087,55 @@ const { createApp, ref, computed, onMounted } = Vue;
 
 createApp({
   setup() {
-    const isUnlocked = ref(sessionStorage.getItem('master_token') ? true : false);
+    const isUnlocked = ref(localStorage.getItem('master_token') ? true : false);
+    const gateMode = ref('client');
     const pinInput = ref('');
     const showPassword = ref(false);
     const pinChange = ref({ old_pin: '', new_pin: '' });
     const showInstallModal = ref(false);
+    const clientAuthModal = ref({ open: false, provider: 'Instagram', name: '', phone: '', handle: '' });
+
+    function openSocialClientModal(provider) {
+      clientAuthModal.value = {
+        open: true,
+        provider: provider,
+        name: '',
+        phone: '',
+        handle: ''
+      };
+    }
+
+    async function submitClientSocialAuth() {
+      if (!clientAuthModal.value.name.trim() || clientAuthModal.value.phone.trim().length < 8) {
+        alert("Будь ласка, введіть ваше ім'я та номер телефону");
+        return;
+      }
+      try {
+        const res = await fetch('/api/client/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            provider: clientAuthModal.value.provider.toLowerCase(),
+            name: clientAuthModal.value.name.trim(),
+            phone: clientAuthModal.value.phone.trim(),
+            instagram: clientAuthModal.value.handle ? clientAuthModal.value.handle.trim() : ''
+          })
+        });
+        const data = await res.json();
+        if (data.status === 'ok') {
+          localStorage.setItem('vip_phone', clientAuthModal.value.phone.trim());
+          clientAuthModal.value.open = false;
+          showToast(`Вітаємо, ${clientAuthModal.value.name}! 50 балів зараховано 🎁`);
+          setTimeout(() => {
+            window.location.href = '/club';
+          }, 600);
+        } else {
+          alert(data.message || 'Помилка входу');
+        }
+      } catch (e) {
+        alert('Помилка сервера');
+      }
+    }
 
     const currentLang = ref(localStorage.getItem('nail_lang') || 'uk');
     const availableLangs = {
@@ -965,7 +1169,7 @@ createApp({
         });
         if (res.ok) {
           const data = await res.json();
-          sessionStorage.setItem('master_token', data.token);
+          localStorage.setItem('master_token', data.token);
           isUnlocked.value = true;
           showToast('Ласкаво просимо, Natali! Кабінет відкрито 💅');
           await loadAllData();
@@ -979,7 +1183,7 @@ createApp({
     }
 
     function lockApp() {
-      sessionStorage.removeItem('master_token');
+      localStorage.removeItem('master_token');
       isUnlocked.value = false;
       pinInput.value = '';
       showToast('Кабінет заблоковано 🔒');
@@ -1314,23 +1518,66 @@ createApp({
     }
 
     function openNewClientModal() {
-      formClient.value = { name: '', phone: '', instagram: '', notes: '' };
+      formClient.value = { id: null, name: '', phone: '', instagram: '', notes: '' };
       modals.value.newClient = true;
+    }
+
+    function editClient(c) {
+      formClient.value = { id: c.id, name: c.name, phone: c.phone, instagram: c.instagram || '', notes: c.notes || '' };
+      modals.value.newClient = true;
+    }
+
+    async function deleteClient(id, name) {
+      if (!confirm(`Видалити клієнта ${name || ''} з бази?`)) return;
+      try {
+        await fetch(`/api/clients/${id}`, { method: 'DELETE' });
+        await loadClients();
+        showToast('Клієнта видалено');
+      } catch (e) {
+        alert('Помилка видалення клієнта');
+      }
     }
 
     async function saveClient() {
       if (!formClient.value.name || !formClient.value.phone) {
-        alert("Please fill name and phone");
+        alert("Введіть ім'я та телефон клієнта");
         return;
       }
-      await fetch('/api/clients', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formClient.value)
-      });
-      modals.value.newClient = false;
-      await loadClients();
-      showToast(t('btn_add_client'));
+      try {
+        if (formClient.value.id) {
+          await fetch(`/api/clients/${formClient.value.id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(formClient.value)
+          });
+          showToast('Дані клієнта оновлено');
+        } else {
+          await fetch('/api/clients', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(formClient.value)
+          });
+          showToast(t('btn_add_client'));
+        }
+        modals.value.newClient = false;
+        await loadClients();
+      } catch (e) {
+        alert('Помилка збереження клієнта');
+      }
+    }
+
+    async function toggleClientVip(c) {
+      try {
+        const res = await fetch(`/api/clients/${c.id}/toggle-vip`, { method: 'POST' });
+        const data = await res.json();
+        if (data.status === 'ok') {
+          c.is_vip = data.is_vip;
+          c.vip_tier = data.vip_tier;
+          showToast(c.is_vip ? `VIP статус для ${c.name} активовано! 👑` : `VIP статус для ${c.name} вимкнено`);
+        }
+      } catch (e) {
+        alert('Помилка оновлення VIP статусу');
+      }
     }
 
     function quickBookClient(c) {
@@ -1400,6 +1647,7 @@ createApp({
 
     return {
       isUnlocked, pinInput, showPassword, pinChange, submitPin, lockApp, changePin, showInstallModal,
+      gateMode, clientAuthModal, openSocialClientModal, submitClientSocialAuth,
       currentLang, availableLangs, setLang, t,
       currentTab, settings, services, clients, appointments, transactions, financeSummary,
       todayStr, selectedDate, selectedMonth, clientSearch, daysList, dayAppointments,
@@ -1408,7 +1656,7 @@ createApp({
       selectDate, formatDateHeader, setAppStatus, deleteApp, copyBookingLink,
       openNewAppointmentModal, onServiceSelectChange, saveNewAppointment,
       openExpenseModal, saveExpense, deleteTransaction,
-      openNewClientModal, saveClient, quickBookClient,
+      openNewClientModal, saveClient, editClient, deleteClient, toggleClientVip, quickBookClient,
       openNewServiceModal, editService, saveService, deleteService,
       saveSettings, loadFinance, toggleCurrency, getMethodTotal,
       formatPaymentMethodName, getPaymentMethodBadgeClass,

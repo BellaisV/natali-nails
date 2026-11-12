@@ -1,6 +1,8 @@
 {
   "name": "Natali Nails Privé — Beauty CRM",
   "short_name": "Natali Nails",
+  "id": "/",
+  "scope": "/",
   "description": "Особистий кабінет майстра Natali, онлайн-запис та VIP-клуб",
   "start_url": "/",
   "display": "standalone",

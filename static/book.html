@@ -4,6 +4,11 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Онлайн-запис до майстра манікюру | Booking</title>
+  <link rel="manifest" href="/static/manifest.json">
+  <link rel="apple-touch-icon" href="/static/icon-192.png">
+  <link rel="icon" type="image/png" href="/static/icon-192.png">
+  <meta name="theme-color" content="#1C1715">
+  <meta name="apple-mobile-web-app-capable" content="yes">
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
   <script src="/static/i18n.js"></script>
@@ -29,7 +34,7 @@
   </style>
 </head>
 <body class="bg-[#FAF7F5] text-stone-800 antialiased selection:bg-rose-200">
-<div id="booking-app" class="max-w-md mx-auto min-h-screen bg-[#FAF7F5] pb-28 shadow-2xl relative">
+<div id="booking-app" class="max-w-md lg:max-w-5xl mx-auto min-h-screen bg-[#FAF7F5] pb-28 lg:pb-12 shadow-2xl relative lg:my-6 lg:rounded-3xl lg:border lg:border-stone-200 lg:overflow-hidden">
 
   <!-- TOP BAR: Language selector & VIP Club link -->
   <div class="bg-[#2E2421] text-stone-200 px-4 pt-3 pb-2 flex items-center justify-between text-xs border-b border-white/10">
@@ -47,6 +52,18 @@
         <span>{{ cfg.code.toUpperCase() }}</span>
       </button>
     </div>
+  </div>
+
+  <!-- BOOKING INSTALL BANNER -->
+  <div class="bg-gradient-to-r from-stone-900 via-stone-800 to-stone-900 text-white px-4 py-2.5 flex items-center justify-between text-xs border-b border-white/10 shadow-sm">
+    <div class="flex items-center space-x-2">
+      <img src="/static/icon-192.png" class="w-6 h-6 rounded-md shadow-sm border border-amber-400/40">
+      <span class="text-[11px] font-semibold text-stone-200">Додаток Natali Nails Privé</span>
+    </div>
+    <button @click="showInstallModal = true" class="bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 text-stone-950 font-black text-[10px] px-3 py-1 rounded-lg shadow transition active:scale-95 flex items-center space-x-1">
+      <i class="fa-solid fa-download text-[9px]"></i>
+      <span>Встановити</span>
+    </button>
   </div>
 
   <!-- HEADER / MASTER PROFILE CARD -->
@@ -411,9 +428,38 @@
       </a>
     </div>
 
-    <!-- Payment Buttons (Bizum & PayPal) -->
+    <!-- Free Booking & Cash info banner -->
+    <div class="bg-emerald-50 border border-emerald-200 rounded-2xl p-3.5 flex items-start space-x-3 text-left">
+      <div class="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center text-sm font-bold flex-shrink-0">
+        <i class="fa-solid fa-hand-holding-dollar"></i>
+      </div>
+      <div>
+        <div class="font-extrabold text-xs text-emerald-950">Запис безкоштовний! Оплата при візиті</div>
+        <div class="text-[11px] text-emerald-800 leading-relaxed mt-0.5">
+          Ви можете сплатити <b>готівкою або карткою на місці</b> в студії після завершення манікюру, або зробити переказ зручним способом нижче:
+        </div>
+      </div>
+    </div>
+
+    <!-- Payment Buttons -->
     <div class="bg-white rounded-3xl p-4 border border-stone-200 text-left space-y-3">
       <h3 class="text-xs font-bold uppercase tracking-wider text-stone-500">{{ t('payment_methods_title') }}</h3>
+
+      <!-- Cash Payment Badge -->
+      <div v-if="settings.accept_cash" class="flex items-center justify-between p-3 bg-emerald-50/80 border border-emerald-200 rounded-2xl">
+        <div class="flex items-center space-x-2.5">
+          <div class="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center text-xs font-bold">
+            <i class="fa-solid fa-money-bill-wave"></i>
+          </div>
+          <div>
+            <div class="font-extrabold text-xs text-emerald-950">💵 Оплата готівкою при візиті</div>
+            <div class="text-[10px] text-emerald-700">Оплата майстру в студії після процедури (без передплати)</div>
+          </div>
+        </div>
+        <span class="bg-emerald-700 text-white text-[10px] font-bold px-2 py-1 rounded-lg">
+          На місці
+        </span>
+      </div>
 
       <!-- Bizum Pay / Copy -->
       <div v-if="settings.accept_bizum && settings.bizum_phone" class="flex items-center justify-between p-3 bg-sky-50 border border-sky-200 rounded-2xl">
@@ -500,6 +546,53 @@
       {{ t('btn_book_again') }}
     </button>
   </section>
+
+  <!-- MODAL: HOW TO INSTALL PWA -->
+  <div v-if="showInstallModal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white w-full max-w-sm rounded-3xl p-5 space-y-4 text-stone-900 text-left shadow-2xl">
+      <div class="flex items-center justify-between pb-2 border-b border-stone-100">
+        <div class="flex items-center space-x-2">
+          <img src="/static/icon-192.png" class="w-8 h-8 rounded-xl shadow">
+          <div>
+            <h3 class="font-bold text-sm text-stone-900">Встановлення на телефон</h3>
+            <p class="text-[10px] text-stone-500">Natali Nails Privé</p>
+          </div>
+        </div>
+        <button @click="showInstallModal = false" class="text-stone-400 hover:text-stone-700 p-1">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <div class="space-y-3 text-xs leading-relaxed">
+        <div class="p-3.5 bg-amber-50 border border-amber-200 rounded-2xl space-y-1.5">
+          <div class="font-extrabold text-amber-950 flex items-center space-x-2">
+            <i class="fa-brands fa-android text-base text-emerald-600"></i>
+            <span>Для Android (Google Chrome):</span>
+          </div>
+          <p class="text-[11px] text-amber-900">
+            1. Подивіться на екран: праворуч від адреси сайту натисніть <b>три вертикальні крапки ⋮</b>.<br>
+            2. У меню оберіть <b>«Встановити додаток»</b> (або «Додати на головний екран»).<br>
+            3. Іконка додатку з'явиться поруч з іншими програмами!
+          </p>
+        </div>
+
+        <div class="p-3.5 bg-stone-50 border border-stone-200 rounded-2xl space-y-1.5">
+          <div class="font-extrabold text-stone-900 flex items-center space-x-2">
+            <i class="fa-brands fa-apple text-base"></i>
+            <span>Для iPhone (Safari):</span>
+          </div>
+          <p class="text-[11px] text-stone-700">
+            1. Натисніть кнопку <b>«Поділитися»</b> <i class="fa-solid fa-arrow-up-from-bracket mx-0.5"></i> (квадратик зі стрілкою внизу екрана).<br>
+            2. Оберіть пункт <b>«На початковий екран»</b>.
+          </p>
+        </div>
+      </div>
+
+      <button @click="showInstallModal = false" class="w-full bg-stone-900 hover:bg-black text-white font-bold py-3 rounded-2xl text-xs transition active:scale-95">
+        Зрозуміло!
+      </button>
+    </div>
+  </div>
 
 </div>
 
@@ -736,8 +829,27 @@ createApp({
     }
 
     onMounted(async () => {
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('/static/sw.js').catch(err => console.log('SW registration error', err));
+      }
       await loadPublicData();
     });
+
+    const showInstallModal = ref(false);
+    let deferredPrompt = null;
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+    });
+
+    function triggerInstall() {
+      if (deferredPrompt) {
+        deferredPrompt.prompt();
+        deferredPrompt.userChoice.then(() => { deferredPrompt = null; });
+      } else {
+        showInstallModal.value = true;
+      }
+    }
 
     return {
       currentLang, availableLangs, setLang, t, toast,
@@ -747,7 +859,7 @@ createApp({
       clientName, clientPhone, clientNotes, submitting,
       isServiceSelected, toggleService, selectDate, goToStep2,
       formatSummaryDate, submitBooking, resetBooking, copyBizumPhone, copyCardEs, copyCardUa,
-      appendNoteTag, calendarUrl
+      appendNoteTag, calendarUrl, showInstallModal, triggerInstall
     };
   }
 }).mount('#booking-app');

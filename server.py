@@ -180,6 +180,12 @@ def init_db():
     except Exception:
         pass
 
+    # Ensure is_vip column exists
+    try:
+        cursor.execute("ALTER TABLE clients ADD COLUMN is_vip INTEGER DEFAULT 0")
+    except Exception:
+        pass
+
     conn.commit()
     conn.close()
 
@@ -482,6 +488,23 @@ def delete_client(client_id: int):
     conn.close()
     return {"status": "deleted"}
 
+@app.post("/api/clients/{client_id}/toggle-vip")
+def toggle_client_vip(client_id: int):
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("SELECT COALESCE(is_vip, 0) FROM clients WHERE id = ?", (client_id,))
+    row = cursor.fetchone()
+    if not row:
+        conn.close()
+        raise HTTPException(status_code=404, detail="Клієнта не знайдено")
+    current_vip = row[0]
+    new_vip = 1 if current_vip == 0 else 0
+    new_tier = "Diamond VIP 👑" if new_vip == 1 else "Standard"
+    cursor.execute("UPDATE clients SET is_vip = ?, vip_tier = ? WHERE id = ?", (new_vip, new_tier, client_id))
+    conn.commit()
+    conn.close()
+    return {"status": "ok", "is_vip": new_vip, "vip_tier": new_tier}
+
 @app.get("/api/appointments")
 def get_appointments(date_str: Optional[str] = None, month_str: Optional[str] = None):
     conn = get_db()
@@ -671,33 +694,21 @@ def client_login(data: ClientLoginRequest):
     client = cursor.fetchone()
 
     if not client:
-        cursor.execute("SELECT * FROM appointments WHERE client_phone LIKE ? AND status = 'completed'", (f"%{phone_clean[-9:]}%",))
-        has_paid = cursor.fetchone()
-        if not has_paid:
-            conn.close()
-            return {
-                "status": "not_verified",
-                "message": "Доступ до VIP-клубу відкривається тільки клієнткам, які вже відвідали Natali Nails Privé та оплатили процедуру. Запишіться онлайн, щоб отримати доступ!"
-            }
-        else:
-            cursor.execute("INSERT INTO clients (name, phone, points, vip_tier, unlocked_emojis, created_at) VALUES (?, ?, 100, 'Gold VIP', '💅,✨,💖', ?)",
-                           (sanitize_text(data.name) or "Клієнтка", phone_clean, datetime.now().isoformat()))
-            conn.commit()
-            cursor.execute("SELECT * FROM clients WHERE phone = ?", (phone_clean,))
-            client = cursor.fetchone()
+        # Check if they have an appointment
+        cursor.execute("SELECT * FROM appointments WHERE client_phone LIKE ? OR client_phone LIKE ? ORDER BY id DESC LIMIT 1", (f"%{phone_clean}%", f"%{phone_clean[-9:]}%"))
+        any_app = cursor.fetchone()
+        client_name = sanitize_text(data.name) or (any_app["client_name"] if any_app else "Клієнтка")
+        
+        cursor.execute("""
+        INSERT INTO clients (name, phone, points, vip_tier, unlocked_emojis, created_at)
+        VALUES (?, ?, 50, 'Gold VIP', '💅,✨,💖', ?)
+        """, (client_name, phone_clean, datetime.now().isoformat()))
+        conn.commit()
+        cursor.execute("SELECT * FROM clients WHERE phone = ?", (phone_clean,))
+        client = cursor.fetchone()
 
     cursor.execute("SELECT COUNT(*) FROM appointments WHERE (client_phone = ? OR client_phone LIKE ?) AND status = 'completed'", (client["phone"], f"%{client['phone'][-9:]}%"))
     completed_count = cursor.fetchone()[0]
-
-    if completed_count == 0:
-        cursor.execute("SELECT COUNT(*) FROM appointments WHERE client_phone = ?", (client["phone"],))
-        any_app = cursor.fetchone()[0]
-        if any_app == 0:
-            conn.close()
-            return {
-                "status": "not_verified",
-                "message": "У вас ще немає завершених процедур. Запишіться на манікюр, і після оплати цей VIP-кабінет розблокується автоматично!"
-            }
 
     conn.close()
     return {

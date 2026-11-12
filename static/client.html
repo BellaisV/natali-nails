@@ -4,6 +4,11 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>VIP Beauty Club — Особистий кабінет клієнтки</title>
+  <link rel="manifest" href="/static/manifest.json">
+  <link rel="apple-touch-icon" href="/static/icon-192.png">
+  <link rel="icon" type="image/png" href="/static/icon-192.png">
+  <meta name="theme-color" content="#1C1715">
+  <meta name="apple-mobile-web-app-capable" content="yes">
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
   <script src="/static/i18n.js"></script>
@@ -29,7 +34,7 @@
   </style>
 </head>
 <body class="bg-[#1C1715] text-stone-100 antialiased min-h-screen selection:bg-rose-500">
-<div id="vip-app" class="max-w-md mx-auto min-h-screen bg-[#1F1917] flex flex-col shadow-2xl relative pb-20">
+<div id="vip-app" class="max-w-md lg:max-w-4xl mx-auto min-h-screen bg-[#1F1917] flex flex-col shadow-2xl relative pb-20 lg:my-6 lg:rounded-3xl lg:border lg:border-white/10 lg:overflow-hidden">
 
   <!-- Top bar with Lang Switcher -->
   <header class="px-5 py-3.5 flex items-center justify-between border-b border-white/10 bg-[#161210]/80 backdrop-blur-md sticky top-0 z-40">
@@ -53,6 +58,20 @@
       </button>
     </div>
   </header>
+  <!-- INSTALL BANNER -->
+  <div class="bg-gradient-to-r from-amber-950 via-stone-900 to-amber-950 text-white px-4 py-2.5 flex items-center justify-between border-b border-amber-500/30 text-xs shadow-md">
+    <div class="flex items-center space-x-2.5">
+      <img src="/static/icon-192.png" class="w-7 h-7 rounded-lg shadow-sm border border-amber-400/40">
+      <div class="text-left">
+        <div class="font-bold text-[11px] text-amber-200">Додаток Natali Nails Privé</div>
+        <div class="text-[9px] text-stone-300">Встановити на екран для швидкого входу</div>
+      </div>
+    </div>
+    <button @click="triggerInstall" class="bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 text-stone-950 text-[11px] font-black px-3 py-1.5 rounded-xl shadow transition active:scale-95 flex items-center space-x-1">
+      <i class="fa-solid fa-download text-[10px]"></i>
+      <span>Встановити</span>
+    </button>
+  </div>
 
   <!-- Notification Toast -->
   <div v-if="toast.show" class="fixed top-16 left-1/2 -translate-x-1/2 z-50 bg-stone-900 border border-amber-500/30 text-amber-200 text-xs font-medium px-4 py-2.5 rounded-2xl shadow-2xl flex items-center space-x-2 transition-all">
@@ -181,6 +200,22 @@
 
     <!-- TAB: LOYALTY REWARDS SHOP (Обмін балів на ексклюзивні смайлики та подарунки) -->
     <div v-if="activeTab === 'shop'" class="space-y-3">
+      <!-- VIP APPROVAL NOTICE -->
+      <div v-if="!client.is_vip" class="bg-gradient-to-r from-amber-950/70 via-stone-900 to-amber-950/70 border border-amber-500/40 rounded-2xl p-4 text-left space-y-2 shadow-xl">
+        <div class="flex items-center space-x-2 text-amber-300 font-bold text-xs">
+          <i class="fa-solid fa-crown text-amber-400"></i>
+          <span>VIP-Статус: Очікує підтвердження майстром Natali</span>
+        </div>
+        <p class="text-[11px] text-stone-300 leading-relaxed">
+          Майстер <b>Natali</b> активує ваші VIP-привілеї (поставить вам коронку 👑 у своїй системі) після візиту. Після цього всі алмази 💎 та знижки розблокуються для обміну!
+        </p>
+        <div class="pt-1">
+          <a href="/book" class="inline-flex items-center space-x-1.5 text-xs text-amber-300 font-bold hover:underline">
+            <i class="fa-solid fa-calendar-check text-[11px]"></i>
+            <span>Записатися на манікюр онлайн ➔</span>
+          </a>
+        </div>
+      </div>
       <div class="flex items-center justify-between px-1">
         <h3 class="font-bold text-sm text-stone-200">Ексклюзивні винагороди</h3>
         <span class="text-[11px] text-amber-300">Баланс: {{ client.points }} балів</span>
@@ -292,6 +327,93 @@
     </div>
   </div>
 
+  <!-- MODAL: СОЦІАЛЬНИЙ ВХІД INSTAGRAM / FACEBOOK / GOOGLE -->
+  <div v-if="socialModal.open" class="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4">
+    <div class="bg-[#1C1715] text-white w-full max-w-sm rounded-t-3xl sm:rounded-3xl p-5 space-y-4 border border-white/10 shadow-2xl">
+      <div class="flex items-center justify-between pb-2 border-b border-white/10">
+        <div class="flex items-center space-x-2">
+          <div class="w-8 h-8 rounded-xl flex items-center justify-center text-white" :class="socialModal.provider === 'Instagram' ? 'bg-gradient-to-tr from-[#fd1d1d] to-[#833ab4]' : (socialModal.provider === 'Facebook' ? 'bg-[#1877F2]' : 'bg-white text-stone-900')">
+            <i :class="socialModal.provider === 'Instagram' ? 'fa-brands fa-instagram text-sm' : (socialModal.provider === 'Facebook' ? 'fa-brands fa-facebook text-sm' : 'fa-brands fa-google text-sm text-rose-500')"></i>
+          </div>
+          <div>
+            <h3 class="font-extrabold text-sm text-white">Вхід через {{ socialModal.provider }}</h3>
+            <p class="text-[10px] text-amber-300">Natali Nails VIP Privé</p>
+          </div>
+        </div>
+        <button @click="socialModal.open = false" class="text-stone-400 hover:text-white p-1">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <div class="space-y-3 text-xs text-left">
+        <div>
+          <label class="block font-semibold text-stone-300 mb-1">Ваше ім'я:</label>
+          <input v-model="socialModal.name" placeholder="Олена" class="w-full bg-white/5 border border-white/15 focus:border-amber-400 rounded-xl p-2.5 text-white placeholder-stone-500">
+        </div>
+        <div>
+          <label class="block font-semibold text-stone-300 mb-1">Номер телефону:</label>
+          <input v-model="socialModal.phone" type="tel" placeholder="+34... або +380..." class="w-full bg-white/5 border border-white/15 focus:border-amber-400 rounded-xl p-2.5 text-white placeholder-stone-500">
+        </div>
+        <div>
+          <label class="block font-semibold text-stone-300 mb-1">Профіль у {{ socialModal.provider }}:</label>
+          <input v-model="socialModal.handle" :placeholder="'@username в ' + socialModal.provider" class="w-full bg-white/5 border border-white/15 focus:border-amber-400 rounded-xl p-2.5 text-white placeholder-stone-500">
+        </div>
+
+        <button @click="submitSocialModal" class="w-full bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 text-stone-950 font-black py-3 rounded-xl shadow-lg shadow-amber-500/20 text-xs transition active:scale-95 flex items-center justify-center space-x-1.5 mt-2">
+          <span>Увійти в кабінет</span>
+          <i class="fa-solid fa-arrow-right text-[10px]"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: HOW TO INSTALL PWA -->
+  <div v-if="showInstallModal" class="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-[#1C1715] border border-white/15 w-full max-w-sm rounded-3xl p-5 space-y-4 text-stone-100 text-left shadow-2xl">
+      <div class="flex items-center justify-between pb-2 border-b border-white/10">
+        <div class="flex items-center space-x-2">
+          <img src="/static/icon-192.png" class="w-8 h-8 rounded-xl border border-amber-400/40">
+          <div>
+            <h3 class="font-bold text-sm text-white">Встановлення додатку</h3>
+            <p class="text-[10px] text-amber-300">Natali Nails Privé</p>
+          </div>
+        </div>
+        <button @click="showInstallModal = false" class="text-stone-400 hover:text-white p-1">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <div class="space-y-3 text-xs leading-relaxed">
+        <div class="p-3.5 bg-white/5 border border-amber-500/30 rounded-2xl space-y-1.5">
+          <div class="font-extrabold text-amber-300 flex items-center space-x-2">
+            <i class="fa-brands fa-android text-base text-emerald-400"></i>
+            <span>Для Android (Google Chrome):</span>
+          </div>
+          <p class="text-[11px] text-stone-300">
+            1. Подивіться на екран: праворуч від адреси сайту натисніть <b>три вертикальні крапки ⋮</b>.<br>
+            2. У меню оберіть <b>«Встановити додаток»</b> (або «Додати на головний екран»).<br>
+            3. Іконка з'явиться на вашому робочому столі!
+          </p>
+        </div>
+
+        <div class="p-3.5 bg-white/5 border border-white/10 rounded-2xl space-y-1.5">
+          <div class="font-extrabold text-white flex items-center space-x-2">
+            <i class="fa-brands fa-apple text-base"></i>
+            <span>Для iPhone (Safari):</span>
+          </div>
+          <p class="text-[11px] text-stone-300">
+            1. Натисніть кнопку <b>«Поділитися»</b> <i class="fa-solid fa-arrow-up-from-bracket mx-0.5"></i> (квадратик зі стрілкою внизу екрана).<br>
+            2. Оберіть пункт <b>«На початковий екран»</b>.
+          </p>
+        </div>
+      </div>
+
+      <button @click="showInstallModal = false" class="w-full bg-gradient-to-r from-amber-400 to-amber-500 text-stone-950 font-black py-3 rounded-2xl text-xs transition active:scale-95">
+        Зрозуміло!
+      </button>
+    </div>
+  </div>
+
 </div>
 
 <script>
@@ -314,6 +436,100 @@ createApp({
       localStorage.setItem('nail_lang', code);
     }
 
+    const showInstallModal = ref(false);
+    let deferredPrompt = null;
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+    });
+
+    function triggerInstall() {
+      if (deferredPrompt) {
+        deferredPrompt.prompt();
+        deferredPrompt.userChoice.then(() => { deferredPrompt = null; });
+      } else {
+        showInstallModal.value = true;
+      }
+    }
+
+    const authMode = ref('login');
+    const regForm = ref({ name: '', phone: '', instagram: '', provider: 'web' });
+    const socialModal = ref({ open: false, provider: 'Instagram', name: '', phone: '', handle: '' });
+
+    function openSocialModal(provider) {
+      socialModal.value = {
+        open: true,
+        provider: provider,
+        name: '',
+        phone: '',
+        handle: ''
+      };
+    }
+
+    async function submitSocialModal() {
+      if (!socialModal.value.name.trim() || socialModal.value.phone.trim().length < 8) {
+        alert("Будь ласка, введіть ім'я та номер телефону");
+        return;
+      }
+      try {
+        const res = await fetch('/api/client/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            provider: socialModal.value.provider.toLowerCase(),
+            name: socialModal.value.name.trim(),
+            phone: socialModal.value.phone.trim(),
+            instagram: socialModal.value.handle ? socialModal.value.handle.trim() : ''
+          })
+        });
+        const data = await res.json();
+        if (data.status === 'ok') {
+          client.value = data.client;
+          isLoggedIn.value = true;
+          localStorage.setItem('vip_phone', client.value.phone);
+          socialModal.value.open = false;
+          await loadProfile();
+          await loadReviews();
+          showToast(`Ласкаво просимо, ${client.value.name}! 👑`);
+        } else {
+          alert(data.message || 'Помилка авторизації');
+        }
+      } catch (e) {
+        alert('Помилка сервера');
+      }
+    }
+
+    async function registerClient() {
+      if (!regForm.value.name.trim() || regForm.value.phone.trim().length < 8) {
+        alert("Будь ласка, введіть ваше ім'я та телефон");
+        return;
+      }
+      try {
+        const res = await fetch('/api/client/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            provider: 'web',
+            name: regForm.value.name.trim(),
+            phone: regForm.value.phone.trim(),
+            instagram: regForm.value.instagram ? regForm.value.instagram.trim() : ''
+          })
+        });
+        const data = await res.json();
+        if (data.status === 'ok') {
+          client.value = data.client;
+          isLoggedIn.value = true;
+          localStorage.setItem('vip_phone', client.value.phone);
+          await loadProfile();
+          await loadReviews();
+          showToast(`Вітаємо, ${client.value.name}! Вам нараховано 50 Beauty Coins 🎁`);
+        } else {
+          alert(data.message || 'Помилка реєстрації');
+        }
+      } catch (e) {
+        alert('Помилка сервера');
+      }
+    }
     const isLoggedIn = ref(false);
     const loginPhone = ref('+380671112233');
     const activeTab = ref('shop');
@@ -410,6 +626,10 @@ createApp({
     }
 
     async function redeem(reward) {
+      if (!client.value.is_vip) {
+        alert("Майстер Natali ще не підтвердила ваш VIP-статус (коронку 👑). Після першого візиту майстер активує ваші привілеї!");
+        return;
+      }
       try {
         const res = await fetch('/api/client/redeem', {
           method: 'POST',
@@ -475,6 +695,9 @@ createApp({
     }
 
     onMounted(async () => {
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('/static/sw.js').catch(err => console.log('SW registration error', err));
+      }
       const saved = localStorage.getItem('vip_phone');
       if (saved) {
         loginPhone.value = saved;
@@ -487,7 +710,7 @@ createApp({
       currentLang, availableLangs, setLang,
       isLoggedIn, loginPhone, activeTab, client, appointments, reviews,
       toast, rewardsCatalog, newReview, unlockedEmojisList, isRewardOwned,
-      loginWithPhone, loginWithSocial, redeem, insertEmoji, submitReview, logout
+      loginWithPhone, loginWithSocial, redeem, showInstallModal, triggerInstall, authMode, regForm, socialModal, openSocialModal, submitSocialModal, registerClient, insertEmoji, submitReview, logout
     };
   }
 }).mount('#vip-app');
