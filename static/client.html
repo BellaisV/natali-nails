@@ -249,10 +249,10 @@
           </div>
           <div class="pt-2 border-t border-white/10 flex items-center justify-between">
             <span class="text-xs font-black text-amber-300">{{ reward.cost }} 💎</span>
-            <button @click="redeem(reward)" :disabled="(client.points || 0) < reward.cost || isRewardOwned(reward.id)"
-              :class="isRewardOwned(reward.id) ? 'bg-white/10 text-stone-400' : ((client.points || 0) >= reward.cost ? 'bg-amber-400 text-stone-950 hover:bg-amber-300' : 'bg-white/5 text-stone-500')"
+            <button @click="redeem(reward)" :disabled="(client.points || 0) < reward.cost || isRewardOwned(reward)"
+              :class="isRewardOwned(reward) ? 'bg-white/10 text-stone-400' : ((client.points || 0) >= reward.cost ? 'bg-amber-400 text-stone-950 hover:bg-amber-300' : 'bg-white/5 text-stone-500')"
               class="text-[10px] font-black px-2.5 py-1.5 rounded-lg transition active:scale-95">
-              {{ isRewardOwned(reward.id) ? 'Є' : 'Отримати' }}
+              {{ isRewardOwned(reward) ? 'Є' : 'Отримати' }}
             </button>
           </div>
         </div>
@@ -712,9 +712,11 @@ createApp({
       return s.split(',').filter(Boolean);
     });
 
-    function isRewardOwned(id) {
-      if (id.startsWith('🏷️')) return false; // Знижки можна отримувати щоразу при наявності балів
-      return unlockedEmojisList.value.includes(id);
+    function isRewardOwned(item) {
+      if (!item) return false;
+      const str = String(item.icon || item.id || item);
+      if (str.includes('🏷️') || str.includes('1.5') || str.includes('2.5') || str.includes('Знижка')) return false;
+      return unlockedEmojisList.value.includes(str);
     }
 
     async function loginWithPhone() {
