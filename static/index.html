@@ -1748,7 +1748,7 @@ createApp({
     // --- VIP REWARDS SHOP HELPERS ---
     async function loadRewards() {
       try {
-        const res = await fetch('/api/rewards');
+        const res = await fetch('/api/vip/rewards');
         if (res.ok) {
           vipRewards.value = await res.json();
         }
@@ -1775,7 +1775,7 @@ createApp({
         return;
       }
       try {
-        const url = editingRewardId.value ? `/api/rewards/${editingRewardId.value}` : '/api/rewards';
+        const url = editingRewardId.value ? `/api/vip/rewards/${editingRewardId.value}` : '/api/vip/rewards';
         const method = editingRewardId.value ? 'PUT' : 'POST';
         const res = await fetch(url, {
           method,
@@ -1797,7 +1797,7 @@ createApp({
     async function deleteReward(id) {
       if (!confirm('Видалити цю винагороду з крамниці?')) return;
       try {
-        const res = await fetch(`/api/rewards/${id}`, { method: 'DELETE' });
+        const res = await fetch(`/api/vip/rewards/${id}`, { method: 'DELETE' });
         if (res.ok) {
           showToast('Винагороду видалено');
           loadRewards();
