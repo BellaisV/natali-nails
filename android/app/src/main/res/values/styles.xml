@@ -1,0 +1,6 @@
+<resources>
+    <style name="Theme.NataliNails" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <item name="android:statusBarColor">#1C1715</item>
+        <item name="android:navigationBarColor">#1C1715</item>
+    </style>
+</resources>

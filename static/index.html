@@ -370,59 +370,6 @@
           </div>
         </div>
       </div>
-      </div><!-- End subtab services -->
-
-      <!-- SUBTAB 2: VIP REWARDS SHOP (Керування тим, що клієнти купують за кристали / коронки) -->
-      <div v-if="serviceSubTab === 'rewards'" class="space-y-4">
-        <div class="bg-gradient-to-r from-amber-950 via-stone-900 to-amber-950 text-white rounded-3xl p-5 border border-amber-500/40 shadow-xl space-y-3">
-          <div class="flex items-center justify-between">
-            <div class="flex items-center space-x-3">
-              <div class="w-10 h-10 rounded-2xl bg-amber-400/20 text-amber-300 border border-amber-400/30 flex items-center justify-center text-xl">
-                <i class="fa-solid fa-gem"></i>
-              </div>
-              <div>
-                <h3 class="font-black text-base text-white">Керування VIP-винородами</h3>
-                <p class="text-xs text-amber-200/80">Створюйте та змінюйте подарунки за кристали</p>
-              </div>
-            </div>
-            <button @click="openNewRewardModal" class="bg-amber-400 hover:bg-amber-300 text-stone-950 font-black text-xs px-3.5 py-2.5 rounded-xl shadow transition active:scale-95 flex items-center space-x-1.5">
-              <i class="fa-solid fa-plus"></i>
-              <span>+ Створити</span>
-            </button>
-          </div>
-          <p class="text-[11px] text-stone-300 leading-relaxed">
-            Клієнтки бачать ці винагороди у своєму VIP-кабінеті та можуть обмінювати на них накопичені бали/кристали 💎.
-          </p>
-        </div>
-
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div v-for="r in vipRewards" :key="r.id" class="bg-white rounded-2xl p-4 border border-stone-200 shadow-sm flex flex-col justify-between space-y-3 hover:border-amber-400 transition">
-            <div class="flex items-start justify-between">
-              <div class="flex items-start space-x-3">
-                <div class="w-11 h-11 rounded-2xl bg-amber-50 border border-amber-200 flex items-center justify-center text-2xl flex-shrink-0 shadow-inner">
-                  {{ r.icon }}
-                </div>
-                <div>
-                  <h4 class="font-bold text-sm text-stone-900 leading-snug">{{ r.title }}</h4>
-                  <p class="text-xs text-stone-500 mt-0.5 leading-relaxed">{{ r.description }}</p>
-                </div>
-              </div>
-              <span class="bg-amber-100 text-amber-900 border border-amber-300 font-black text-xs px-2.5 py-1 rounded-full flex-shrink-0">
-                {{ r.cost }} 💎
-              </span>
-            </div>
-
-            <div class="pt-2 border-t border-stone-100 flex items-center justify-end space-x-2 text-xs">
-              <button @click="editReward(r)" class="text-stone-600 hover:text-stone-900 font-semibold px-2 py-1 rounded-md bg-stone-100 hover:bg-stone-200 transition">
-                <i class="fa-solid fa-pen mr-1 text-[10px]"></i>Редагувати
-              </button>
-              <button @click="deleteReward(r.id)" class="text-rose-600 hover:text-rose-800 font-semibold px-2 py-1 rounded-md bg-rose-50 hover:bg-rose-100 transition">
-                <i class="fa-solid fa-trash-can mr-1 text-[10px]"></i>Видалити
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
     </main>
 
     <!-- TAB 2: ФІНАНСИ (ДОХОДИ ТА ВИТРАТИ) -->
@@ -531,60 +478,7 @@
           </div>
         </div>
       </div>
-      </div><!-- End subtab services -->
-
-      <!-- SUBTAB 2: VIP REWARDS SHOP (Керування тим, що клієнти купують за кристали / коронки) -->
-      <div v-if="serviceSubTab === 'rewards'" class="space-y-4">
-        <div class="bg-gradient-to-r from-amber-950 via-stone-900 to-amber-950 text-white rounded-3xl p-5 border border-amber-500/40 shadow-xl space-y-3">
-          <div class="flex items-center justify-between">
-            <div class="flex items-center space-x-3">
-              <div class="w-10 h-10 rounded-2xl bg-amber-400/20 text-amber-300 border border-amber-400/30 flex items-center justify-center text-xl">
-                <i class="fa-solid fa-gem"></i>
-              </div>
-              <div>
-                <h3 class="font-black text-base text-white">Керування VIP-винородами</h3>
-                <p class="text-xs text-amber-200/80">Створюйте та змінюйте подарунки за кристали</p>
-              </div>
-            </div>
-            <button @click="openNewRewardModal" class="bg-amber-400 hover:bg-amber-300 text-stone-950 font-black text-xs px-3.5 py-2.5 rounded-xl shadow transition active:scale-95 flex items-center space-x-1.5">
-              <i class="fa-solid fa-plus"></i>
-              <span>+ Створити</span>
-            </button>
-          </div>
-          <p class="text-[11px] text-stone-300 leading-relaxed">
-            Клієнтки бачать ці винагороди у своєму VIP-кабінеті та можуть обмінювати на них накопичені бали/кристали 💎.
-          </p>
-        </div>
-
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div v-for="r in vipRewards" :key="r.id" class="bg-white rounded-2xl p-4 border border-stone-200 shadow-sm flex flex-col justify-between space-y-3 hover:border-amber-400 transition">
-            <div class="flex items-start justify-between">
-              <div class="flex items-start space-x-3">
-                <div class="w-11 h-11 rounded-2xl bg-amber-50 border border-amber-200 flex items-center justify-center text-2xl flex-shrink-0 shadow-inner">
-                  {{ r.icon }}
-                </div>
-                <div>
-                  <h4 class="font-bold text-sm text-stone-900 leading-snug">{{ r.title }}</h4>
-                  <p class="text-xs text-stone-500 mt-0.5 leading-relaxed">{{ r.description }}</p>
-                </div>
-              </div>
-              <span class="bg-amber-100 text-amber-900 border border-amber-300 font-black text-xs px-2.5 py-1 rounded-full flex-shrink-0">
-                {{ r.cost }} 💎
-              </span>
-            </div>
-
-            <div class="pt-2 border-t border-stone-100 flex items-center justify-end space-x-2 text-xs">
-              <button @click="editReward(r)" class="text-stone-600 hover:text-stone-900 font-semibold px-2 py-1 rounded-md bg-stone-100 hover:bg-stone-200 transition">
-                <i class="fa-solid fa-pen mr-1 text-[10px]"></i>Редагувати
-              </button>
-              <button @click="deleteReward(r.id)" class="text-rose-600 hover:text-rose-800 font-semibold px-2 py-1 rounded-md bg-rose-50 hover:bg-rose-100 transition">
-                <i class="fa-solid fa-trash-can mr-1 text-[10px]"></i>Видалити
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </main>
+</main>
 
     <!-- TAB 3: КЛІЄНТИ -->
     <main v-if="currentTab === 'clients'" class="flex-1 p-4 space-y-4">
@@ -661,63 +555,25 @@
           </div>
         </div>
       </div>
-      </div><!-- End subtab services -->
-
-      <!-- SUBTAB 2: VIP REWARDS SHOP (Керування тим, що клієнти купують за кристали / коронки) -->
-      <div v-if="serviceSubTab === 'rewards'" class="space-y-4">
-        <div class="bg-gradient-to-r from-amber-950 via-stone-900 to-amber-950 text-white rounded-3xl p-5 border border-amber-500/40 shadow-xl space-y-3">
-          <div class="flex items-center justify-between">
-            <div class="flex items-center space-x-3">
-              <div class="w-10 h-10 rounded-2xl bg-amber-400/20 text-amber-300 border border-amber-400/30 flex items-center justify-center text-xl">
-                <i class="fa-solid fa-gem"></i>
-              </div>
-              <div>
-                <h3 class="font-black text-base text-white">Керування VIP-винородами</h3>
-                <p class="text-xs text-amber-200/80">Створюйте та змінюйте подарунки за кристали</p>
-              </div>
-            </div>
-            <button @click="openNewRewardModal" class="bg-amber-400 hover:bg-amber-300 text-stone-950 font-black text-xs px-3.5 py-2.5 rounded-xl shadow transition active:scale-95 flex items-center space-x-1.5">
-              <i class="fa-solid fa-plus"></i>
-              <span>+ Створити</span>
-            </button>
-          </div>
-          <p class="text-[11px] text-stone-300 leading-relaxed">
-            Клієнтки бачать ці винагороди у своєму VIP-кабінеті та можуть обмінювати на них накопичені бали/кристали 💎.
-          </p>
-        </div>
-
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div v-for="r in vipRewards" :key="r.id" class="bg-white rounded-2xl p-4 border border-stone-200 shadow-sm flex flex-col justify-between space-y-3 hover:border-amber-400 transition">
-            <div class="flex items-start justify-between">
-              <div class="flex items-start space-x-3">
-                <div class="w-11 h-11 rounded-2xl bg-amber-50 border border-amber-200 flex items-center justify-center text-2xl flex-shrink-0 shadow-inner">
-                  {{ r.icon }}
-                </div>
-                <div>
-                  <h4 class="font-bold text-sm text-stone-900 leading-snug">{{ r.title }}</h4>
-                  <p class="text-xs text-stone-500 mt-0.5 leading-relaxed">{{ r.description }}</p>
-                </div>
-              </div>
-              <span class="bg-amber-100 text-amber-900 border border-amber-300 font-black text-xs px-2.5 py-1 rounded-full flex-shrink-0">
-                {{ r.cost }} 💎
-              </span>
-            </div>
-
-            <div class="pt-2 border-t border-stone-100 flex items-center justify-end space-x-2 text-xs">
-              <button @click="editReward(r)" class="text-stone-600 hover:text-stone-900 font-semibold px-2 py-1 rounded-md bg-stone-100 hover:bg-stone-200 transition">
-                <i class="fa-solid fa-pen mr-1 text-[10px]"></i>Редагувати
-              </button>
-              <button @click="deleteReward(r.id)" class="text-rose-600 hover:text-rose-800 font-semibold px-2 py-1 rounded-md bg-rose-50 hover:bg-rose-100 transition">
-                <i class="fa-solid fa-trash-can mr-1 text-[10px]"></i>Видалити
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </main>
+</main>
 
     <!-- TAB 4: ПОСЛУГИ ТА ПРАЙС -->
     <main v-if="currentTab === 'services'" class="flex-1 p-4 space-y-4">
+
+      <!-- Subtab switch: Послуги & VIP-винагороди -->
+      <div class="flex p-1 bg-stone-200 rounded-2xl">
+        <button @click="serviceSubTab = 'services'" :class="serviceSubTab === 'services' ? 'bg-white text-stone-900 shadow-sm font-bold' : 'text-stone-600 hover:text-stone-900'" class="flex-1 py-2 text-xs rounded-xl transition text-center flex items-center justify-center space-x-1.5">
+          <i class="fa-solid fa-wand-magic-sparkles"></i>
+          <span>Прайс послуг</span>
+        </button>
+        <button @click="serviceSubTab = 'rewards'" :class="serviceSubTab === 'rewards' ? 'bg-amber-400 text-stone-950 shadow-sm font-black' : 'text-stone-600 hover:text-stone-900'" class="flex-1 py-2 text-xs rounded-xl transition text-center flex items-center justify-center space-x-1.5">
+          <i class="fa-solid fa-gem"></i>
+          <span>VIP-винагороди</span>
+        </button>
+      </div>
+
+      <!-- SUBTAB 1: SERVICES -->
+      <div v-if="serviceSubTab === 'services'" class="space-y-4">
       <div class="flex items-center justify-between">
         <div>
           <h2 class="font-extrabold text-xl text-stone-900">{{ t('services_title') }}</h2>
@@ -990,57 +846,7 @@
   </template>
 
   <!-- MODAL: ОПЛАТА ВІЗИТУ (Вибір куди надійшли кошти: Bizum / Ісп Visa / Укр Карта / PayPal / Готівка) -->
-  <div v-if="modals.payment"
-<!-- MODAL: ДОДАТИ / РЕДАГУВАТИ VIP-ВИНАГОРОДУ -->
-    <div v-if="modals.reward" class="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4">
-      <div class="bg-white w-full max-w-sm rounded-t-3xl sm:rounded-3xl p-6 space-y-4 shadow-2xl text-left">
-        <div class="flex items-center justify-between pb-2 border-b border-stone-200">
-          <div class="flex items-center space-x-2">
-            <span class="text-2xl">{{ formReward.icon || '💎' }}</span>
-            <h3 class="font-black text-base text-stone-900">{{ editingRewardId ? 'Редагувати винагороду' : 'Нова VIP-винагорода' }}</h3>
-          </div>
-          <button @click="modals.reward = false" class="text-stone-400 hover:text-stone-600 p-1">
-            <i class="fa-solid fa-xmark text-xl"></i>
-          </button>
-        </div>
-
-        <div class="space-y-3 text-xs">
-          <div>
-            <label class="block font-bold text-stone-700 mb-1">Іконка / Смайлик (Emoji):</label>
-            <div class="flex items-center space-x-2">
-              <input v-model="formReward.icon" class="w-16 text-center text-xl bg-stone-50 border border-stone-300 rounded-xl p-2 font-bold">
-              <div class="flex space-x-1.5 overflow-x-auto py-1">
-                <button v-for="em in ['👑', '💎', '🏷️', '💅', '🌸', '🔥', '☕', '🎁']" :key="em"
-                  @click="formReward.icon = em" type="button" class="w-8 h-8 rounded-lg bg-stone-100 hover:bg-stone-200 text-lg flex items-center justify-center transition active:scale-95">
-                  {{ em }}
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <div>
-            <label class="block font-bold text-stone-700 mb-1">Назва винагороди:</label>
-            <input v-model="formReward.title" placeholder="Наприклад: Знижка 5€ на комплекс" class="w-full bg-stone-50 border border-stone-300 rounded-xl p-2.5 font-bold text-xs">
-          </div>
-
-          <div>
-            <label class="block font-bold text-stone-700 mb-1">Вартість у кристалах (💎 бали):</label>
-            <input v-model.number="formReward.cost" type="number" min="1" placeholder="50" class="w-full bg-stone-50 border border-stone-300 rounded-xl p-2.5 font-bold text-xs">
-          </div>
-
-          <div>
-            <label class="block font-bold text-stone-700 mb-1">Опис / що отримує клієнтка:</label>
-            <textarea v-model="formReward.description" rows="2" placeholder="Одноразова знижка на процедуру або безкоштовний дизайн..." class="w-full bg-stone-50 border border-stone-300 rounded-xl p-2.5 text-xs"></textarea>
-          </div>
-
-          <button @click="saveReward" class="w-full bg-stone-900 hover:bg-black text-white font-bold py-3 rounded-xl shadow-md transition active:scale-95 flex items-center justify-center space-x-1.5">
-            <i class="fa-solid fa-check"></i>
-            <span>{{ editingRewardId ? 'Зберегти зміни' : 'Створити винагороду' }}</span>
-          </button>
-        </div>
-      </div>
-    </div>
- class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4">
+  <div v-if="modals.payment" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4">
     <div class="bg-white w-full max-w-md rounded-t-3xl sm:rounded-3xl p-5 space-y-4">
       <div class="flex items-center justify-between pb-2 border-b border-stone-100">
         <div>
@@ -1058,113 +864,102 @@
           <div class="w-7 h-7 rounded-lg bg-sky-500 text-white flex items-center justify-center text-xs font-bold">
             <i class="fa-solid fa-mobile-screen"></i>
           </div>
-          <div class="font-extrabold text-sky-900 text-xs">Bizum</div>
-          <div class="text-[10px] text-sky-700 truncate">{{ settings.bizum_phone || 'Мобільний' }}</div>
+          <div class="font-bold text-xs text-stone-800">Bizum</div>
+          <div class="text-[10px] text-stone-500">{{ settings.bizum_phone || 'Телефон' }}</div>
         </button>
 
-        <!-- Spanish Visa Card -->
+        <!-- Spanish Card / Transfer -->
         <button @click="confirmPayment('card_es')" class="p-3 rounded-2xl bg-amber-50 hover:bg-amber-100 border border-amber-200 text-left transition active:scale-95 space-y-1">
-          <div class="w-7 h-7 rounded-lg bg-amber-600 text-white flex items-center justify-center text-xs font-bold">
-            <span>🇪🇸</span>
+          <div class="w-7 h-7 rounded-lg bg-amber-500 text-white flex items-center justify-center text-xs font-bold">
+            <i class="fa-regular fa-credit-card"></i>
           </div>
-          <div class="font-extrabold text-amber-900 text-xs">Ісп Карта (Visa)</div>
-          <div class="text-[10px] text-amber-700 truncate">IBAN / Santander / BBVA</div>
+          <div class="font-bold text-xs text-stone-800">Іспанська карта</div>
+          <div class="text-[10px] text-stone-500 truncate">{{ settings.card_number_es || 'IBAN ES' }}</div>
         </button>
 
         <!-- Ukrainian Card -->
         <button @click="confirmPayment('card_ua')" class="p-3 rounded-2xl bg-blue-50 hover:bg-blue-100 border border-blue-200 text-left transition active:scale-95 space-y-1">
-          <div class="w-7 h-7 rounded-lg bg-blue-600 text-white flex items-center justify-center text-xs font-bold">
-            <span>🇺🇦</span>
+          <div class="w-7 h-7 rounded-lg bg-blue-500 text-white flex items-center justify-center text-xs font-bold">
+            <i class="fa-solid fa-building-columns"></i>
           </div>
-          <div class="font-extrabold text-blue-900 text-xs">Укр Карта</div>
-          <div class="text-[10px] text-blue-700 truncate">Монобанк / Приват</div>
+          <div class="font-bold text-xs text-stone-800">Укр. карта</div>
+          <div class="text-[10px] text-stone-500 truncate">{{ settings.card_number_ua || 'Гривні' }}</div>
         </button>
 
         <!-- PayPal -->
         <button @click="confirmPayment('paypal')" class="p-3 rounded-2xl bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 text-left transition active:scale-95 space-y-1">
-          <div class="w-7 h-7 rounded-lg bg-indigo-600 text-white flex items-center justify-center text-xs font-bold">
+          <div class="w-7 h-7 rounded-lg bg-indigo-500 text-white flex items-center justify-center text-xs font-bold">
             <i class="fa-brands fa-paypal"></i>
           </div>
-          <div class="font-extrabold text-indigo-900 text-xs">PayPal</div>
-          <div class="text-[10px] text-indigo-700 truncate">Онлайн рахунок</div>
+          <div class="font-bold text-xs text-stone-800">PayPal</div>
+          <div class="text-[10px] text-stone-500 truncate">{{ settings.paypal_email || 'Email' }}</div>
         </button>
 
         <!-- Cash -->
-        <button @click="confirmPayment('cash')" class="p-3 rounded-2xl bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-left transition active:scale-95 space-y-1 col-span-2 flex items-center justify-between">
-          <div class="flex items-center space-x-2.5">
-            <div class="w-8 h-8 rounded-lg bg-emerald-600 text-white flex items-center justify-center text-xs font-bold">
-              <i class="fa-solid fa-money-bill-wave"></i>
-            </div>
-            <div>
-              <div class="font-extrabold text-emerald-900 text-xs">Готівка</div>
-              <div class="text-[10px] text-emerald-700">Оплата готівкою на місці</div>
-            </div>
+        <button @click="confirmPayment('cash')" class="col-span-2 p-3 rounded-2xl bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-left transition active:scale-95 flex items-center space-x-3">
+          <div class="w-7 h-7 rounded-lg bg-emerald-500 text-white flex items-center justify-center text-xs font-bold">
+            <i class="fa-solid fa-money-bill-wave"></i>
           </div>
-          <i class="fa-solid fa-chevron-right text-emerald-500 text-xs mr-1"></i>
+          <div>
+            <div class="font-bold text-xs text-stone-800">Готівка</div>
+            <div class="text-[10px] text-stone-500">Оплачено на місці в салоні</div>
+          </div>
         </button>
       </div>
+
+      <button @click="modals.payment = false" class="w-full py-2.5 text-xs text-stone-500 font-bold hover:bg-stone-100 rounded-xl transition">
+        Скасувати
+      </button>
     </div>
   </div>
 
-  <!-- MODAL: ВСТАНОВИТИ ДОДАТОК НА ТЕЛЕФОН (iOS & Android) -->
-    <!-- MODAL: ВСТАНОВИТИ ДОДАТОК (2 ВАРІАНТИ: ANDROID І iOS З АВТО-СКАЧУВАННЯМ) -->
-    <!-- MODAL: ВСТАНОВИТИ ДОДАТОК (ПРОСТЕ ТА НАДІЙНЕ ВСТАНОВЛЕННЯ) -->
-  <div v-if="showInstallModal" @click.self="showInstallModal = false" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-end sm:items-center justify-center p-0 sm:p-4">
-    <div class="bg-[#1C1715] border border-white/15 w-full max-w-sm rounded-t-3xl sm:rounded-3xl p-6 space-y-4 text-stone-100 text-left shadow-2xl">
-      <!-- Header with clear close button -->
-      <div class="flex items-center justify-between pb-3 border-b border-white/10">
-        <div class="flex items-center space-x-3">
-          <img src="/static/icon-192.png" class="w-10 h-10 rounded-2xl border border-amber-400/40 shadow">
-          <div>
-            <h3 class="font-extrabold text-base text-white">Встановити додаток</h3>
-            <p class="text-[11px] text-amber-300">Natali Nails Privé</p>
-          </div>
+  <!-- MODAL: ДОДАТИ / РЕДАГУВАТИ VIP-ВИНАГОРОДУ -->
+  <div v-if="modals.reward" class="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4">
+    <div class="bg-white w-full max-w-sm rounded-t-3xl sm:rounded-3xl p-6 space-y-4 shadow-2xl text-left">
+      <div class="flex items-center justify-between pb-2 border-b border-stone-200">
+        <div class="flex items-center space-x-2">
+          <span class="text-2xl">{{ formReward.icon || '💎' }}</span>
+          <h3 class="font-black text-base text-stone-900">{{ editingRewardId ? 'Редагувати винагороду' : 'Нова VIP-винагорода' }}</h3>
         </div>
-        <button @click="showInstallModal = false" class="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-stone-300 hover:text-white flex items-center justify-center transition" title="Закрити">
-          <i class="fa-solid fa-xmark text-lg"></i>
+        <button @click="modals.reward = false" class="text-stone-400 hover:text-stone-600 p-1">
+          <i class="fa-solid fa-xmark text-xl"></i>
         </button>
       </div>
 
-      <!-- Action 1: Android Official Chrome Install -->
-      <div class="space-y-2">
-        <button @click="triggerAndroidInstall" class="w-full bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 text-white font-extrabold p-3.5 rounded-2xl shadow-xl flex items-center justify-between transition active:scale-95 border border-emerald-400/40">
-          <div class="flex items-center space-x-3">
-            <div class="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center text-2xl">
-              <i class="fa-brands fa-android"></i>
-            </div>
-            <div class="text-left">
-              <div class="text-sm font-black">Для Android</div>
-              <div class="text-[11px] font-normal text-emerald-100">Швидке встановлення в 1 клік</div>
+      <div class="space-y-3 text-xs">
+        <div>
+          <label class="block font-bold text-stone-700 mb-1">Іконка / Смайлик (Emoji):</label>
+          <div class="flex items-center space-x-2">
+            <input v-model="formReward.icon" class="w-16 text-center text-xl bg-stone-50 border border-stone-300 rounded-xl p-2 font-bold">
+            <div class="flex space-x-1.5 overflow-x-auto py-1">
+              <button v-for="em in ['👑', '💎', '🏷️', '💅', '🌸', '🔥', '☕', '🎁']" :key="em"
+                @click="formReward.icon = em" type="button" class="w-8 h-8 rounded-lg bg-stone-100 hover:bg-stone-200 text-lg flex items-center justify-center transition active:scale-95">
+                {{ em }}
+              </button>
             </div>
           </div>
-          <i class="fa-solid fa-arrow-down-to-bracket text-lg"></i>
+        </div>
+
+        <div>
+          <label class="block font-bold text-stone-700 mb-1">Назва винагороди:</label>
+          <input v-model="formReward.title" placeholder="Наприклад: Знижка 5€ на комплекс" class="w-full bg-stone-50 border border-stone-300 rounded-xl p-2.5 font-bold text-xs">
+        </div>
+
+        <div>
+          <label class="block font-bold text-stone-700 mb-1">Вартість у кристалах (💎 бали):</label>
+          <input v-model.number="formReward.cost" type="number" min="1" placeholder="50" class="w-full bg-stone-50 border border-stone-300 rounded-xl p-2.5 font-bold text-xs">
+        </div>
+
+        <div>
+          <label class="block font-bold text-stone-700 mb-1">Опис / що отримує клієнтка:</label>
+          <textarea v-model="formReward.description" rows="2" placeholder="Одноразова знижка на процедуру або безкоштовний дизайн..." class="w-full bg-stone-50 border border-stone-300 rounded-xl p-2.5 text-xs"></textarea>
+        </div>
+
+        <button @click="saveReward" class="w-full bg-stone-900 hover:bg-black text-white font-bold py-3 rounded-xl shadow-md transition active:scale-95 flex items-center justify-center space-x-1.5">
+          <i class="fa-solid fa-check"></i>
+          <span>{{ editingRewardId ? 'Зберегти зміни' : 'Створити винагороду' }}</span>
         </button>
-
-        <!-- Android Tip if prompt not available -->
-        <div class="p-3 bg-emerald-950/40 border border-emerald-500/30 rounded-xl text-[11px] text-emerald-200 leading-relaxed">
-          💡 Або натисніть <b>три крапки ⋮</b> у правому верхньому кутку браузера Chrome ➔ оберіть <b>«Встановити додаток»</b> (або «Додати на головний екран»).
-        </div>
       </div>
-
-      <!-- Action 2: iPhone / iOS Safari Instructions -->
-      <div class="p-3.5 bg-stone-900 border border-white/10 rounded-2xl space-y-2">
-        <div class="flex items-center space-x-2 text-stone-200 font-bold text-xs">
-          <i class="fa-brands fa-apple text-base"></i>
-          <span>Для iPhone (iOS Safari):</span>
-        </div>
-        <ol class="text-[11px] text-stone-300 space-y-1 list-decimal list-inside pl-0.5 leading-relaxed">
-          <li>Натисніть кнопку <b>«Поділитися»</b> (<i class="fa-solid fa-arrow-up-from-bracket text-[10px]"></i> або ⎋) внизу Safari.</li>
-          <li>Оберіть пункт <b>«На початковий екран»</b> (Add to Home Screen ➕).</li>
-        </ol>
-        <p class="text-[10px] text-amber-300 font-semibold">
-          ✨ Іконка додатка з'явиться на робочому столі вашого iPhone!
-        </p>
-      </div>
-
-      <!-- Large Bottom Close Button -->
-      <button @click="showInstallModal = false" class="w-full bg-white/10 hover:bg-white/20 text-stone-200 font-bold py-3 rounded-2xl text-xs transition active:scale-95">
-        ✕ Закрити вікно
-      </button>
     </div>
   </div>
 
