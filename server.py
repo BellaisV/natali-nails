@@ -348,6 +348,36 @@ def init_db():
     except Exception:
         pass
 
+    # VIP Rewards table
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS vip_rewards (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        icon TEXT DEFAULT '💎',
+        title TEXT NOT NULL,
+        description TEXT DEFAULT '',
+        cost INTEGER NOT NULL,
+        reward_type TEXT DEFAULT 'discount',
+        is_active INTEGER DEFAULT 1
+    )
+    """)
+
+    # Seed initial rewards if empty
+    try:
+        cursor.execute("SELECT COUNT(*) FROM vip_rewards")
+        if cursor.fetchone()[0] == 0:
+            default_rewards = [
+                ('👑', 'Золота VIP-Корона', 'Ексклюзивний смайлик корони для ваших відгуків', 30, 'emoji'),
+                ('💎', 'Діамантове сяйво', 'Смайлик діаманту поруч з вашим ім’ям', 25, 'emoji'),
+                ('🔥', 'Вельветовий вогник', 'Смайлик тренду Velvet Nails', 20, 'emoji'),
+                ('☕', 'Кава & Prosecco', 'Улюблений напій у студії безкоштовно', 15, 'gift'),
+                ('🏷️', 'Знижка 1.50€ на візит', 'Приємна знижка на наступну процедуру', 100, 'discount'),
+                ('🏷️', 'Знижка 2.50€ на візит', 'Супер-знижка на будь-який комплекс', 150, 'discount'),
+                ('🌸', 'SPA-догляд для рук', 'Холодний парафін + скрабування в подарунок', 80, 'service')
+            ]
+            cursor.executemany("INSERT INTO vip_rewards (icon, title, description, cost, reward_type) VALUES (?, ?, ?, ?, ?)", default_rewards)
+    except Exception:
+        pass
+
     conn.commit()
     conn.close()
 
