@@ -114,6 +114,12 @@
         </span>
       </div>
 
+      <!-- Working Hours & Days Display (Visible to all clients) -->
+      <div class="flex items-center space-x-1.5 text-stone-200 text-[11px] pt-0.5">
+        <i class="fa-regular fa-clock text-amber-400"></i>
+        <span class="font-medium text-amber-200/90">{{ formatWorkSchedule(settings.working_days, settings.work_start, settings.work_end) }}</span>
+      </div>
+
       <!-- Payment Methods Accepted -->
       <div class="flex items-center space-x-1.5 text-[10px] text-stone-300 overflow-x-auto hide-scrollbar pt-0.5">
         <span class="text-stone-400 font-bold">Оплата:</span>
@@ -315,8 +321,14 @@
     <!-- Client input fields -->
     <div class="space-y-3 text-xs">
       <div>
-        <label class="block font-bold text-stone-700 mb-1">{{ t('lbl_client_name') }} <span class="text-rose-500">*</span></label>
-        <input v-model="clientName" placeholder="Elena, Maria, Anna..." class="w-full bg-white border border-stone-300 rounded-2xl p-3 text-sm font-medium focus:ring-2 focus:ring-rose-500 focus:outline-none">
+        <div class="flex items-center justify-between mb-1">
+          <label class="block font-bold text-stone-700 text-xs">{{ t('lbl_client_name') }} <span class="text-rose-500">*</span></label>
+          <span v-if="clientRecognized" class="text-[11px] text-emerald-600 font-bold flex items-center space-x-1">
+            <i class="fa-solid fa-circle-check text-emerald-500"></i>
+            <span>{{ t('recognized_client') || 'Впізнали ваш профіль' }}</span>
+          </span>
+        </div>
+        <input v-model="clientName" :placeholder="t('placeholder_name')" class="w-full bg-white border border-stone-300 rounded-2xl p-3 text-sm font-bold focus:ring-2 focus:ring-rose-500 focus:outline-none">
       </div>
 
       <div>
@@ -629,11 +641,23 @@
   </div>
 
 <script>
-const { createApp, ref, computed, onMounted } = Vue;
+const { createApp, ref, computed, onMounted, watch } = Vue;
 
 createApp({
   setup() {
-    const currentLang = ref(localStorage.getItem('nail_lang') || 'uk');
+    function detectInitialLang() {
+      const saved = localStorage.getItem('nail_lang');
+      if (saved && ['uk', 'es', 'en', 'de', 'va', 'ru'].includes(saved)) return saved;
+      const nav = (navigator.language || navigator.userLanguage || '').toLowerCase();
+      if (nav.startsWith('es')) return 'es';
+      if (nav.startsWith('de')) return 'de';
+      if (nav.startsWith('ca') || nav.startsWith('va')) return 'va';
+      if (nav.startsWith('uk')) return 'uk';
+      if (nav.startsWith('ru')) return 'ru';
+      if (nav.startsWith('en')) return 'en';
+      return 'uk';
+    }
+    const currentLang = ref(detectInitialLang());
     const availableLangs = {
       uk: { code: 'uk', flag: '🇺🇦', name: 'Українська' },
       en: { code: 'en', flag: '🇬🇧', name: 'English' },
@@ -688,11 +712,16 @@ createApp({
         const d = new Date();
         d.setDate(base.getDate() + i);
         const iso = d.toISOString().split('T')[0];
+        const jsWd = d.getDay();
+        const rawWd = settings.value.working_days || '1,2,3,4,5,6';
+        const activeWd = rawWd.split(',').map(s => s.trim()).filter(Boolean);
+        const isWorking = activeWd.includes(String(jsWd));
         list.push({
           dateStr: iso,
           dayLabel: i === 0 ? t('today') : (i === 1 ? t('tomorrow') : dayNames[d.getDay()]),
           dayNum: d.getDate(),
-          monthLabel: monthNames[d.getMonth()]
+          monthLabel: monthNames[d.getMonth()],
+          isWorkingDay: isWorking
         });
       }
       return list;
@@ -891,8 +920,42 @@ createApp({
     const loginPhoneInput = ref('');
     const socialAuthModal = ref({ open: false, provider: 'Instagram', name: '', phone: '', handle: '' });
 
+    const clientRecognized = ref(false);
+
+    function formatWorkSchedule(daysStr, start, end) {
+      const raw = daysStr || '1,2,3,4,5,6';
+      const arr = raw.split(',').map(s => s.trim()).filter(Boolean);
+      const dict = I18N[currentLang.value] || I18N['uk'];
+      
+      const s = start || '10:00';
+      const e = end || '20:00';
+
+      let daysLabel = '';
+      if (arr.length === 7) {
+        daysLabel = currentLang.value === 'es' ? 'Todos los días' : (currentLang.value === 'en' ? 'Every day' : 'Щодня (7/7)');
+      } else if (arr.includes('1') && arr.includes('2') && arr.includes('3') && arr.includes('4') && arr.includes('5') && arr.includes('6') && !arr.includes('0')) {
+        daysLabel = currentLang.value === 'es' ? 'Lun – Sáb' : (currentLang.value === 'en' ? 'Mon – Sat' : 'Пн – Сб');
+      } else if (arr.includes('1') && arr.includes('2') && arr.includes('3') && arr.includes('4') && arr.includes('5') && !arr.includes('6') && !arr.includes('0')) {
+        daysLabel = currentLang.value === 'es' ? 'Lun – Vie' : (currentLang.value === 'en' ? 'Mon – Fri' : 'Пн – Пт');
+      } else {
+        const names = { '1':'Пн', '2':'Вт', '3':'Ср', '4':'Чт', '5':'Пт', '6':'Сб', '0':'Нд' };
+        daysLabel = arr.map(id => names[id] || id).join(', ');
+      }
+      return `${daysLabel}: ${s} – ${e}`;
+    }
+
     async function checkSavedLogin() {
-      const savedPhone = localStorage.getItem('vip_phone');
+      // Prefill from localStorage immediately
+      const savedPhone = localStorage.getItem('vip_phone') || localStorage.getItem('client_phone');
+      const savedName = localStorage.getItem('client_name');
+      if (savedName && !clientName.value) {
+        clientName.value = savedName;
+        clientRecognized.value = true;
+      }
+      if (savedPhone && !clientPhone.value) {
+        clientPhone.value = savedPhone;
+      }
+
       if (savedPhone) {
         try {
           const res = await fetch(`/api/client/profile?phone=${encodeURIComponent(savedPhone)}`);
@@ -902,11 +965,38 @@ createApp({
             if (loggedInClient.value.name) {
               clientName.value = loggedInClient.value.name;
               clientPhone.value = loggedInClient.value.phone;
+              clientRecognized.value = true;
+              localStorage.setItem('client_name', loggedInClient.value.name);
             }
           }
         } catch (e) {}
       }
     }
+
+    // Auto-lookup client name when phone is typed in Step 3
+    let phoneLookupTimer = null;
+    watch(clientPhone, (newVal) => {
+      if (!newVal) return;
+      const digits = newVal.replace(/\D/g, '');
+      if (digits.length >= 9) {
+        clearTimeout(phoneLookupTimer);
+        phoneLookupTimer = setTimeout(async () => {
+          try {
+            const res = await fetch(`/api/client/profile?phone=${encodeURIComponent(newVal.trim())}`);
+            if (res.ok) {
+              const data = await res.json();
+              if (data.client && data.client.name) {
+                clientName.value = data.client.name;
+                clientRecognized.value = true;
+                localStorage.setItem('client_name', data.client.name);
+                localStorage.setItem('vip_phone', data.client.phone);
+                showToast(`Впізнали вас, ${data.client.name}! ✨`);
+              }
+            }
+          } catch (e) {}
+        }, 500);
+      }
+    });
 
     function openSocialLogin(provider) {
       socialAuthModal.value = {
@@ -1095,7 +1185,7 @@ createApp({
       selectedServices, totalDuration, totalPrice, selectedServiceNames,
       days, bookingDate, bookingTime, availableSlots, loadingSlots,
       clientName, clientPhone, clientNotes, submitting,
-      isServiceSelected, toggleService, selectDate, goToStep2,
+      clientRecognized, formatWorkSchedule, isServiceSelected, toggleService, selectDate, goToStep2,
       formatSummaryDate, submitBooking, resetBooking, copyBizumPhone, copyCardEs, copyCardUa,
       appendNoteTag, calendarUrl, showInstallModal, triggerInstall
     };

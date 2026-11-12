@@ -470,6 +470,15 @@ class PublicBookingRequest(BaseModel):
 class InstagramLoginRequest(BaseModel):
     instagram: str
 
+class ClientRegisterRequest(BaseModel):
+    name: str
+    phone: str
+    password: str
+
+class ClientPasswordLoginRequest(BaseModel):
+    phone: str
+    password: str
+
 class ClientLoginRequest(BaseModel):
     provider: str
     phone: str
@@ -550,7 +559,7 @@ def change_pin(data: ChangePinRequest):
 def get_settings():
     conn = get_db()
     cursor = conn.cursor()
-    cursor.execute("SELECT master_name, studio_name, phone, instagram, telegram, whatsapp, facebook, address, work_start, work_end, slot_step, currency, about, bizum_phone, paypal_link, card_ua, card_es, accept_bizum, accept_card, accept_paypal, accept_cash, master_avatar FROM settings WHERE id = 1")
+    cursor.execute("SELECT master_name, studio_name, phone, instagram, telegram, whatsapp, facebook, address, work_start, work_end, working_days, slot_step, currency, about, bizum_phone, paypal_link, card_ua, card_es, accept_bizum, accept_card, accept_paypal, accept_cash, master_avatar FROM settings WHERE id = 1")
     row = cursor.fetchone()
     conn.close()
     return dict(row) if row else {}
@@ -563,13 +572,14 @@ def update_settings(data: SettingsUpdate):
     UPDATE settings SET
         master_name = ?, studio_name = ?, phone = ?, instagram = ?,
         telegram = ?, whatsapp = ?, facebook = ?, address = ?, work_start = ?, work_end = ?,
-        slot_step = ?, currency = ?, about = ?,
+        working_days = ?, slot_step = ?, currency = ?, about = ?,
         bizum_phone = ?, paypal_link = ?, card_ua = ?, card_es = ?,
         accept_bizum = ?, accept_card = ?, accept_paypal = ?, accept_cash = ?,
         master_avatar = COALESCE(NULLIF(?, ''), master_avatar)
     WHERE id = 1
     """, (sanitize_text(data.master_name), sanitize_text(data.studio_name), sanitize_text(data.phone), sanitize_text(data.instagram),
           sanitize_text(data.telegram), sanitize_text(data.whatsapp or ''), sanitize_text(data.facebook or ''), sanitize_text(data.address), data.work_start, data.work_end,
+          (data.working_days if data.working_days is not None else '1,2,3,4,5,6'),
           data.slot_step, data.currency, sanitize_text(data.about),
           sanitize_text(data.bizum_phone), sanitize_text(data.paypal_link),
           sanitize_text(data.card_ua), sanitize_text(data.card_es),
@@ -1036,6 +1046,112 @@ def get_client_profile_instagram(instagram: str):
         "appointments": appointments
     }
 
+@app.post("/api/client/register")
+def client_register(data: ClientRegisterRequest):
+    conn = get_db()
+    cursor = conn.cursor()
+    
+    name = sanitize_text(data.name).strip()
+    phone = sanitize_text(data.phone).strip()
+    pwd = data.password.strip()
+    
+    if not name or len(name) < 2:
+        conn.close()
+        raise HTTPException(status_code=400, detail="Будь ласка, вкажіть ваше ім'я")
+        
+    digits = re.sub(r'\D', '', phone)
+    if len(digits) < 9:
+        conn.close()
+        raise HTTPException(status_code=400, detail="Введіть коректний номер телефону (мінімум 9 цифр)")
+        
+    if len(pwd) < 4:
+        conn.close()
+        raise HTTPException(status_code=400, detail="Пароль має містити щонайменше 4 символи")
+        
+    suffix = digits[-9:]
+    cursor.execute("SELECT * FROM clients WHERE phone LIKE ? OR phone LIKE ?", (f"%{phone}%", f"%{suffix}%"))
+    existing = cursor.fetchone()
+    
+    if existing:
+        # If already exists and has a password
+        if existing["password"]:
+            conn.close()
+            raise HTTPException(status_code=400, detail="Клієнт з таким номером уже зареєстрований! Будь ласка, оберіть «Увійти».")
+        else:
+            # Update legacy client with name and password
+            cursor.execute("UPDATE clients SET name = ?, password = ? WHERE id = ?", (name, pwd, existing["id"]))
+            conn.commit()
+            client_data = dict(existing)
+            client_data["name"] = name
+            conn.close()
+            return {"status": "ok", "message": "Реєстрація успішна!", "client": client_data}
+            
+    # New client registration
+    now_str = datetime.now().isoformat()
+    cursor.execute("""
+        INSERT INTO clients (name, phone, password, created_at, points, is_vip)
+        VALUES (?, ?, ?, ?, 0, 0)
+    """, (name, phone, pwd, now_str))
+    new_id = cursor.lastrowid
+    conn.commit()
+    
+    cursor.execute("SELECT * FROM clients WHERE id = ?", (new_id,))
+    new_client = dict(cursor.fetchone())
+    conn.close()
+    return {"status": "ok", "message": "Реєстрація успішна!", "client": new_client}
+
+@app.post("/api/client/login-auth")
+def client_login_auth(data: ClientPasswordLoginRequest):
+    conn = get_db()
+    cursor = conn.cursor()
+    
+    phone = sanitize_text(data.phone).strip()
+    pwd = data.password.strip()
+    
+    digits = re.sub(r'\D', '', phone)
+    if len(digits) < 9:
+        conn.close()
+        raise HTTPException(status_code=400, detail="Введіть коректний номер телефону")
+        
+    suffix = digits[-9:]
+    cursor.execute("SELECT * FROM clients WHERE phone LIKE ? OR phone LIKE ?", (f"%{phone}%", f"%{suffix}%"))
+    client = cursor.fetchone()
+    
+    if not client:
+        # Check if they have existing appointments
+        cursor.execute("SELECT client_name, client_phone FROM appointments WHERE client_phone LIKE ? ORDER BY id DESC LIMIT 1", (f"%{suffix}%",))
+        app_row = cursor.fetchone()
+        if app_row:
+            # Create client account with this password
+            now_str = datetime.now().isoformat()
+            c_name = app_row["client_name"] or "Клієнтка"
+            cursor.execute("""
+                INSERT INTO clients (name, phone, password, created_at, points, is_vip)
+                VALUES (?, ?, ?, ?, 0, 0)
+            """, (c_name, phone, pwd, now_str))
+            conn.commit()
+            cursor.execute("SELECT * FROM clients WHERE phone = ?", (phone,))
+            new_c = dict(cursor.fetchone())
+            conn.close()
+            return {"status": "ok", "client": new_c}
+            
+        conn.close()
+        raise HTTPException(status_code=404, detail="Користувача з таким номером не знайдено. Будь ласка, зареєструйтесь.")
+        
+    stored_pwd = client["password"]
+    if stored_pwd and stored_pwd != pwd:
+        conn.close()
+        raise HTTPException(status_code=401, detail="Невірний пароль! Спробуйте ще раз.")
+        
+    # If client didn't have password yet, set it now
+    if not stored_pwd:
+        cursor.execute("UPDATE clients SET password = ? WHERE id = ?", (pwd, client["id"]))
+        conn.commit()
+        
+    client_dict = dict(client)
+    conn.close()
+    return {"status": "ok", "client": client_dict}
+
 @app.post("/api/client/login")
 def client_login(data: ClientLoginRequest):
     conn = get_db()
@@ -1095,19 +1211,47 @@ def client_login(data: ClientLoginRequest):
 def get_client_profile(phone: str):
     conn = get_db()
     cursor = conn.cursor()
-    safe_phone = sanitize_text(phone)
-    cursor.execute("SELECT * FROM clients WHERE phone = ? OR phone LIKE ?", (safe_phone, f"%{safe_phone[-9:]}%"))
-    client = cursor.fetchone()
-    if not client:
-        conn.close()
-        raise HTTPException(status_code=404, detail="Client not found")
+    safe_phone = sanitize_text(phone).strip()
+    digits = re.sub(r'\D', '', safe_phone)
+    suffix = digits[-9:] if len(digits) >= 9 else digits
 
-    cursor.execute("SELECT * FROM appointments WHERE client_phone = ? OR client_phone LIKE ? ORDER BY date DESC, time DESC", (client["phone"], f"%{client['phone'][-9:]}%"))
+    cursor.execute("SELECT * FROM clients WHERE phone = ? OR phone LIKE ?", (safe_phone, f"%{suffix}%"))
+    client_row = cursor.fetchone()
+
+    client_data = None
+    if client_row:
+        client_data = dict(client_row)
+    else:
+        # Fallback: check if client exists in previous appointments!
+        cursor.execute("SELECT client_name, client_phone, client_notes FROM appointments WHERE client_phone LIKE ? ORDER BY id DESC LIMIT 1", (f"%{suffix}%",))
+        app_row = cursor.fetchone()
+        if app_row:
+            client_data = {
+                "id": 0,
+                "name": app_row["client_name"] or "",
+                "phone": app_row["client_phone"] or safe_phone,
+                "instagram": "",
+                "bonus_points": 0,
+                "avatar_url": None,
+                "is_vip": 0
+            }
+        else:
+            client_data = {
+                "id": 0,
+                "name": "",
+                "phone": safe_phone,
+                "instagram": "",
+                "bonus_points": 0,
+                "avatar_url": None,
+                "is_vip": 0
+            }
+
+    cursor.execute("SELECT * FROM appointments WHERE client_phone = ? OR client_phone LIKE ? ORDER BY date DESC, time DESC", (safe_phone, f"%{suffix}%"))
     appointments = [dict(r) for r in cursor.fetchall()]
 
     conn.close()
     return {
-        "client": dict(client),
+        "client": client_data,
         "appointments": appointments
     }
 
@@ -1242,11 +1386,24 @@ def get_public_info():
 def get_available_slots(date_str: str, duration: int):
     conn = get_db()
     cursor = conn.cursor()
-    cursor.execute("SELECT work_start, work_end, slot_step FROM settings WHERE id = 1")
+    cursor.execute("SELECT work_start, work_end, working_days, slot_step FROM settings WHERE id = 1")
     s = cursor.fetchone()
     if not s:
         conn.close()
         return []
+
+    # Check if day is marked as working day (0=Sun, 1=Mon, ..., 6=Sat)
+    try:
+        dt = datetime.strptime(date_str, "%Y-%m-%d")
+        py_wd = dt.weekday()
+        js_wd = (py_wd + 1) % 7
+        raw_wd = s["working_days"] if s["working_days"] else "1,2,3,4,5,6"
+        active_days = [w.strip() for w in str(raw_wd).split(",") if w.strip()]
+        if str(js_wd) not in active_days:
+            conn.close()
+            return []  # Day off / Non-working day!
+    except Exception as e:
+        pass
 
     work_start_m = time_to_minutes(s["work_start"])
     work_end_m = time_to_minutes(s["work_end"])
