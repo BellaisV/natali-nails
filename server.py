@@ -432,6 +432,8 @@ class SettingsUpdate(BaseModel):
     phone: str
     instagram: Optional[str] = ""
     telegram: Optional[str] = ""
+    whatsapp: Optional[str] = ""
+    facebook: Optional[str] = ""
     address: str
     work_start: str
     work_end: str
@@ -548,7 +550,7 @@ def change_pin(data: ChangePinRequest):
 def get_settings():
     conn = get_db()
     cursor = conn.cursor()
-    cursor.execute("SELECT master_name, studio_name, phone, instagram, telegram, address, work_start, work_end, slot_step, currency, about, bizum_phone, paypal_link, card_ua, card_es, accept_bizum, accept_card, accept_paypal, accept_cash, master_avatar FROM settings WHERE id = 1")
+    cursor.execute("SELECT master_name, studio_name, phone, instagram, telegram, whatsapp, facebook, address, work_start, work_end, slot_step, currency, about, bizum_phone, paypal_link, card_ua, card_es, accept_bizum, accept_card, accept_paypal, accept_cash, master_avatar FROM settings WHERE id = 1")
     row = cursor.fetchone()
     conn.close()
     return dict(row) if row else {}
@@ -560,14 +562,14 @@ def update_settings(data: SettingsUpdate):
     cursor.execute("""
     UPDATE settings SET
         master_name = ?, studio_name = ?, phone = ?, instagram = ?,
-        telegram = ?, address = ?, work_start = ?, work_end = ?,
+        telegram = ?, whatsapp = ?, facebook = ?, address = ?, work_start = ?, work_end = ?,
         slot_step = ?, currency = ?, about = ?,
         bizum_phone = ?, paypal_link = ?, card_ua = ?, card_es = ?,
         accept_bizum = ?, accept_card = ?, accept_paypal = ?, accept_cash = ?,
         master_avatar = COALESCE(NULLIF(?, ''), master_avatar)
     WHERE id = 1
     """, (sanitize_text(data.master_name), sanitize_text(data.studio_name), sanitize_text(data.phone), sanitize_text(data.instagram),
-          sanitize_text(data.telegram), sanitize_text(data.address), data.work_start, data.work_end,
+          sanitize_text(data.telegram), sanitize_text(data.whatsapp or ''), sanitize_text(data.facebook or ''), sanitize_text(data.address), data.work_start, data.work_end,
           data.slot_step, data.currency, sanitize_text(data.about),
           sanitize_text(data.bizum_phone), sanitize_text(data.paypal_link),
           sanitize_text(data.card_ua), sanitize_text(data.card_es),
@@ -918,6 +920,41 @@ def delete_transaction(t_id: int):
     return {"status": "deleted"}
 
 # --- VIP Client Club & Loyalty Endpoints ---
+
+
+class ClientProfileUpdate(BaseModel):
+    current_phone: str
+    name: str
+    phone: str
+    instagram: Optional[str] = ""
+    avatar_url: Optional[str] = ""
+
+@app.post("/api/client/update-profile")
+def update_client_profile(data: ClientProfileUpdate):
+    conn = get_db()
+    cursor = conn.cursor()
+    safe_cur_phone = sanitize_text(data.current_phone)
+    safe_name = sanitize_text(data.name)
+    safe_phone = sanitize_text(data.phone)
+    safe_insta = sanitize_text(data.instagram)
+    safe_avatar = data.avatar_url or ''
+
+    cursor.execute("SELECT id FROM clients WHERE phone = ? OR phone LIKE ?", (safe_cur_phone, f"%{safe_cur_phone[-9:]}%"))
+    client = cursor.fetchone()
+    if not client:
+        conn.close()
+        raise HTTPException(status_code=404, detail="Client not found")
+
+    cursor.execute("""
+    UPDATE clients SET name = ?, phone = ?, instagram = ?, avatar_url = COALESCE(NULLIF(?, ''), avatar_url)
+    WHERE id = ?
+    """, (safe_name, safe_phone, safe_insta, safe_avatar, client["id"]))
+    conn.commit()
+
+    cursor.execute("SELECT * FROM clients WHERE id = ?", (client["id"],))
+    updated = cursor.fetchone()
+    conn.close()
+    return {"status": "ok", "client": dict(updated)}
 
 @app.post("/api/client/avatar")
 def update_client_avatar(data: ClientAvatarUpdate):
