@@ -548,8 +548,10 @@
   </section>
 
     <!-- MODAL: ВСТАНОВИТИ ДОДАТОК (2 ВАРІАНТИ: ANDROID І iOS) -->
-  <div v-if="showInstallModal" class="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4">
-    <div class="bg-[#1C1715] border border-white/15 w-full max-w-sm rounded-t-3xl sm:rounded-3xl p-6 space-y-5 text-stone-100 text-left shadow-2xl">
+    <!-- MODAL: ВСТАНОВИТИ ДОДАТОК (ПРОСТЕ ТА НАДІЙНЕ ВСТАНОВЛЕННЯ) -->
+  <div v-if="showInstallModal" @click.self="showInstallModal = false" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-end sm:items-center justify-center p-0 sm:p-4">
+    <div class="bg-[#1C1715] border border-white/15 w-full max-w-sm rounded-t-3xl sm:rounded-3xl p-6 space-y-4 text-stone-100 text-left shadow-2xl">
+      <!-- Header with clear close button -->
       <div class="flex items-center justify-between pb-3 border-b border-white/10">
         <div class="flex items-center space-x-3">
           <img src="/static/icon-192.png" class="w-10 h-10 rounded-2xl border border-amber-400/40 shadow">
@@ -558,48 +560,51 @@
             <p class="text-[11px] text-amber-300">Natali Nails Privé</p>
           </div>
         </div>
-        <button @click="showInstallModal = false" class="text-stone-400 hover:text-white p-1">
-          <i class="fa-solid fa-xmark text-xl"></i>
+        <button @click="showInstallModal = false" class="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-stone-300 hover:text-white flex items-center justify-center transition" title="Закрити">
+          <i class="fa-solid fa-xmark text-lg"></i>
         </button>
       </div>
 
-      <p class="text-xs text-stone-300">
-        Оберіть вашу систему для швидкого встановлення:
-      </p>
-
-      <div class="space-y-3">
-                <!-- Option 1: Android Installer Download -->
-        <a href="/download/android" download="NataliNails_Android.apk" @click="handleAndroidClick" class="w-full bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-white font-extrabold p-4 rounded-2xl shadow-xl flex items-center justify-between transition active:scale-95 border border-emerald-400/40">
+      <!-- Action 1: Android Official Chrome Install -->
+      <div class="space-y-2">
+        <button @click="triggerAndroidInstall" class="w-full bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 text-white font-extrabold p-3.5 rounded-2xl shadow-xl flex items-center justify-between transition active:scale-95 border border-emerald-400/40">
           <div class="flex items-center space-x-3">
             <div class="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center text-2xl">
               <i class="fa-brands fa-android"></i>
             </div>
             <div class="text-left">
               <div class="text-sm font-black">Для Android</div>
-              <div class="text-[11px] font-normal text-emerald-100">Скачати установщик (.apk)</div>
+              <div class="text-[11px] font-normal text-emerald-100">Швидке встановлення в 1 клік</div>
             </div>
           </div>
-          <i class="fa-solid fa-download text-lg"></i>
-        </a>
+          <i class="fa-solid fa-arrow-down-to-bracket text-lg"></i>
+        </button>
 
-        <!-- Option 2: iOS iPhone Installer Profile Download -->
-        <a href="/download/ios-profile" download="NataliNails.mobileconfig" @click="handleIosClick" class="w-full bg-gradient-to-r from-stone-800 to-stone-900 hover:from-stone-700 hover:to-stone-800 text-white font-extrabold p-4 rounded-2xl shadow-xl flex items-center justify-between transition active:scale-95 border border-white/20">
-          <div class="flex items-center space-x-3">
-            <div class="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center text-2xl">
-              <i class="fa-brands fa-apple"></i>
-            </div>
-            <div class="text-left">
-              <div class="text-sm font-black">Для iPhone (iOS)</div>
-              <div class="text-[11px] font-normal text-stone-300">Скачати профіль (.mobileconfig)</div>
-            </div>
-          </div>
-          <i class="fa-solid fa-download text-lg"></i>
-        </a>
+        <!-- Android Tip if prompt not available -->
+        <div class="p-3 bg-emerald-950/40 border border-emerald-500/30 rounded-xl text-[11px] text-emerald-200 leading-relaxed">
+          💡 Або натисніть <b>три крапки ⋮</b> у правому верхньому кутку браузера Chrome ➔ оберіть <b>«Встановити додаток»</b> (або «Додати на головний екран»).
+        </div>
       </div>
 
-      <div v-if="showAndroidHelp" class="p-3 bg-amber-500/15 border border-amber-400/30 rounded-2xl text-[11px] text-amber-200">
-        💡 Якщо завантаження не почалося автоматично: натисніть <b>три крапки ⋮</b> у браузері та оберіть <b>«Встановити додаток»</b>.
+      <!-- Action 2: iPhone / iOS Safari Instructions -->
+      <div class="p-3.5 bg-stone-900 border border-white/10 rounded-2xl space-y-2">
+        <div class="flex items-center space-x-2 text-stone-200 font-bold text-xs">
+          <i class="fa-brands fa-apple text-base"></i>
+          <span>Для iPhone (iOS Safari):</span>
+        </div>
+        <ol class="text-[11px] text-stone-300 space-y-1 list-decimal list-inside pl-0.5 leading-relaxed">
+          <li>Натисніть кнопку <b>«Поділитися»</b> (<i class="fa-solid fa-arrow-up-from-bracket text-[10px]"></i> або ⎋) внизу Safari.</li>
+          <li>Оберіть пункт <b>«На початковий екран»</b> (Add to Home Screen ➕).</li>
+        </ol>
+        <p class="text-[10px] text-amber-300 font-semibold">
+          ✨ Іконка додатка з'явиться на робочому столі вашого iPhone!
+        </p>
       </div>
+
+      <!-- Large Bottom Close Button -->
+      <button @click="showInstallModal = false" class="w-full bg-white/10 hover:bg-white/20 text-stone-200 font-bold py-3 rounded-2xl text-xs transition active:scale-95">
+        ✕ Закрити вікно
+      </button>
     </div>
   </div>
 
@@ -865,9 +870,20 @@ createApp({
 
         const showAndroidHelp = ref(false);
 
-    function handleAndroidClick() {
+        function triggerAndroidInstall() {
       if (deferredPrompt) {
-        try { deferredPrompt.prompt(); } catch(e) {}
+        deferredPrompt.prompt();
+        deferredPrompt.userChoice.then((res) => {
+          if (res.outcome === 'accepted') {
+            showToast('Додаток встановлюється на ваш телефон! 📲');
+            showInstallModal.value = false;
+          }
+          deferredPrompt = null;
+        });
+      } else {
+        showToast('Натисніть три крапки ⋮ ➔ «Встановити додаток»');
+      }
+    } catch(e) {}
       }
       showToast("Завантаження установщика для Android... 📲");
     }
