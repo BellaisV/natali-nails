@@ -861,16 +861,16 @@ createApp({
       await loadPublicData();
     });
 
-    const showInstallModal = ref(false);
+        const showInstallModal = ref(false);
     let deferredPrompt = null;
     window.addEventListener('beforeinstallprompt', (e) => {
       e.preventDefault();
       deferredPrompt = e;
     });
 
-        const showAndroidHelp = ref(false);
+    const showAndroidHelp = ref(false);
 
-        function triggerAndroidInstall() {
+    function triggerAndroidInstall() {
       if (deferredPrompt) {
         deferredPrompt.prompt();
         deferredPrompt.userChoice.then((res) => {
@@ -881,16 +881,9 @@ createApp({
           deferredPrompt = null;
         });
       } else {
+        showAndroidHelp.value = true;
         showToast('Натисніть три крапки ⋮ ➔ «Встановити додаток»');
       }
-    } catch(e) {}
-      }
-      showToast("Завантаження установщика для Android... 📲");
-    }
-
-    function handleIosClick() {
-      showToast("Завантаження профілю для iPhone... 🍏");
-    }, 1200);
     }
 
     function triggerInstall() {
