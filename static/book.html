@@ -61,16 +61,16 @@
   <div class="bg-[#2E2421] text-stone-200 px-4 py-2.5 flex items-center justify-between text-xs border-b border-white/10 shadow-sm">
     <div class="flex items-center space-x-2">
       <!-- Logged in state (auto-remembered) -->
-      <div v-if="loggedInClient.name" class="flex items-center space-x-1.5 cursor-pointer" @click="openProfileModal" title="Редагувати профіль">
+      <div v-if="clientFirstName" class="flex items-center space-x-1.5 cursor-pointer" @click="openProfileModal" title="Редагувати профіль">
         <div class="flex items-center space-x-1.5 bg-amber-400/20 border border-amber-400/50 pl-1 pr-2.5 py-1 rounded-full text-amber-300 font-bold text-[11px] hover:bg-amber-400/30 transition">
           <div class="w-5 h-5 rounded-full overflow-hidden bg-stone-800 flex items-center justify-center text-[10px] text-amber-300 ring-1 ring-amber-400/60 flex-shrink-0">
             <img v-if="loggedInClient.avatar_url" :src="loggedInClient.avatar_url" class="w-full h-full object-cover">
             <span v-else>👑</span>
           </div>
-          <span>{{ loggedInClient.name.split(' ')[0] }}</span>
+          <span>{{ clientFirstName }}</span>
           <i class="fa-solid fa-pen text-[9px] ml-0.5 opacity-70"></i>
         </div>
-        <button @click="logoutClient" class="text-stone-400 hover:text-rose-400 text-xs p-1" title="Змінити номер">
+        <button @click.stop="logoutClient" class="text-stone-400 hover:text-rose-400 text-xs p-1" title="Змінити номер">
           <i class="fa-solid fa-arrow-right-from-bracket"></i>
         </button>
       </div>
@@ -1049,6 +1049,10 @@ createApp({
 
         const showLoginModal = ref(false);
     const loggedInClient = ref({});
+    const clientFirstName = computed(() => {
+      const n = (loggedInClient.value && loggedInClient.value.name) || clientName.value || localStorage.getItem('client_name') || '';
+      return n.trim().split(' ')[0] || '';
+    });
     const loginPhoneInput = ref('');
     const socialAuthModal = ref({ open: false, provider: 'Instagram', name: '', phone: '', handle: '' });
 
@@ -1218,10 +1222,16 @@ createApp({
 
     function logoutClient() {
       localStorage.removeItem('vip_phone');
+      localStorage.removeItem('client_phone');
+      localStorage.removeItem('client_name');
+      localStorage.removeItem('vip_client');
       loggedInClient.value = {};
       clientName.value = '';
       clientPhone.value = '';
       showToast("Ви вийшли з акаунту");
+      setTimeout(() => {
+        window.location.href = '/';
+      }, 400);
     }
 
     const showInstallModal = ref(false);
@@ -1361,6 +1371,7 @@ createApp({
       showProfileModal, profileForm, openProfileModal, saveClientProfile, savingProfile, scrollCategories, onClientAvatarUpload,
       showLoginModal,
       loggedInClient,
+      clientFirstName,
       loginPhoneInput,
       socialAuthModal,
       openSocialLogin,
@@ -1369,6 +1380,7 @@ createApp({
       logoutClient,
       getServiceName,
       getServiceDesc,
+      getCategoryName,
       currentLang, availableLangs, setLang, t, toast,
       step, settings, services, categories, selectedCategory, filteredServices,
       selectedServices, totalDuration, totalPrice, selectedServiceNames,
