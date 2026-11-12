@@ -409,6 +409,11 @@ def init_db():
     except Exception:
         pass
 
+        # Clean Privé branding from DB settings
+    try:
+        cursor.execute("UPDATE settings SET studio_name = 'Natali Nails' WHERE studio_name LIKE '%Privé%' OR studio_name LIKE '%Prive%'")
+    except Exception:
+        pass
     conn.commit()
     conn.close()
 
