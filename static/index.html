@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Natali Nails Privé — Кабінет Майстра</title>
+  <title>Natali Nails — Кабінет Майстра</title>
 
   <!-- PWA & Mobile Web App Meta -->
   <link rel="manifest" href="/static/manifest.json">
@@ -52,12 +52,9 @@
         <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-rose-500 to-amber-400 flex items-center justify-center text-white text-xs shadow-md">
           <i class="fa-solid fa-crown text-[10px]"></i>
         </div>
-        <span class="font-serif-luxury font-bold text-sm tracking-wide text-amber-200">Natali Nails Privé</span>
+        <span class="font-serif-luxury font-bold text-sm tracking-wide text-amber-200">Natali Nails</span>
       </div>
-      <button @click="showInstallModal = true" class="bg-white/10 hover:bg-white/20 text-white text-[10px] font-bold px-3 py-1.5 rounded-full border border-white/15 flex items-center space-x-1.5 shadow-sm active:scale-95 transition">
-        <i class="fa-solid fa-download text-[10px] text-amber-300"></i>
-        <span>Встановити додаток</span>
-      </button>
+      
     </div>
 
     <!-- VIEW 1: CLIENT REGISTRATION & LOGIN -->
@@ -66,7 +63,7 @@
         <div class="w-20 h-20 rounded-3xl bg-gradient-to-tr from-rose-500/20 via-amber-400/20 to-transparent border border-amber-400/30 flex items-center justify-center mx-auto shadow-2xl text-amber-300 text-3xl">
           <i class="fa-solid fa-gem animate-pulse"></i>
         </div>
-        <h2 class="text-3xl font-bold font-serif-luxury text-white tracking-tight">Natali Nails Privé</h2>
+        <h2 class="text-3xl font-bold font-serif-luxury text-white tracking-tight">Natali Nails</h2>
         <p class="text-xs text-stone-300 leading-relaxed px-2">
           Простір естетики Quiet Luxury, бездоганного манікюру та VIP-привілеїв для клієнток.
         </p>
@@ -174,7 +171,7 @@
           <i class="fa-solid fa-hand-sparkles text-sm"></i>
         </div>
         <div>
-          <h1 class="font-bold text-sm leading-tight text-white">{{ settings.studio_name || 'Natali Nails Privé' }}</h1>
+          <h1 class="font-bold text-sm leading-tight text-white">{{ settings.studio_name || 'Natali Nails' }}</h1>
           <p class="text-[11px] text-rose-300 font-medium">{{ settings.master_name }}</p>
         </div>
       </div>
@@ -204,11 +201,7 @@
           <span>{{ settings.currency || '€' }}</span>
         </button>
 
-        <!-- Install PWA on Phone Button -->
-        <button @click="showInstallModal = true" class="flex items-center space-x-1 bg-white/10 hover:bg-white/20 text-emerald-300 font-extrabold text-xs px-2 py-1.5 rounded-full border border-emerald-400/30 transition active:scale-95" title="Встановити додаток на iPhone або Android">
-          <i class="fa-solid fa-mobile-screen text-[10px]"></i>
-          <span class="text-[10px]">App</span>
-        </button>
+        
 
         <!-- VIP Club Link -->
         <a href="/club" target="_blank" class="flex items-center space-x-1 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 font-extrabold text-xs px-2 py-1.5 rounded-full border border-amber-400/30 transition active:scale-95" title="VIP-клуб клієнток">
@@ -1431,9 +1424,9 @@ createApp({
       const dayHeader = formatDateHeader(app.date);
       let text = '';
       if (type === 'day_before') {
-        text = `Привіт, ${app.client_name}! 💅 Нагадуємо, що завтра (${dayHeader}) о ${app.time} у вас запис на манікюр у Natali Nails Privé (${app.service_names}). Адреса: ${settings.value.address || 'студія'}. Підтвердіть, будь ласка, вашу присутність відповіддю. Чекаємо на вас! ✨`;
+        text = `Привіт, ${app.client_name}! 💅 Нагадуємо, що завтра (${dayHeader}) о ${app.time} у вас запис на манікюр у Natali Nails (${app.service_names}). Адреса: ${settings.value.address || 'студія'}. Підтвердіть, будь ласка, вашу присутність відповіддю. Чекаємо на вас! ✨`;
       } else {
-        text = `Доброго ранку, ${app.client_name}! ☀️ Нагадуємо, що сьогодні о ${app.time} чекаємо на вас на манікюр у Natali Nails Privé. Адреса: ${settings.value.address || 'студія'}. До зустрічі! ☕✨`;
+        text = `Доброго ранку, ${app.client_name}! ☀️ Нагадуємо, що сьогодні о ${app.time} чекаємо на вас на манікюр у Natali Nails. Адреса: ${settings.value.address || 'студія'}. До зустрічі! ☕✨`;
       }
       return `sms:${cleanPhone}?body=${encodeURIComponent(text)}`;
     }
@@ -1442,7 +1435,7 @@ createApp({
       if (!app || !app.client_phone) return '#';
       const cleanPhone = app.client_phone.replace(/[^0-9]/g, '');
       const dayHeader = formatDateHeader(app.date);
-      const text = `Привіт, ${app.client_name}! 💅 Нагадуємо про ваш запис на манікюр у Natali Nails Privé:\n📅 ${dayHeader}\n⏰ Час: ${app.time}\n💅 Послуга: ${app.service_names}\n📍 Адреса: ${settings.value.address || ''}\n\nБудемо раді вас бачити! Будь ласка, підтвердіть візит ✨`;
+      const text = `Привіт, ${app.client_name}! 💅 Нагадуємо про ваш запис на манікюр у Natali Nails:\n📅 ${dayHeader}\n⏰ Час: ${app.time}\n💅 Послуга: ${app.service_names}\n📍 Адреса: ${settings.value.address || ''}\n\nБудемо раді вас бачити! Будь ласка, підтвердіть візит ✨`;
       return `https://wa.me/${cleanPhone}?text=${encodeURIComponent(text)}`;
     }
 

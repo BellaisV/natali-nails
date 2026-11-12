@@ -72,18 +72,6 @@
     </div>
   </div>
 
-  <!-- BOOKING INSTALL BANNER -->
-  <div class="bg-gradient-to-r from-stone-900 via-stone-800 to-stone-900 text-white px-4 py-2.5 flex items-center justify-between text-xs border-b border-white/10 shadow-sm">
-    <div class="flex items-center space-x-2">
-      <img src="/static/icon-192.png" class="w-6 h-6 rounded-md shadow-sm border border-amber-400/40">
-      <span class="text-[11px] font-semibold text-stone-200">Додаток Natali Nails Privé</span>
-    </div>
-    <button @click="showInstallModal = true" class="bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 text-stone-950 font-black text-[10px] px-3 py-1 rounded-lg shadow transition active:scale-95 flex items-center space-x-1">
-      <i class="fa-solid fa-download text-[9px]"></i>
-      <span>Встановити</span>
-    </button>
-  </div>
-
   <!-- HEADER / MASTER PROFILE CARD -->
   <div class="relative bg-gradient-to-b from-[#2E2421] to-[#1C1715] text-stone-100 pt-5 pb-7 px-5 rounded-b-[36px] shadow-xl overflow-hidden">
     <!-- Glow effects -->
@@ -440,7 +428,7 @@
       </a>
 
       <!-- Send SMS / WhatsApp reminder -->
-      <a :href="'sms:' + (settings.phone || '') + '?body=' + encodeURIComponent('Привіт! Я записалася на манікюр до Natali Nails Privé на ' + formatSummaryDate(bookingDate) + ' о ' + bookingTime + '. Моє ім\'я: ' + clientName)" class="w-full bg-stone-100 hover:bg-stone-200 text-stone-800 font-bold py-3 rounded-2xl text-xs flex items-center justify-center space-x-2 transition">
+      <a :href="'sms:' + (settings.phone || '') + '?body=' + encodeURIComponent('Привіт! Я записалася на манікюр до Natali Nails на ' + formatSummaryDate(bookingDate) + ' о ' + bookingTime + '. Моє ім\'я: ' + clientName)" class="w-full bg-stone-100 hover:bg-stone-200 text-stone-800 font-bold py-3 rounded-2xl text-xs flex items-center justify-center space-x-2 transition">
         <i class="fa-solid fa-comment-sms text-rose-500"></i>
         <span>Зберегти нагадування в SMS</span>
       </a>
@@ -576,7 +564,7 @@
           </div>
           <div>
             <h3 class="font-extrabold text-base text-white">Вхід в особистий кабінет</h3>
-            <p class="text-[10px] text-amber-300">Natali Nails Privé</p>
+            <p class="text-[10px] text-amber-300">Natali Nails</p>
           </div>
         </div>
         <button @click="showLoginModal = false" class="text-stone-400 hover:text-white p-1">
@@ -643,192 +631,31 @@
         </button>
       </div>
 
-      <div class="space-y-2.5 text-xs">
+      <div class="space-y-3.5 text-xs">
         <div>
-          <label class="block font-semibold text-stone-300 mb-1">
-            <span v-if="socialAuthModal.provider === 'Instagram'">Ваш Instagram (@нікнейм):</span>
-            <span v-else>Ваш нікнейм або ім'я:</span>
+          <label class="block font-bold text-stone-200 mb-1.5">
+            <span v-if="socialAuthModal.provider === 'Instagram'">Введіть ваш Instagram-нікнейм:</span>
+            <span v-else>Ваш нікнейм або логін:</span>
           </label>
-          <input v-model="socialAuthModal.handle" :placeholder="socialAuthModal.provider === 'Instagram' ? '@olenka_nails' : 'Ім\'я'" class="w-full bg-white/5 border border-white/15 rounded-xl p-2.5 text-white">
-        </div>
-        <div>
-          <label class="block font-semibold text-stone-300 mb-1">Ваше реальне ім'я:</label>
-          <input v-model="socialAuthModal.name" placeholder="Олена" class="w-full bg-white/5 border border-white/15 rounded-xl p-2.5 text-white">
-        </div>
-        <div>
-          <label class="block font-semibold text-stone-300 mb-1">Номер телефону:</label>
-          <input v-model="socialAuthModal.phone" type="tel" placeholder="+380... або +34..." class="w-full bg-white/5 border border-white/15 rounded-xl p-2.5 text-white">
+          <div class="relative">
+            <span class="absolute left-3.5 top-2.5 text-stone-400 font-bold text-base">@</span>
+            <input v-model="socialAuthModal.handle" @keyup.enter="submitSocialLogin" placeholder="olenka_nails" class="w-full bg-white/5 border border-white/20 rounded-xl py-2.5 pl-8 pr-3 text-sm text-white placeholder-stone-500 font-bold focus:border-amber-400 focus:outline-none">
+          </div>
+          <p class="text-[11px] text-amber-300 mt-2 flex items-center space-x-1.5 leading-snug">
+            <i class="fa-solid fa-gift text-xs"></i>
+            <span>Вхід за 1 секунду! Ви відразу отримуєте <b>+50 💎</b> на баланс. Номер телефону ви вкажете пізніше при бронюванні візиту.</span>
+          </p>
         </div>
 
-        <button @click="submitSocialLogin" class="w-full bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 text-stone-950 font-black py-3 rounded-xl text-xs transition active:scale-95 shadow mt-1">
-          Підтвердити (+50 💎)
+        <button @click="submitSocialLogin" class="w-full bg-gradient-to-r from-amber-400 via-amber-300 to-amber-500 hover:brightness-110 text-stone-950 font-black py-3 rounded-xl shadow-lg transition active:scale-95 flex items-center justify-center space-x-1.5 text-xs mt-1">
+          <i class="fa-solid fa-check"></i>
+          <span>Увійти в акаунт (+50 💎)</span>
         </button>
       </div>
     </div>
   </div>
 
-  <!-- MODAL: ВСТАНОВИТИ ДОДАТОК (2 ВАРІАНТИ: ANDROID І iOS) -->
   
-  <!-- MODAL: ВХІД В АКАУНТ ДЛЯ КЛІЄНТОК (INSTAGRAM, FACEBOOK, GOOGLE, ТЕЛЕФОН) -->
-  <div v-if="showLoginModal" @click.self="showLoginModal = false" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-end sm:items-center justify-center p-0 sm:p-4">
-    <div class="bg-[#1C1715] text-white w-full max-w-sm rounded-t-3xl sm:rounded-3xl p-6 space-y-4 border border-white/15 shadow-2xl text-left">
-      <div class="flex items-center justify-between pb-3 border-b border-white/10">
-        <div class="flex items-center space-x-2.5">
-          <div class="w-8 h-8 rounded-xl bg-amber-400/20 text-amber-300 flex items-center justify-center text-sm font-bold">
-            <i class="fa-solid fa-user"></i>
-          </div>
-          <div>
-            <h3 class="font-extrabold text-base text-white">Вхід в особистий кабінет</h3>
-            <p class="text-[10px] text-amber-300">Natali Nails Privé</p>
-          </div>
-        </div>
-        <button @click="showLoginModal = false" class="text-stone-400 hover:text-white p-1">
-          <i class="fa-solid fa-xmark text-xl"></i>
-        </button>
-      </div>
-
-      <!-- Quick Social Buttons -->
-      <div class="space-y-2.5">
-        <!-- Instagram -->
-        <button @click="openSocialLogin('Instagram')" class="w-full bg-gradient-to-r from-[#833ab4] via-[#fd1d1d] to-[#fcb045] text-white font-bold py-3 rounded-xl shadow-md flex items-center justify-center space-x-2 text-xs transition active:scale-95">
-          <i class="fa-brands fa-instagram text-base"></i>
-          <span>Увійти через Instagram (+50 💎)</span>
-        </button>
-
-        <!-- Facebook -->
-        <button @click="openSocialLogin('Facebook')" class="w-full bg-[#1877F2] text-white font-bold py-3 rounded-xl shadow-md flex items-center justify-center space-x-2 text-xs transition active:scale-95">
-          <i class="fa-brands fa-facebook text-base"></i>
-          <span>Увійти через Facebook (+50 💎)</span>
-        </button>
-
-        <!-- Google -->
-        <button @click="openSocialLogin('Google')" class="w-full bg-white hover:bg-stone-100 text-stone-900 font-bold py-3 rounded-xl shadow-md flex items-center justify-center space-x-2 text-xs transition active:scale-95 border border-stone-200">
-          <svg class="w-4 h-4 mr-1" viewBox="0 0 24 24">
-            <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-            <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-            <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
-            <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
-          </svg>
-          <span>Увійти через Google (+50 💎)</span>
-        </button>
-      </div>
-
-      <div class="flex items-center space-x-2 py-1">
-        <div class="flex-1 h-px bg-white/10"></div>
-        <span class="text-[10px] text-stone-400 uppercase font-bold">або за номером</span>
-        <div class="flex-1 h-px bg-white/10"></div>
-      </div>
-
-      <!-- Phone Form -->
-      <div class="space-y-2">
-        <input v-model="loginPhoneInput" type="tel" placeholder="+380... або +34..." class="w-full bg-white/5 border border-white/15 focus:border-amber-400 rounded-xl p-3 text-xs text-white placeholder-stone-500">
-        <button @click="submitPhoneLogin" class="w-full bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 text-stone-950 font-black py-3 rounded-xl text-xs transition active:scale-95 shadow">
-          Увійти в кабінет
-        </button>
-      </div>
-
-      <button @click="showLoginModal = false" class="w-full text-center text-xs text-stone-400 hover:text-white pt-1">
-        Закрити
-      </button>
-    </div>
-  </div>
-
-  <!-- SUB-MODAL: СОЦІАЛЬНИЙ ВХІД (ІМ'Я ТА НОМЕР) -->
-  <div v-if="socialAuthModal.open" @click.self="socialAuthModal.open = false" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-end sm:items-center justify-center p-0 sm:p-4">
-    <div class="bg-[#1C1715] text-white w-full max-w-sm rounded-t-3xl sm:rounded-3xl p-6 space-y-4 border border-white/15 shadow-2xl text-left">
-      <div class="flex items-center justify-between pb-2 border-b border-white/10">
-        <div class="flex items-center space-x-2">
-          <i :class="socialAuthModal.provider === 'Instagram' ? 'fa-brands fa-instagram text-rose-400' : (socialAuthModal.provider === 'Facebook' ? 'fa-brands fa-facebook text-blue-400' : 'fa-brands fa-google text-amber-400')" class="text-lg"></i>
-          <h3 class="font-bold text-sm text-white">Вхід через {{ socialAuthModal.provider }}</h3>
-        </div>
-        <button @click="socialAuthModal.open = false" class="text-stone-400 hover:text-white p-1">
-          <i class="fa-solid fa-xmark text-lg"></i>
-        </button>
-      </div>
-
-      <div class="space-y-2.5 text-xs">
-        <div>
-          <label class="block font-semibold text-stone-300 mb-1">
-            <span v-if="socialAuthModal.provider === 'Instagram'">Ваш Instagram (@нікнейм):</span>
-            <span v-else>Ваш нікнейм або ім'я:</span>
-          </label>
-          <input v-model="socialAuthModal.handle" :placeholder="socialAuthModal.provider === 'Instagram' ? '@olenka_nails' : 'Ім\'я'" class="w-full bg-white/5 border border-white/15 rounded-xl p-2.5 text-white">
-        </div>
-        <div>
-          <label class="block font-semibold text-stone-300 mb-1">Ваше реальне ім'я:</label>
-          <input v-model="socialAuthModal.name" placeholder="Олена" class="w-full bg-white/5 border border-white/15 rounded-xl p-2.5 text-white">
-        </div>
-        <div>
-          <label class="block font-semibold text-stone-300 mb-1">Номер телефону:</label>
-          <input v-model="socialAuthModal.phone" type="tel" placeholder="+380... або +34..." class="w-full bg-white/5 border border-white/15 rounded-xl p-2.5 text-white">
-        </div>
-
-        <button @click="submitSocialLogin" class="w-full bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 text-stone-950 font-black py-3 rounded-xl text-xs transition active:scale-95 shadow mt-1">
-          Підтвердити (+50 💎)
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <!-- MODAL: ВСТАНОВИТИ ДОДАТОК (ПРОСТЕ ТА НАДІЙНЕ ВСТАНОВЛЕННЯ) -->
-  <div v-if="showInstallModal" @click.self="showInstallModal = false" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-end sm:items-center justify-center p-0 sm:p-4">
-    <div class="bg-[#1C1715] border border-white/15 w-full max-w-sm rounded-t-3xl sm:rounded-3xl p-6 space-y-4 text-stone-100 text-left shadow-2xl">
-      <!-- Header with clear close button -->
-      <div class="flex items-center justify-between pb-3 border-b border-white/10">
-        <div class="flex items-center space-x-3">
-          <img src="/static/icon-192.png" class="w-10 h-10 rounded-2xl border border-amber-400/40 shadow">
-          <div>
-            <h3 class="font-extrabold text-base text-white">Встановити додаток</h3>
-            <p class="text-[11px] text-amber-300">Natali Nails Privé</p>
-          </div>
-        </div>
-        <button @click="showInstallModal = false" class="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-stone-300 hover:text-white flex items-center justify-center transition" title="Закрити">
-          <i class="fa-solid fa-xmark text-lg"></i>
-        </button>
-      </div>
-
-      <!-- Action 1: Android Official Chrome Install -->
-      <div class="space-y-2">
-        <button @click="triggerAndroidInstall" class="w-full bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 text-white font-extrabold p-3.5 rounded-2xl shadow-xl flex items-center justify-between transition active:scale-95 border border-emerald-400/40">
-          <div class="flex items-center space-x-3">
-            <div class="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center text-2xl">
-              <i class="fa-brands fa-android"></i>
-            </div>
-            <div class="text-left">
-              <div class="text-sm font-black">Для Android</div>
-              <div class="text-[11px] font-normal text-emerald-100">Швидке встановлення в 1 клік</div>
-            </div>
-          </div>
-          <i class="fa-solid fa-arrow-down-to-bracket text-lg"></i>
-        </button>
-
-        <!-- Android Tip if prompt not available -->
-        <div class="p-3 bg-emerald-950/40 border border-emerald-500/30 rounded-xl text-[11px] text-emerald-200 leading-relaxed">
-          💡 Або натисніть <b>три крапки ⋮</b> у правому верхньому кутку браузера Chrome ➔ оберіть <b>«Встановити додаток»</b> (або «Додати на головний екран»).
-        </div>
-      </div>
-
-      <!-- Action 2: iPhone / iOS Safari Instructions -->
-      <div class="p-3.5 bg-stone-900 border border-white/10 rounded-2xl space-y-2">
-        <div class="flex items-center space-x-2 text-stone-200 font-bold text-xs">
-          <i class="fa-brands fa-apple text-base"></i>
-          <span>Для iPhone (iOS Safari):</span>
-        </div>
-        <ol class="text-[11px] text-stone-300 space-y-1 list-decimal list-inside pl-0.5 leading-relaxed">
-          <li>Натисніть кнопку <b>«Поділитися»</b> (<i class="fa-solid fa-arrow-up-from-bracket text-[10px]"></i> або ⎋) внизу Safari.</li>
-          <li>Оберіть пункт <b>«На початковий екран»</b> (Add to Home Screen ➕).</li>
-        </ol>
-        <p class="text-[10px] text-amber-300 font-semibold">
-          ✨ Іконка додатка з'явиться на робочому столі вашого iPhone!
-        </p>
-      </div>
-
-      <!-- Large Bottom Close Button -->
-      <button @click="showInstallModal = false" class="w-full bg-white/10 hover:bg-white/20 text-stone-200 font-bold py-3 rounded-2xl text-xs transition active:scale-95">
-        ✕ Закрити вікно
-      </button>
-    </div>
-  </div>
 
 </div>
 
@@ -996,8 +823,8 @@ createApp({
 
     const calendarUrl = computed(() => {
       if (!bookingDate.value || !bookingTime.value) return '#';
-      const title = encodeURIComponent(`Манікюр у Natali Nails Privé (${selectedServiceNames.value})`);
-      const details = encodeURIComponent(`Ваш візит до Natali Nails Privé.\nПослуги: ${selectedServiceNames.value}\nМайстер: ${settings.value.master_name || 'Natali'}\nСума: ${totalPrice.value} ${settings.value.currency || '€'}\n\nНагадування: за день до візиту та вранці о 9:00!`);
+      const title = encodeURIComponent(`Манікюр у Natali Nails (${selectedServiceNames.value})`);
+      const details = encodeURIComponent(`Ваш візит до Natali Nails.\nПослуги: ${selectedServiceNames.value}\nМайстер: ${settings.value.master_name || 'Natali'}\nСума: ${totalPrice.value} ${settings.value.currency || '€'}\n\nНагадування: за день до візиту та вранці о 9:00!`);
       const location = encodeURIComponent(settings.value.address || '');
       
       const startIso = bookingDate.value.replace(/-/g, '') + 'T' + bookingTime.value.replace(':', '') + '00';
@@ -1119,36 +946,41 @@ createApp({
     }
 
     async function submitSocialLogin() {
-      if (!socialAuthModal.value.name.trim() && socialAuthModal.value.handle.trim()) {
-        socialAuthModal.value.name = socialAuthModal.value.handle.replace('@', '').trim();
-      }
-      if (!socialAuthModal.value.name.trim() || socialAuthModal.value.phone.trim().length < 8) {
-        alert("Будь ласка, вкажіть ваше ім'я та телефон");
+      const raw = (socialAuthModal.value.handle || '').trim();
+      if (!raw) {
+        showToast('Введіть ваш Instagram-нікнейм');
         return;
       }
+      const clean = raw.replace('@', '').replace('https://instagram.com/', '').replace('https://www.instagram.com/', '').trim();
+      if (clean.length < 2) {
+        showToast('Вкажіть коректний нікнейм');
+        return;
+      }
+
       try {
-        const res = await fetch('/api/client/login', {
+        const res = await fetch('/api/client/login-instagram', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            provider: socialAuthModal.value.provider.toLowerCase(),
-            name: socialAuthModal.value.name.trim(),
-            phone: socialAuthModal.value.phone.trim(),
-            instagram: socialAuthModal.value.handle ? socialAuthModal.value.handle.trim() : ''
-          })
+          body: JSON.stringify({ instagram: clean })
         });
         const data = await res.json();
         if (data.status === 'ok') {
           loggedInClient.value = data.client;
-          clientName.value = data.client.name;
-          clientPhone.value = data.client.phone;
-          localStorage.setItem('vip_phone', data.client.phone);
+          localStorage.setItem('vip_instagram', data.client.instagram || ('@' + clean));
+          if (data.client.phone) localStorage.setItem('vip_phone', data.client.phone);
+          localStorage.setItem('vip_client', JSON.stringify(data.client));
+
+          if (data.client.name && !clientName.value) clientName.value = data.client.name;
+          if (data.client.phone && !clientPhone.value) clientPhone.value = data.client.phone;
+
           socialAuthModal.value.open = false;
           showLoginModal.value = false;
-          showToast(`Вітаємо, ${data.client.name}! Ви увійшли в акаунт 👑`);
+          showToast(`✨ Вітаємо, @${clean}! Вам нараховано 50 💎`);
+        } else {
+          showToast('Помилка входу');
         }
       } catch (e) {
-        alert("Помилка входу");
+        showToast('Помилка з\'єднання');
       }
     }
 

@@ -16,7 +16,7 @@ from pydantic import BaseModel, Field
 
 DB_FILE = "app.db"
 
-app = FastAPI(title="Natali Nails Prive - Secure Beauty CRM")
+app = FastAPI(title="Natali Nails - Secure Beauty CRM")
 
 # --- Security: Rate Limiting & Anti-Brute-Force Cache ---
 RATE_LIMIT_CACHE: Dict[str, List[float]] = {}
@@ -465,6 +465,9 @@ class PublicBookingRequest(BaseModel):
     time: str
     notes: Optional[str] = ""
 
+class InstagramLoginRequest(BaseModel):
+    instagram: str
+
 class ClientLoginRequest(BaseModel):
     provider: str
     phone: str
@@ -759,7 +762,8 @@ def create_appointment(data: AppointmentCreate):
     safe_phone = sanitize_text(data.client_phone)
     safe_notes = sanitize_text(data.notes)
 
-    cursor.execute("SELECT id FROM clients WHERE phone = ?", (safe_phone,))
+    # Check if client exists by phone or by instagram without phone
+    cursor.execute("SELECT id FROM clients WHERE phone = ? OR (phone = '' AND (name = ? OR instagram LIKE ?))", (safe_phone, safe_name, f"%{safe_name}%"))
     client_row = cursor.fetchone()
     if client_row:
         client_id = client_row[0]
@@ -924,6 +928,76 @@ def update_client_avatar(data: ClientAvatarUpdate):
     conn.commit()
     conn.close()
     return {"status": "ok", "avatar_url": data.avatar_url}
+
+@app.post("/api/client/login-instagram")
+def client_login_instagram(data: InstagramLoginRequest):
+    conn = get_db()
+    cursor = conn.cursor()
+    raw = sanitize_text(data.instagram).strip()
+    if not raw:
+        conn.close()
+        raise HTTPException(status_code=400, detail="Instagram handle required")
+    
+    clean_insta = raw.replace("https://instagram.com/", "").replace("https://www.instagram.com/", "").strip("/").lstrip("@").strip()
+    if not clean_insta:
+        conn.close()
+        raise HTTPException(status_code=400, detail="Invalid Instagram handle")
+    
+    handle_with_at = f"@{clean_insta}"
+    
+    # Check if client exists by instagram handle
+    cursor.execute("SELECT * FROM clients WHERE instagram = ? OR instagram = ? OR instagram LIKE ?", (handle_with_at, clean_insta, f"%{clean_insta}%"))
+    client = cursor.fetchone()
+    
+    if not client:
+        # Create new client with 50 points
+        display_name = clean_insta.capitalize()
+        cursor.execute("""
+        INSERT INTO clients (name, phone, instagram, avatar_url, points, vip_tier, unlocked_emojis, created_at)
+        VALUES (?, '', ?, '', 50, 'Gold VIP', '💅,✨,💖', ?)
+        """, (display_name, handle_with_at, datetime.now().isoformat()))
+        conn.commit()
+        cursor.execute("SELECT * FROM clients WHERE id = ?", (cursor.lastrowid,))
+        client = cursor.fetchone()
+        
+    completed_count = 0
+    if client["phone"]:
+        cursor.execute("SELECT COUNT(*) FROM appointments WHERE (client_phone = ? OR client_phone LIKE ?) AND status = 'completed'", (client["phone"], f"%{client['phone'][-9:]}%"))
+        row = cursor.fetchone()
+        if row:
+            completed_count = row[0]
+            
+    conn.close()
+    return {
+        "status": "ok",
+        "client": dict(client),
+        "completed_count": completed_count
+    }
+
+@app.get("/api/client/profile-instagram")
+def get_client_profile_instagram(instagram: str):
+    conn = get_db()
+    cursor = conn.cursor()
+    raw = sanitize_text(instagram).strip()
+    clean_insta = raw.replace("https://instagram.com/", "").replace("https://www.instagram.com/", "").strip("/").lstrip("@").strip()
+    handle_with_at = f"@{clean_insta}"
+    
+    cursor.execute("SELECT * FROM clients WHERE instagram = ? OR instagram = ? OR instagram LIKE ?", (handle_with_at, clean_insta, f"%{clean_insta}%"))
+    client = cursor.fetchone()
+    if not client:
+        conn.close()
+        raise HTTPException(status_code=404, detail="Client not found")
+        
+    appointments = []
+    if client["phone"]:
+        cursor.execute("SELECT * FROM appointments WHERE client_phone = ? OR client_phone LIKE ? ORDER BY date DESC, time DESC", (client["phone"], f"%{client['phone'][-9:]}%"))
+        appointments = [dict(r) for r in cursor.fetchall()]
+        
+    conn.close()
+    return {
+        "client": dict(client),
+        "appointments": appointments
+    }
 
 @app.post("/api/client/login")
 def client_login(data: ClientLoginRequest):
@@ -1275,7 +1349,7 @@ def download_ios_profile():
             <key>Label</key>
             <string>Natali Nails</string>
             <key>PayloadDescription</key>
-            <string>Natali Nails Privé Web App</string>
+            <string>Natali Nails Web App</string>
             <key>PayloadDisplayName</key>
             <string>Natali Nails</string>
             <key>PayloadIdentifier</key>
@@ -1291,7 +1365,7 @@ def download_ios_profile():
         </dict>
     </array>
     <key>PayloadDisplayName</key>
-    <string>Natali Nails Privé</string>
+    <string>Natali Nails</string>
     <key>PayloadIdentifier</key>
     <string>com.natalinails.profile</string>
     <key>PayloadRemovalDisallowed</key>
