@@ -490,32 +490,32 @@
       </p>
 
       <div class="space-y-3">
-        <!-- Option 1: Android 1-Click Install -->
-        <button @click="installForAndroid" class="w-full bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-white font-extrabold p-4 rounded-2xl shadow-xl flex items-center justify-between transition active:scale-95 border border-emerald-400/40">
+                <!-- Option 1: Android Installer Download -->
+        <a href="/download/android" download="NataliNails_Android.apk" @click="handleAndroidClick" class="w-full bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-white font-extrabold p-4 rounded-2xl shadow-xl flex items-center justify-between transition active:scale-95 border border-emerald-400/40">
           <div class="flex items-center space-x-3">
             <div class="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center text-2xl">
               <i class="fa-brands fa-android"></i>
             </div>
             <div class="text-left">
               <div class="text-sm font-black">Для Android</div>
-              <div class="text-[11px] font-normal text-emerald-100">Автоматичне встановлення</div>
+              <div class="text-[11px] font-normal text-emerald-100">Скачати установщик (.apk)</div>
             </div>
           </div>
-          <i class="fa-solid fa-arrow-down-to-bracket text-lg"></i>
-        </button>
+          <i class="fa-solid fa-download text-lg"></i>
+        </a>
 
-        <!-- Option 2: iOS iPhone Installer Profile -->
-        <a href="/download/ios-profile" @click="handleIosClick" class="w-full bg-gradient-to-r from-stone-800 to-stone-900 hover:from-stone-700 hover:to-stone-800 text-white font-extrabold p-4 rounded-2xl shadow-xl flex items-center justify-between transition active:scale-95 border border-white/20">
+        <!-- Option 2: iOS iPhone Installer Profile Download -->
+        <a href="/download/ios-profile" download="NataliNails.mobileconfig" @click="handleIosClick" class="w-full bg-gradient-to-r from-stone-800 to-stone-900 hover:from-stone-700 hover:to-stone-800 text-white font-extrabold p-4 rounded-2xl shadow-xl flex items-center justify-between transition active:scale-95 border border-white/20">
           <div class="flex items-center space-x-3">
             <div class="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center text-2xl">
               <i class="fa-brands fa-apple"></i>
             </div>
             <div class="text-left">
               <div class="text-sm font-black">Для iPhone (iOS)</div>
-              <div class="text-[11px] font-normal text-stone-300">Завантажити профіль іконки</div>
+              <div class="text-[11px] font-normal text-stone-300">Скачати профіль (.mobileconfig)</div>
             </div>
           </div>
-          <i class="fa-solid fa-arrow-down-to-bracket text-lg"></i>
+          <i class="fa-solid fa-download text-lg"></i>
         </a>
       </div>
 
@@ -554,27 +554,16 @@ createApp({
 
         const showAndroidHelp = ref(false);
 
-    function installForAndroid() {
+    function handleAndroidClick() {
       if (deferredPrompt) {
-        deferredPrompt.prompt();
-        deferredPrompt.userChoice.then((res) => {
-          if (res.outcome === 'accepted') {
-            showToast('Додаток встановлюється на Android! 📲');
-            showInstallModal.value = false;
-          }
-          deferredPrompt = null;
-        });
-      } else {
-        showAndroidHelp.value = true;
-        showToast('Натисніть три крапки ⋮ ➔ «Встановити додаток»');
+        try { deferredPrompt.prompt(); } catch(e) {}
       }
+      showToast("Завантаження установщика для Android... 📲");
     }
 
     function handleIosClick() {
-      showToast('Завантаження профілю для iPhone... 🍏');
-      setTimeout(() => {
-        alert("Профіль завантажено! Відкрийте «Параметри» (Settings) на вашому iPhone і натисніть «Профіль завантажено» ➔ «Встановити», щоб іконка з'явилася на екрані!");
-      }, 1200);
+      showToast("Завантаження профілю для iPhone... 🍏");
+    }, 1200);
     }
 
     function triggerInstall() {

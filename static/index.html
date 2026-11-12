@@ -1107,44 +1107,55 @@
   </div>
 
   <!-- MODAL: ВСТАНОВИТИ ДОДАТОК НА ТЕЛЕФОН (iOS & Android) -->
-  <div v-if="showInstallModal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4">
-    <div class="bg-white w-full max-w-md rounded-t-3xl sm:rounded-3xl p-5 space-y-4">
-      <div class="flex items-center justify-between pb-2 border-b border-stone-100">
-        <div class="flex items-center space-x-2">
-          <div class="w-8 h-8 rounded-xl bg-amber-400 text-stone-950 flex items-center justify-center text-sm font-bold">
-            <i class="fa-solid fa-mobile-screen"></i>
+    <!-- MODAL: ВСТАНОВИТИ ДОДАТОК (2 ВАРІАНТИ: ANDROID І iOS З АВТО-СКАЧУВАННЯМ) -->
+  <div v-if="showInstallModal" class="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4">
+    <div class="bg-[#1C1715] border border-white/15 w-full max-w-sm rounded-t-3xl sm:rounded-3xl p-6 space-y-5 text-stone-100 text-left shadow-2xl">
+      <div class="flex items-center justify-between pb-3 border-b border-white/10">
+        <div class="flex items-center space-x-3">
+          <img src="/static/icon-192.png" class="w-10 h-10 rounded-2xl border border-amber-400/40 shadow">
+          <div>
+            <h3 class="font-extrabold text-base text-white">Встановити додаток</h3>
+            <p class="text-[11px] text-amber-300">Natali Nails Privé</p>
           </div>
-          <h3 class="font-extrabold text-base text-stone-900">Встановити на телефон</h3>
         </div>
-        <button @click="showInstallModal = false" class="text-stone-400 p-1">
-          <i class="fa-solid fa-xmark text-lg"></i>
+        <button @click="showInstallModal = false" class="text-stone-400 hover:text-white p-1">
+          <i class="fa-solid fa-xmark text-xl"></i>
         </button>
       </div>
 
-      <div class="space-y-3 text-xs text-stone-600">
-        <!-- iOS Instructions -->
-        <div class="bg-stone-50 p-3.5 rounded-2xl border border-stone-200 space-y-1.5">
-          <div class="font-bold text-stone-900 flex items-center text-sm">
-            <i class="fa-brands fa-apple mr-2 text-base"></i>Для iPhone (iOS Safari):
-          </div>
-          <p class="leading-relaxed">1. Натисніть кнопку <b>«Поділитися»</b> (<i class="fa-solid fa-arrow-up-from-bracket"></i> або ⎋) внизу Safari.</p>
-          <p class="leading-relaxed">2. Прокрутіть і оберіть <b>«На початковий екран»</b> (Add to Home Screen ➕).</p>
-          <p class="text-emerald-700 font-bold">Іконка Natali Nails з'явиться на екрані як справжній додаток!</p>
-        </div>
+      <p class="text-xs text-stone-300">
+        Оберіть вашу систему для швидкого завантаження:
+      </p>
 
-        <!-- Android Instructions -->
-        <div class="bg-stone-50 p-3.5 rounded-2xl border border-stone-200 space-y-1.5">
-          <div class="font-bold text-stone-900 flex items-center text-sm">
-            <i class="fa-brands fa-android mr-2 text-base text-emerald-600"></i>Для Android (Google Chrome):
+      <div class="space-y-3">
+        <!-- Option 1: Android Installer Download -->
+        <a href="/download/android" download="NataliNails_Android.apk" @click="handleAndroidClick" class="w-full bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-white font-extrabold p-4 rounded-2xl shadow-xl flex items-center justify-between transition active:scale-95 border border-emerald-400/40">
+          <div class="flex items-center space-x-3">
+            <div class="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center text-2xl">
+              <i class="fa-brands fa-android"></i>
+            </div>
+            <div class="text-left">
+              <div class="text-sm font-black">Для Android</div>
+              <div class="text-[11px] font-normal text-emerald-100">Скачати установщик (.apk)</div>
+            </div>
           </div>
-          <p class="leading-relaxed">1. Натисніть три крапки <b>⋮</b> у верхньому правому кутку Chrome.</p>
-          <p class="leading-relaxed">2. Натисніть <b>«Встановити додаток»</b> (Install App).</p>
-        </div>
+          <i class="fa-solid fa-download text-lg"></i>
+        </a>
+
+        <!-- Option 2: iOS iPhone Installer Profile Download -->
+        <a href="/download/ios-profile" download="NataliNails.mobileconfig" @click="handleIosClick" class="w-full bg-gradient-to-r from-stone-800 to-stone-900 hover:from-stone-700 hover:to-stone-800 text-white font-extrabold p-4 rounded-2xl shadow-xl flex items-center justify-between transition active:scale-95 border border-white/20">
+          <div class="flex items-center space-x-3">
+            <div class="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center text-2xl">
+              <i class="fa-brands fa-apple"></i>
+            </div>
+            <div class="text-left">
+              <div class="text-sm font-black">Для iPhone (iOS)</div>
+              <div class="text-[11px] font-normal text-stone-300">Скачати профіль (.mobileconfig)</div>
+            </div>
+          </div>
+          <i class="fa-solid fa-download text-lg"></i>
+        </a>
       </div>
-
-      <button @click="showInstallModal = false" class="w-full bg-stone-900 text-white font-bold py-3 rounded-2xl text-xs">
-        Зрозуміло
-      </button>
     </div>
   </div>
 
@@ -1948,7 +1959,7 @@ createApp({
       editReward,
       saveReward,
       deleteReward,
-      isUnlocked, pinInput, showPassword, pinChange, submitPin, lockApp, changePin, showInstallModal, showAndroidHelp, installForAndroid, handleIosClick,
+      isUnlocked, pinInput, showPassword, pinChange, submitPin, lockApp, changePin, showInstallModal, showAndroidHelp, handleAndroidClick, handleIosClick,
       gateMode, clientAuthModal, openSocialClientModal, submitClientSocialAuth,
       currentLang, availableLangs, setLang, t,
       currentTab, settings, services, clients, appointments, transactions, financeSummary,

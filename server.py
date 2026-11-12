@@ -1240,6 +1240,16 @@ def serve_book():
 def serve_client_club():
     return FileResponse("static/client.html")
 
+
+@app.get("/download/android")
+@app.get("/download/android-apk")
+def download_android():
+    return FileResponse(
+        "static/NataliNails_Android.apk",
+        media_type="application/vnd.android.package-archive",
+        filename="NataliNails_Android.apk"
+    )
+
 @app.get("/download/ios-profile")
 def download_ios_profile():
     icon_b64 = ""
@@ -1294,8 +1304,9 @@ def download_ios_profile():
     <integer>1</integer>
 </dict>
 </plist>"""
-    return Response(content=mobileconfig, media_type="application/x-apple-aspen-config", headers={
-        "Content-Disposition": 'attachment; filename="NataliNails.mobileconfig"'
+    return Response(content=mobileconfig, media_type="application/octet-stream", headers={
+        "Content-Disposition": 'attachment; filename="NataliNails.mobileconfig"',
+        "Content-Type": "application/octet-stream"
     })
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
