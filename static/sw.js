@@ -1,20 +1,6 @@
-const CACHE_NAME = 'natali-nails-v1';
-const ASSETS_TO_CACHE = [
-  '/',
-  '/book',
-  '/club',
-  '/static/manifest.json',
-  '/static/icon-192.png',
-  '/static/icon-512.png',
-  '/static/i18n.js'
-];
+const CACHE_NAME = 'natali-nails-v2';
 
 self.addEventListener('install', event => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then(cache => {
-      return cache.addAll(ASSETS_TO_CACHE);
-    })
-  );
   self.skipWaiting();
 });
 
@@ -34,10 +20,19 @@ self.addEventListener('activate', event => {
 });
 
 self.addEventListener('fetch', event => {
-  // Network first, fall back to cache
   if (event.request.method === 'GET') {
+    // Always fetch fresh version from server
     event.respondWith(
-      fetch(event.request).catch(() => caches.match(event.request))
+      fetch(event.request)
+        .then(response => {
+          // If network succeeds, optionally cache images
+          if (response.ok && event.request.url.includes('/static/icon')) {
+            const clone = response.clone();
+            caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
+          }
+          return response;
+        })
+        .catch(() => caches.match(event.request))
     );
   }
 });
