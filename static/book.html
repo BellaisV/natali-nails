@@ -192,7 +192,7 @@
           @click="selectedCategory = cat"
           :class="selectedCategory === cat ? 'bg-stone-900 text-amber-300 shadow-md ring-2 ring-amber-400' : 'bg-white text-stone-700 hover:bg-stone-100 border border-stone-200 shadow-sm'"
           class="text-xs font-bold px-3.5 py-1.5 rounded-full whitespace-nowrap transition active:scale-95 flex-shrink-0">
-          {{ cat === 'Всі' ? t('all_categories') : cat }}
+          {{ getCategoryName(cat) }}
         </button>
       </div>
 
@@ -214,7 +214,7 @@
           <div class="pr-3">
             <div class="flex items-center space-x-2 mb-1">
               <span class="text-[10px] font-bold text-rose-700 uppercase tracking-wider bg-rose-50 px-2 py-0.5 rounded-md">
-                {{ s.category }}
+                {{ getCategoryName(s.category) }}
               </span>
               <span v-if="s.name.includes('Комплекс') || s.name.includes('Нюд') || s.name.includes('Gel')" class="text-[9px] font-bold bg-amber-50 text-amber-800 border border-amber-200 px-1.5 py-0.5 rounded-md">
                 {{ t('tag_hit') }}
@@ -853,6 +853,22 @@ createApp({
       if (selectedCategory.value === 'Всі') return services.value;
       return services.value.filter(s => s.category === selectedCategory.value);
     });
+
+    function getCategoryName(cat) {
+      if (!cat) return '';
+      if (cat === 'Всі') return t('all_categories') || 'Всі';
+      const catMap = {
+        'Комплекс': { uk: 'Комплекс', en: 'Complex', es: 'Completo', va: 'Complet', de: 'Komplex', ru: 'Комплекс' },
+        'Манікюр': { uk: 'Манікюр', en: 'Manicure', es: 'Manicura', va: 'Manicura', de: 'Maniküre', ru: 'Маникюр' },
+        'Дизайн': { uk: 'Дизайн', en: 'Design', es: 'Diseño', va: 'Disseny', de: 'Design', ru: 'Дизайн' },
+        'Нарощування': { uk: 'Нарощування', en: 'Extensions', es: 'Extensiones', va: 'Extensions', de: 'Verlängerung', ru: 'Наращивание' },
+        'Догляд': { uk: 'Догляд', en: 'Care', es: 'Cuidado', va: 'Cura', de: 'Pflege', ru: 'Уход' }
+      };
+      if (catMap[cat] && catMap[cat][currentLang.value]) {
+        return catMap[cat][currentLang.value];
+      }
+      return cat;
+    }
 
     function getServiceName(s) {
       if (s.translations && s.translations.name && s.translations.name[currentLang.value]) {
