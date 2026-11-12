@@ -1,0 +1,1422 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Natali Nails Privé — Кабінет Майстра</title>
+
+  <!-- PWA & Mobile Web App Meta -->
+  <link rel="manifest" href="/static/manifest.json">
+  <meta name="theme-color" content="#1C1715">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Natali Nails">
+  <link rel="apple-touch-icon" href="/static/icon-192.png">
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+  <script src="/static/i18n.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Cormorant+Garamond:wght@600;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+    .font-serif-luxury {
+      font-family: 'Cormorant Garamond', Georgia, serif;
+    }
+    input, textarea, select {
+      user-select: auto;
+    }
+    .hide-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .hide-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+  </style>
+</head>
+<body class="bg-stone-100 text-stone-800 antialiased pb-24">
+<div id="app" class="max-w-md mx-auto min-h-screen bg-stone-50 flex flex-col shadow-2xl relative">
+
+  <!-- SECURITY PASSWORD LOCK SCREEN (Екран блокування) -->
+  <div v-if="!isUnlocked" class="fixed inset-0 z-50 bg-[#1C1715] text-white flex flex-col justify-center items-center p-6 space-y-6">
+    <div class="w-20 h-20 rounded-3xl bg-gradient-to-tr from-rose-500/20 to-amber-400/20 border border-amber-400/40 flex items-center justify-center text-amber-300 text-3xl shadow-2xl">
+      <i class="fa-solid fa-lock"></i>
+    </div>
+
+    <div class="text-center space-y-1.5">
+      <span class="text-[10px] uppercase font-bold tracking-widest text-amber-400">Security Gate</span>
+      <h2 class="text-2xl font-bold font-serif-luxury text-white">Natali Nails Privé</h2>
+      <p class="text-xs text-stone-400">Введіть пароль майстра для входу в кабінет</p>
+    </div>
+
+    <!-- Password Input Box -->
+    <div class="w-full max-w-xs space-y-3">
+      <div class="relative">
+        <input :type="showPassword ? 'text' : 'password'" v-model="pinInput" @keyup.enter="submitPin"
+          placeholder="Введіть пароль..."
+          class="w-full bg-white/5 border border-white/20 focus:border-amber-400 rounded-2xl py-3.5 pl-4 pr-11 text-sm text-white placeholder-stone-500 focus:outline-none">
+        <button type="button" @click="showPassword = !showPassword" class="absolute right-3.5 top-3.5 text-stone-400 hover:text-white text-sm">
+          <i :class="showPassword ? 'fa-solid fa-eye-slash' : 'fa-solid fa-eye'"></i>
+        </button>
+      </div>
+
+      <button @click="submitPin" class="w-full bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-stone-950 font-black py-3.5 rounded-2xl shadow-xl shadow-amber-500/20 text-xs transition active:scale-95 flex items-center justify-center space-x-2">
+        <span>Увійти в кабінет</span>
+        <i class="fa-solid fa-arrow-right text-[11px]"></i>
+      </button>
+
+      <div class="bg-white/5 rounded-2xl p-3 border border-white/10 text-center">
+        <p class="text-[11px] text-stone-400">
+          🔑 Встановлений пароль: <b class="text-amber-300 cursor-pointer" @click="pinInput = '1997Bellais1997$'">1997Bellais1997$</b>
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN APP (Коли кабінет розблоковано) -->
+  <template v-else>
+    <!-- Top Header Bar -->
+    <header class="sticky top-0 z-30 bg-[#1C1715] text-white px-4 py-3 flex items-center justify-between shadow-md">
+      <div class="flex items-center space-x-2.5">
+        <div class="w-9 h-9 rounded-full bg-gradient-to-tr from-rose-500 to-amber-400 flex items-center justify-center text-white shadow-md">
+          <i class="fa-solid fa-hand-sparkles text-sm"></i>
+        </div>
+        <div>
+          <h1 class="font-bold text-sm leading-tight text-white">{{ settings.studio_name || 'Natali Nails Privé' }}</h1>
+          <p class="text-[11px] text-rose-300 font-medium">{{ settings.master_name }}</p>
+        </div>
+      </div>
+
+      <div class="flex items-center space-x-1.5">
+        <!-- Currency Toggle (€ / грн) -->
+        <button @click="toggleCurrency" class="flex items-center space-x-1 bg-white/10 hover:bg-white/20 text-rose-300 font-extrabold text-xs px-2 py-1.5 rounded-full border border-rose-400/30 transition active:scale-95" title="Перемкнути валюту (€ / грн)">
+          <span>{{ settings.currency || '€' }}</span>
+        </button>
+
+        <!-- Install PWA on Phone Button -->
+        <button @click="showInstallModal = true" class="flex items-center space-x-1 bg-white/10 hover:bg-white/20 text-emerald-300 font-extrabold text-xs px-2 py-1.5 rounded-full border border-emerald-400/30 transition active:scale-95" title="Встановити додаток на iPhone або Android">
+          <i class="fa-solid fa-mobile-screen text-[10px]"></i>
+          <span class="text-[10px]">App</span>
+        </button>
+
+        <!-- VIP Club Link -->
+        <a href="/club" target="_blank" class="flex items-center space-x-1 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 font-extrabold text-xs px-2 py-1.5 rounded-full border border-amber-400/30 transition active:scale-95" title="VIP-клуб клієнток">
+          <i class="fa-solid fa-crown text-[10px]"></i>
+          <span class="text-[10px]">VIP</span>
+        </a>
+
+        <!-- Lock App Button -->
+        <button @click="lockApp" class="w-7 h-7 rounded-full bg-white/10 hover:bg-rose-500 text-stone-300 hover:text-white flex items-center justify-center text-xs transition" title="Заблокувати кабінет">
+          <i class="fa-solid fa-lock text-[11px]"></i>
+        </button>
+
+        <!-- Quick copy booking link -->
+        <button @click="copyBookingLink" class="flex items-center space-x-1 text-xs bg-rose-600 text-white font-bold px-2.5 py-1.5 rounded-full shadow-sm hover:bg-rose-700 transition active:scale-95">
+          <i class="fa-solid fa-link text-[10px]"></i>
+          <span class="text-[11px]">Лінк</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Notification Toast -->
+    <div v-if="toast.show" class="fixed top-16 left-1/2 -translate-x-1/2 z-50 bg-stone-900 text-white text-xs font-medium px-4 py-2.5 rounded-2xl shadow-xl flex items-center space-x-2 transition-all">
+      <i class="fa-solid fa-circle-check text-emerald-400"></i>
+      <span>{{ toast.message }}</span>
+    </div>
+
+    <!-- TAB 1: ЖУРНАЛ ЗАПИСІВ (КАЛЕНДАР) -->
+    <main v-if="currentTab === 'schedule'" class="flex-1 p-4 space-y-4">
+      <div class="bg-white rounded-2xl p-3 shadow-sm border border-stone-200/80">
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-xs font-bold uppercase tracking-wider text-stone-400">{{ t('lbl_choose_day') }}</span>
+          <button @click="selectDate(todayStr)" class="text-xs text-rose-600 font-bold hover:underline">
+            {{ t('today') }}
+          </button>
+        </div>
+        <div class="flex items-center space-x-2 overflow-x-auto hide-scrollbar py-1">
+          <button v-for="d in daysList" :key="d.dateStr"
+            @click="selectDate(d.dateStr)"
+            :class="[selectedDate === d.dateStr ? 'bg-stone-900 text-white shadow-md' : 'bg-stone-100 text-stone-700 hover:bg-stone-200']"
+            class="flex flex-col items-center justify-center min-w-[50px] py-2 px-1 rounded-xl text-center transition flex-shrink-0">
+            <span class="text-[10px] uppercase font-bold tracking-tighter opacity-80">{{ d.dayName }}</span>
+            <span class="text-base font-extrabold leading-tight">{{ d.dayNum }}</span>
+            <span class="w-1.5 h-1.5 rounded-full mt-1" :class="d.hasAppointments ? (selectedDate === d.dateStr ? 'bg-rose-400' : 'bg-rose-500') : 'opacity-0'"></span>
+          </button>
+        </div>
+      </div>
+
+      <div class="flex items-center justify-between px-1">
+        <div>
+          <h2 class="font-extrabold text-base text-stone-900">{{ formatDateHeader(selectedDate) }}</h2>
+          <p class="text-xs text-stone-500">{{ t('appointments_count') }}: <b class="text-stone-800">{{ dayAppointments.length }}</b> • {{ t('total_amount') }}: <b class="text-rose-600">{{ dayTotalSum }} {{ settings.currency || '€' }}</b></p>
+        </div>
+        <button @click="openNewAppointmentModal" class="bg-stone-900 hover:bg-black text-white text-xs font-bold px-3.5 py-2 rounded-xl shadow-md flex items-center space-x-1.5 active:scale-95 transition">
+          <i class="fa-solid fa-plus text-xs"></i>
+          <span>{{ t('btn_new_appointment') }}</span>
+        </button>
+      </div>
+
+      <div v-if="dayAppointments.length === 0" class="bg-white rounded-2xl p-8 text-center border border-stone-200 shadow-sm space-y-3">
+        <div class="w-14 h-14 bg-rose-50 text-rose-400 rounded-full flex items-center justify-center mx-auto text-xl">
+          <i class="fa-regular fa-calendar-xmark"></i>
+        </div>
+        <p class="text-stone-700 font-bold text-sm">{{ t('no_appointments') }}</p>
+        <p class="text-xs text-stone-400">{{ t('no_appointments_sub') }}</p>
+        <button @click="openNewAppointmentModal" class="inline-block bg-rose-50 text-rose-700 font-bold text-xs px-4 py-2 rounded-xl border border-rose-200 hover:bg-rose-100">
+          {{ t('btn_create_first_app') }}
+        </button>
+      </div>
+
+      <div v-else class="space-y-3">
+        <div v-for="app in dayAppointments" :key="app.id"
+          class="bg-white rounded-2xl p-4 shadow-sm border border-stone-200/80 hover:border-rose-300 transition space-y-3">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center space-x-2">
+              <span class="text-sm font-extrabold text-stone-900 bg-stone-100 px-2.5 py-1 rounded-lg">
+                {{ app.time }} - {{ app.end_time }}
+              </span>
+              <span v-if="app.source === 'client'" class="text-[10px] bg-purple-50 text-purple-700 font-bold px-2 py-0.5 rounded-full border border-purple-200 flex items-center space-x-1">
+                <i class="fa-solid fa-globe text-[9px]"></i>
+                <span>{{ t('badge_online') }}</span>
+              </span>
+            </div>
+
+            <div class="flex items-center space-x-1.5">
+              <span v-if="app.status === 'completed'" class="text-[10px] font-bold px-2 py-0.5 rounded-md" :class="getPaymentMethodBadgeClass(app.payment_method)">
+                {{ formatPaymentMethodName(app.payment_method) }}
+              </span>
+              <span v-if="app.status === 'confirmed'" class="text-xs font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-full">
+                {{ t('status_confirmed') }}
+              </span>
+              <span v-else-if="app.status === 'completed'" class="text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-full flex items-center space-x-1">
+                <i class="fa-solid fa-check text-[10px]"></i>
+                <span>{{ t('status_completed') }}</span>
+              </span>
+              <span v-else-if="app.status === 'cancelled'" class="text-xs font-bold text-rose-700 bg-rose-50 border border-rose-200 px-2.5 py-1 rounded-full">
+                {{ t('status_cancelled') }}
+              </span>
+            </div>
+          </div>
+
+          <div>
+            <div class="flex items-center justify-between">
+              <h3 class="font-bold text-stone-900 text-base">{{ app.client_name }}</h3>
+              <span class="text-base font-extrabold text-rose-600">{{ app.total_price }} {{ settings.currency || '€' }}</span>
+            </div>
+            <p class="text-xs text-stone-600 mt-0.5"><i class="fa-solid fa-sparkles text-rose-400 mr-1"></i>{{ app.service_names }}</p>
+            <p v-if="app.notes" class="text-xs text-stone-600 italic mt-1.5 bg-rose-50/60 p-2.5 rounded-xl border border-rose-100/80">
+              <span class="font-bold text-rose-800 not-italic mr-1"><i class="fa-solid fa-note-sticky mr-1"></i>Нотатка:</span>"{{ app.notes }}"
+            </p>
+          </div>
+
+          <!-- Quick SMS Reminders -->
+          <div class="bg-stone-50 rounded-xl p-2.5 border border-stone-200/60 flex items-center justify-between text-xs">
+            <div class="flex items-center space-x-1.5 text-stone-500 text-[11px] font-semibold">
+              <i class="fa-solid fa-bell text-amber-500"></i>
+              <span>Нагадування:</span>
+            </div>
+            <div class="flex items-center space-x-1.5">
+              <a :href="getReminderSmsLink(app, 'day_before')" class="bg-amber-100 hover:bg-amber-200 text-amber-900 font-bold px-2.5 py-1 rounded-lg text-[10px] flex items-center space-x-1 transition shadow-sm" title="Надіслати SMS за день до візиту">
+                <i class="fa-solid fa-calendar-day text-[9px]"></i>
+                <span>День до</span>
+              </a>
+              <a :href="getReminderSmsLink(app, 'morning')" class="bg-sky-100 hover:bg-sky-200 text-sky-900 font-bold px-2.5 py-1 rounded-lg text-[10px] flex items-center space-x-1 transition shadow-sm" title="Надіслати SMS о 9:00 ранку в день запису">
+                <i class="fa-solid fa-sun text-[9px]"></i>
+                <span>О 9:00</span>
+              </a>
+              <a :href="getWhatsAppReminderLink(app)" target="_blank" class="bg-emerald-100 hover:bg-emerald-200 text-emerald-900 font-bold px-2.5 py-1 rounded-lg text-[10px] flex items-center space-x-1 transition shadow-sm" title="Надіслати у WhatsApp">
+                <i class="fa-brands fa-whatsapp text-[10px]"></i>
+                <span>WhatsApp</span>
+              </a>
+            </div>
+          </div>
+
+          <div class="pt-2 border-t border-stone-100 flex items-center justify-between">
+            <div class="flex items-center space-x-2">
+              <a :href="'tel:' + app.client_phone" class="w-8 h-8 rounded-full bg-stone-100 text-stone-700 flex items-center justify-center text-xs hover:bg-stone-200" title="Call">
+                <i class="fa-solid fa-phone"></i>
+              </a>
+              <a :href="'https://t.me/' + (app.client_phone || '').replace('+', '')" target="_blank" class="w-8 h-8 rounded-full bg-sky-50 text-sky-600 flex items-center justify-center text-xs hover:bg-sky-100" title="Telegram">
+                <i class="fa-brands fa-telegram"></i>
+              </a>
+              <a :href="'viber://chat?number=' + (app.client_phone || '').replace('+', '')" class="w-8 h-8 rounded-full bg-purple-50 text-purple-600 flex items-center justify-center text-xs hover:bg-purple-100" title="Viber">
+                <i class="fa-brands fa-viber"></i>
+              </a>
+            </div>
+
+            <div class="flex items-center space-x-1.5">
+              <button v-if="app.status !== 'completed'" @click="openPaymentModal(app)" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition active:scale-95 shadow-sm flex items-center space-x-1">
+                <i class="fa-solid fa-credit-card text-[11px]"></i>
+                <span>{{ t('btn_paid') }}</span>
+              </button>
+              <button v-else @click="setAppStatus(app.id, 'confirmed')" class="text-xs text-stone-500 hover:text-stone-800 bg-stone-100 px-2.5 py-1.5 rounded-lg">
+                {{ t('btn_revert') }}
+              </button>
+              <button @click="deleteApp(app.id)" class="text-xs text-rose-500 hover:text-rose-700 p-1.5 rounded-lg">
+                <i class="fa-regular fa-trash-can"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- TAB 2: ФІНАНСИ (ДОХОДИ ТА ВИТРАТИ) -->
+    <main v-if="currentTab === 'finance'" class="flex-1 p-4 space-y-4">
+      <div class="flex items-center justify-between">
+        <div>
+          <h2 class="font-extrabold text-xl text-stone-900">{{ t('finance_title') }}</h2>
+          <p class="text-xs text-stone-500">{{ t('finance_sub') }}</p>
+        </div>
+        <button @click="openExpenseModal" class="bg-rose-500 hover:bg-rose-600 text-white text-xs font-bold px-3.5 py-2 rounded-xl shadow-md shadow-rose-200 flex items-center space-x-1.5">
+          <i class="fa-solid fa-minus text-xs"></i>
+          <span>{{ t('btn_add_expense') }}</span>
+        </button>
+      </div>
+
+      <div class="grid grid-cols-2 gap-3">
+        <div class="bg-gradient-to-br from-rose-500 to-rose-700 text-white p-4 rounded-2xl shadow-md">
+          <span class="text-[11px] uppercase font-bold tracking-wider opacity-85">{{ t('today_profit') }}</span>
+          <div class="text-2xl font-black mt-1">{{ financeSummary.today?.profit || 0 }} {{ settings.currency || '€' }}</div>
+          <div class="text-[11px] mt-2 space-y-0.5 opacity-90">
+            <div>{{ t('income_label') }}: +{{ financeSummary.today?.income || 0 }} {{ settings.currency || '€' }}</div>
+            <div>{{ t('expense_label') }}: -{{ financeSummary.today?.expense || 0 }} {{ settings.currency || '€' }}</div>
+          </div>
+        </div>
+
+        <div class="bg-gradient-to-br from-stone-900 to-stone-800 text-white p-4 rounded-2xl shadow-md">
+          <span class="text-[11px] uppercase font-bold tracking-wider text-rose-300">{{ t('month_profit') }}</span>
+          <div class="text-2xl font-black mt-1">{{ financeSummary.month?.profit || 0 }} {{ settings.currency || '€' }}</div>
+          <div class="text-[11px] mt-2 space-y-0.5 text-stone-300">
+            <div>{{ t('income_label') }}: +{{ financeSummary.month?.income || 0 }} {{ settings.currency || '€' }}</div>
+            <div class="text-rose-300">{{ t('expense_label') }}: -{{ financeSummary.month?.expense || 0 }} {{ settings.currency || '€' }}</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Income by Payment Method (Cards / Bizum / PayPal / Cash) -->
+      <div class="bg-white rounded-2xl p-4 border border-stone-200 shadow-sm space-y-3">
+        <h3 class="font-bold text-sm text-stone-900 flex items-center space-x-1.5">
+          <i class="fa-solid fa-wallet text-rose-500 text-xs"></i>
+          <span>Дохід за рахунками та картами:</span>
+        </h3>
+        <div class="grid grid-cols-2 gap-2 text-xs">
+          <!-- Bizum -->
+          <div class="bg-sky-50 border border-sky-100 rounded-xl p-2.5 flex items-center justify-between">
+            <div>
+              <div class="font-bold text-sky-800 flex items-center"><i class="fa-solid fa-mobile-screen mr-1 text-[11px]"></i>Bizum</div>
+              <div class="text-[10px] text-sky-600">Іспанія</div>
+            </div>
+            <div class="text-sm font-black text-sky-900">{{ getMethodTotal('bizum') }} {{ settings.currency || '€' }}</div>
+          </div>
+
+          <!-- ES Visa Card -->
+          <div class="bg-amber-50 border border-amber-100 rounded-xl p-2.5 flex items-center justify-between">
+            <div>
+              <div class="font-bold text-amber-900 flex items-center">🇪🇸 Ісп Visa</div>
+              <div class="text-[10px] text-amber-700">IBAN / Visa</div>
+            </div>
+            <div class="text-sm font-black text-amber-900">{{ getMethodTotal('card_es') }} {{ settings.currency || '€' }}</div>
+          </div>
+
+          <!-- UA Card -->
+          <div class="bg-blue-50 border border-blue-100 rounded-xl p-2.5 flex items-center justify-between">
+            <div>
+              <div class="font-bold text-blue-900 flex items-center">🇺🇦 Укр Карта</div>
+              <div class="text-[10px] text-blue-700">Моно / Приват</div>
+            </div>
+            <div class="text-sm font-black text-blue-900">{{ getMethodTotal('card_ua') }} {{ settings.currency || '€' }}</div>
+          </div>
+
+          <!-- PayPal -->
+          <div class="bg-indigo-50 border border-indigo-100 rounded-xl p-2.5 flex items-center justify-between">
+            <div>
+              <div class="font-bold text-indigo-900 flex items-center"><i class="fa-brands fa-paypal mr-1 text-[11px]"></i>PayPal</div>
+              <div class="text-[10px] text-indigo-700">Онлайн</div>
+            </div>
+            <div class="text-sm font-black text-indigo-900">{{ getMethodTotal('paypal') }} {{ settings.currency || '€' }}</div>
+          </div>
+
+          <!-- Cash -->
+          <div class="bg-emerald-50 border border-emerald-100 rounded-xl p-2.5 flex items-center justify-between col-span-2">
+            <div>
+              <div class="font-bold text-emerald-800 flex items-center"><i class="fa-solid fa-money-bill-wave mr-1 text-[11px]"></i>Готівка (В студії)</div>
+              <div class="text-[10px] text-emerald-600">Готівкові кошти</div>
+            </div>
+            <div class="text-sm font-black text-emerald-900">{{ getMethodTotal('cash') }} {{ settings.currency || '€' }}</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-2xl p-3 border border-stone-200 flex items-center justify-between">
+        <span class="text-xs font-bold text-stone-600">{{ t('report_month') }}</span>
+        <input type="month" v-model="selectedMonth" @change="loadFinance" class="text-xs font-semibold bg-stone-50 border border-stone-200 rounded-lg px-2.5 py-1.5 text-stone-800">
+      </div>
+
+      <div v-if="financeSummary.expense_categories && financeSummary.expense_categories.length > 0" class="bg-white rounded-2xl p-4 border border-stone-200 shadow-sm space-y-3">
+        <h3 class="font-bold text-sm text-stone-900">{{ t('expense_structure') }}</h3>
+        <div class="space-y-2">
+          <div v-for="cat in financeSummary.expense_categories" :key="cat.category" class="space-y-1">
+            <div class="flex justify-between text-xs">
+              <span class="font-semibold text-stone-700">{{ cat.category }}</span>
+              <span class="font-bold text-rose-600">{{ cat.total }} {{ settings.currency || '€' }}</span>
+            </div>
+            <div class="w-full bg-stone-100 rounded-full h-1.5 overflow-hidden">
+              <div class="bg-rose-500 h-1.5 rounded-full" :style="{ width: ((cat.total / (financeSummary.month.expense || 1)) * 100) + '%' }"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- TAB 3: КЛІЄНТИ -->
+    <main v-if="currentTab === 'clients'" class="flex-1 p-4 space-y-4">
+      <div class="flex items-center justify-between">
+        <div>
+          <h2 class="font-extrabold text-xl text-stone-900">{{ t('clients_title') }}</h2>
+          <p class="text-xs text-stone-500">{{ t('total_clients') }}: {{ clients.length }}</p>
+        </div>
+        <button @click="openNewClientModal" class="bg-stone-900 hover:bg-black text-white text-xs font-bold px-3.5 py-2 rounded-xl shadow-md flex items-center space-x-1.5">
+          <i class="fa-solid fa-plus text-xs"></i>
+          <span>{{ t('btn_add_client') }}</span>
+        </button>
+      </div>
+
+      <div class="relative">
+        <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3 text-stone-400 text-xs"></i>
+        <input v-model="clientSearch" type="text" :placeholder="t('search_client_placeholder')" class="w-full bg-white pl-9 pr-4 py-2.5 rounded-xl border border-stone-200 text-xs font-medium focus:outline-rose-500">
+      </div>
+
+      <div class="space-y-3">
+        <div v-for="c in filteredClients" :key="c.id" class="bg-white rounded-2xl p-4 border border-stone-200 shadow-sm space-y-2">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center space-x-2.5">
+              <div class="w-9 h-9 rounded-full bg-rose-100 text-rose-700 font-bold flex items-center justify-center text-xs">
+                {{ c.name.slice(0, 2).toUpperCase() }}
+              </div>
+              <div>
+                <h3 class="font-bold text-stone-900 text-sm">{{ c.name }}</h3>
+                <p class="text-xs text-stone-500">{{ c.phone }}</p>
+              </div>
+            </div>
+            <div class="text-right">
+              <div class="text-xs font-extrabold text-rose-600">{{ c.total_spent }} {{ settings.currency || '€' }}</div>
+              <div class="text-[10px] text-stone-400">{{ c.visits_count }} {{ t('visits_suffix') }}</div>
+            </div>
+          </div>
+
+          <p v-if="c.notes" class="text-xs text-stone-600 bg-rose-50/50 p-2 rounded-lg border border-rose-100">
+            <span class="font-bold text-rose-800">{{ t('note_label') }}:</span> {{ c.notes }}
+          </p>
+
+          <div class="pt-2 border-t border-stone-100 flex items-center justify-between text-xs">
+            <div class="flex items-center space-x-2">
+              <a :href="'tel:' + c.phone" class="text-stone-600 hover:text-stone-900 bg-stone-100 px-2 py-1 rounded-md font-semibold">
+                <i class="fa-solid fa-phone mr-1"></i>{{ t('btn_call') }}
+              </a>
+              <a :href="'viber://chat?number=' + (c.phone || '').replace('+', '')" class="text-purple-600 bg-purple-50 px-2 py-1 rounded-md font-semibold">
+                <i class="fa-brands fa-viber mr-1"></i>Viber
+              </a>
+            </div>
+            <button @click="quickBookClient(c)" class="text-rose-600 font-bold hover:underline">
+              {{ t('btn_book_client') }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- TAB 4: ПОСЛУГИ ТА ПРАЙС -->
+    <main v-if="currentTab === 'services'" class="flex-1 p-4 space-y-4">
+      <div class="flex items-center justify-between">
+        <div>
+          <h2 class="font-extrabold text-xl text-stone-900">{{ t('services_title') }}</h2>
+          <p class="text-xs text-stone-500">{{ t('services_sub') }}</p>
+        </div>
+        <button @click="openNewServiceModal" class="bg-stone-900 hover:bg-black text-white text-xs font-bold px-3.5 py-2 rounded-xl shadow-md flex items-center space-x-1.5">
+          <i class="fa-solid fa-plus text-xs"></i>
+          <span>{{ t('btn_add_service') }}</span>
+        </button>
+      </div>
+
+      <div class="space-y-3">
+        <div v-for="s in services" :key="s.id" class="bg-white rounded-2xl p-4 border border-stone-200 shadow-sm space-y-2">
+          <div class="flex items-start justify-between">
+            <div>
+              <span class="text-[10px] font-bold text-rose-700 uppercase bg-rose-50 px-2 py-0.5 rounded-md">{{ s.category }}</span>
+              <h3 class="font-bold text-stone-900 text-sm mt-1">{{ s.name }}</h3>
+              <p v-if="s.description" class="text-xs text-stone-400 mt-0.5">{{ s.description }}</p>
+            </div>
+            <div class="text-right flex-shrink-0 ml-2">
+              <div class="text-base font-extrabold text-stone-900">{{ s.price }} {{ settings.currency || '€' }}</div>
+              <div class="text-xs text-stone-400 font-medium"><i class="fa-regular fa-clock mr-1"></i>{{ s.duration_minutes }} {{ t('min_suffix') }}</div>
+            </div>
+          </div>
+
+          <div class="pt-2 border-t border-stone-50 flex items-center justify-end space-x-3 text-xs">
+            <button @click="editService(s)" class="text-stone-500 hover:text-rose-600 font-semibold">
+              <i class="fa-regular fa-pen-to-square mr-1"></i>{{ t('edit_label') }}
+            </button>
+            <button @click="deleteService(s.id)" class="text-rose-400 hover:text-rose-600 font-semibold">
+              <i class="fa-regular fa-trash-can mr-1"></i>{{ t('delete_label') }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- TAB 5: НАЛАШТУВАННЯ ТА БЕЗПЕКА -->
+    <main v-if="currentTab === 'settings'" class="flex-1 p-4 space-y-4">
+      <!-- Security / Change Password Box -->
+      <div class="bg-stone-900 text-white rounded-3xl p-5 border border-stone-800 shadow-xl space-y-3">
+        <div class="flex items-center space-x-2.5">
+          <div class="w-8 h-8 rounded-xl bg-amber-400/20 text-amber-300 flex items-center justify-center text-sm font-bold">
+            <i class="fa-solid fa-key"></i>
+          </div>
+          <div>
+            <h3 class="font-extrabold text-sm text-white">Зміна пароля майстра</h3>
+            <p class="text-[11px] text-stone-400">Встановіть будь-який власний надійний пароль</p>
+          </div>
+        </div>
+
+        <div class="space-y-2 text-xs pt-1">
+          <div>
+            <label class="block text-[11px] text-stone-400 mb-0.5">Старий пароль</label>
+            <input v-model="pinChange.old_pin" type="text" placeholder="1997Bellais1997$" class="w-full bg-white/5 border border-white/10 rounded-xl p-2.5 text-white placeholder-stone-500 text-xs font-mono">
+          </div>
+          <div>
+            <label class="block text-[11px] text-stone-400 mb-0.5">Новий пароль</label>
+            <input v-model="pinChange.new_pin" type="text" placeholder="Введіть новий пароль" class="w-full bg-white/5 border border-white/10 rounded-xl p-2.5 text-white placeholder-stone-500 text-xs font-mono">
+          </div>
+        </div>
+        <button @click="changePin" class="w-full bg-amber-400 hover:bg-amber-300 text-stone-950 font-bold py-2.5 rounded-xl text-xs transition active:scale-95 shadow">
+          Зберегти новий пароль
+        </button>
+      </div>
+
+      <!-- Payment Methods & Account Details (Bizum, ES Visa, UA Card, PayPal) -->
+      <div class="bg-white rounded-3xl p-5 border border-stone-200 shadow-sm space-y-3">
+        <div class="flex items-center space-x-2.5">
+          <div class="w-8 h-8 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center text-sm font-bold">
+            <i class="fa-solid fa-credit-card"></i>
+          </div>
+          <div>
+            <h3 class="font-extrabold text-sm text-stone-900">Реквізити для отримання оплат</h3>
+            <p class="text-[11px] text-stone-500">Вкажіть ваші картки та рахунки для клієнток</p>
+          </div>
+        </div>
+
+        <div class="space-y-3 text-xs pt-1">
+          <!-- Bizum -->
+          <div class="p-3 bg-sky-50/70 rounded-2xl border border-sky-100 space-y-1.5">
+            <label class="block font-bold text-sky-900 flex items-center">
+              <i class="fa-solid fa-mobile-screen mr-1.5 text-sky-600"></i>Номер для Bizum (Іспанія)
+            </label>
+            <input v-model="settings.bizum_phone" placeholder="+34 612 345 678" class="w-full bg-white border border-sky-200 rounded-xl p-2.5 font-mono text-xs">
+          </div>
+
+          <!-- Spanish Visa Card -->
+          <div class="p-3 bg-amber-50/70 rounded-2xl border border-amber-100 space-y-1.5">
+            <label class="block font-bold text-amber-900 flex items-center">
+              <span>🇪🇸</span><span class="ml-1.5">Іспанська карта Visa (IBAN / Номер)</span>
+            </label>
+            <input v-model="settings.card_es" placeholder="ES76 2100 0418 4502 0005 1234 (Visa)" class="w-full bg-white border border-amber-200 rounded-xl p-2.5 font-mono text-xs">
+          </div>
+
+          <!-- Ukrainian Card -->
+          <div class="p-3 bg-blue-50/70 rounded-2xl border border-blue-100 space-y-1.5">
+            <label class="block font-bold text-blue-900 flex items-center">
+              <span>🇺🇦</span><span class="ml-1.5">Українська карта (Монобанк / ПриватБанк)</span>
+            </label>
+            <input v-model="settings.card_ua" placeholder="4441 1144 5555 8888 (Монобанк)" class="w-full bg-white border border-blue-200 rounded-xl p-2.5 font-mono text-xs">
+          </div>
+
+          <!-- PayPal -->
+          <div class="p-3 bg-indigo-50/70 rounded-2xl border border-indigo-100 space-y-1.5">
+            <label class="block font-bold text-indigo-900 flex items-center">
+              <i class="fa-brands fa-paypal mr-1.5 text-indigo-600"></i>PayPal (посилання або email)
+            </label>
+            <input v-model="settings.paypal_link" placeholder="paypal.me/yourname" class="w-full bg-white border border-indigo-200 rounded-xl p-2.5 font-mono text-xs">
+          </div>
+
+          <button @click="saveSettings" class="w-full bg-stone-900 hover:bg-black text-white font-bold py-2.5 rounded-xl text-xs transition active:scale-95 shadow">
+            Зберегти реквізити оплат
+          </button>
+        </div>
+      </div>
+
+      <!-- Studio & General Settings -->
+      <div class="bg-white rounded-3xl p-5 border border-stone-200 shadow-sm space-y-3">
+        <h3 class="font-extrabold text-sm text-stone-900">Дані студії та графік</h3>
+
+        <div class="space-y-3 text-xs">
+          <div>
+            <label class="block font-semibold text-stone-700 mb-1">Назва студії</label>
+            <input v-model="settings.studio_name" class="w-full bg-stone-50 border border-stone-200 rounded-xl p-2.5 font-medium">
+          </div>
+          <div>
+            <label class="block font-semibold text-stone-700 mb-1">Ім'я майстра</label>
+            <input v-model="settings.master_name" class="w-full bg-stone-50 border border-stone-200 rounded-xl p-2.5 font-medium">
+          </div>
+          <div>
+            <label class="block font-semibold text-stone-700 mb-1">Телефон для зв'язку</label>
+            <input v-model="settings.phone" class="w-full bg-stone-50 border border-stone-200 rounded-xl p-2.5 font-medium">
+          </div>
+          <div>
+            <label class="block font-semibold text-stone-700 mb-1">Instagram (@нікнейм)</label>
+            <input v-model="settings.instagram" class="w-full bg-stone-50 border border-stone-200 rounded-xl p-2.5 font-medium">
+          </div>
+          <div>
+            <label class="block font-semibold text-stone-700 mb-1">Адреса кабінету</label>
+            <input v-model="settings.address" class="w-full bg-stone-50 border border-stone-200 rounded-xl p-2.5 font-medium">
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block font-semibold text-stone-700 mb-1">Початок роботи</label>
+              <input v-model="settings.work_start" type="time" class="w-full bg-stone-50 border border-stone-200 rounded-xl p-2.5 font-medium">
+            </div>
+            <div>
+              <label class="block font-semibold text-stone-700 mb-1">Кінець роботи</label>
+              <input v-model="settings.work_end" type="time" class="w-full bg-stone-50 border border-stone-200 rounded-xl p-2.5 font-medium">
+            </div>
+          </div>
+          <div>
+            <label class="block font-semibold text-stone-700 mb-1">Про майстра / опис</label>
+            <textarea v-model="settings.about" rows="3" class="w-full bg-stone-50 border border-stone-200 rounded-xl p-2.5 font-medium"></textarea>
+          </div>
+
+          <button @click="saveSettings" class="w-full bg-stone-900 hover:bg-black text-white font-bold py-3 rounded-xl shadow-md active:scale-95 transition">
+            {{ t('btn_save_settings') }}
+          </button>
+        </div>
+      </div>
+    </main>
+
+    <!-- Bottom Navigation Tab Bar -->
+    <nav class="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-stone-200 max-w-md mx-auto">
+      <div class="flex items-center justify-around py-2 px-1">
+        <button @click="currentTab = 'schedule'" :class="currentTab === 'schedule' ? 'text-rose-600 font-bold' : 'text-stone-400 hover:text-stone-600'" class="flex flex-col items-center flex-1 py-1 transition">
+          <i class="fa-regular fa-calendar-days text-lg"></i>
+          <span class="text-[10px] mt-1">{{ t('tab_schedule') }}</span>
+        </button>
+
+        <button @click="currentTab = 'finance'" :class="currentTab === 'finance' ? 'text-rose-600 font-bold' : 'text-stone-400 hover:text-stone-600'" class="flex flex-col items-center flex-1 py-1 transition">
+          <i class="fa-solid fa-wallet text-lg"></i>
+          <span class="text-[10px] mt-1">{{ t('tab_finance') }}</span>
+        </button>
+
+        <button @click="currentTab = 'clients'" :class="currentTab === 'clients' ? 'text-rose-600 font-bold' : 'text-stone-400 hover:text-stone-600'" class="flex flex-col items-center flex-1 py-1 transition">
+          <i class="fa-solid fa-users text-lg"></i>
+          <span class="text-[10px] mt-1">{{ t('tab_clients') }}</span>
+        </button>
+
+        <button @click="currentTab = 'services'" :class="currentTab === 'services' ? 'text-rose-600 font-bold' : 'text-stone-400 hover:text-stone-600'" class="flex flex-col items-center flex-1 py-1 transition">
+          <i class="fa-solid fa-wand-magic-sparkles text-lg"></i>
+          <span class="text-[10px] mt-1">{{ t('tab_services') }}</span>
+        </button>
+
+        <button @click="currentTab = 'settings'" :class="currentTab === 'settings' ? 'text-rose-600 font-bold' : 'text-stone-400 hover:text-stone-600'" class="flex flex-col items-center flex-1 py-1 transition">
+          <i class="fa-solid fa-gear text-lg"></i>
+          <span class="text-[10px] mt-1">{{ t('tab_settings') }}</span>
+        </button>
+      </div>
+    </nav>
+  </template>
+
+  <!-- MODAL: ОПЛАТА ВІЗИТУ (Вибір куди надійшли кошти: Bizum / Ісп Visa / Укр Карта / PayPal / Готівка) -->
+  <div v-if="modals.payment" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4">
+    <div class="bg-white w-full max-w-md rounded-t-3xl sm:rounded-3xl p-5 space-y-4">
+      <div class="flex items-center justify-between pb-2 border-b border-stone-100">
+        <div>
+          <h3 class="font-extrabold text-base text-stone-900">Куди надійшла оплата?</h3>
+          <p class="text-xs text-rose-600 font-bold mt-0.5">{{ payingApp?.client_name }} • {{ payingApp?.total_price }} {{ settings.currency || '€' }}</p>
+        </div>
+        <button @click="modals.payment = false" class="text-stone-400 p-1">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <div class="grid grid-cols-2 gap-2.5 pt-1">
+        <!-- Bizum -->
+        <button @click="confirmPayment('bizum')" class="p-3 rounded-2xl bg-sky-50 hover:bg-sky-100 border border-sky-200 text-left transition active:scale-95 space-y-1">
+          <div class="w-7 h-7 rounded-lg bg-sky-500 text-white flex items-center justify-center text-xs font-bold">
+            <i class="fa-solid fa-mobile-screen"></i>
+          </div>
+          <div class="font-extrabold text-sky-900 text-xs">Bizum</div>
+          <div class="text-[10px] text-sky-700 truncate">{{ settings.bizum_phone || 'Мобільний' }}</div>
+        </button>
+
+        <!-- Spanish Visa Card -->
+        <button @click="confirmPayment('card_es')" class="p-3 rounded-2xl bg-amber-50 hover:bg-amber-100 border border-amber-200 text-left transition active:scale-95 space-y-1">
+          <div class="w-7 h-7 rounded-lg bg-amber-600 text-white flex items-center justify-center text-xs font-bold">
+            <span>🇪🇸</span>
+          </div>
+          <div class="font-extrabold text-amber-900 text-xs">Ісп Карта (Visa)</div>
+          <div class="text-[10px] text-amber-700 truncate">IBAN / Santander / BBVA</div>
+        </button>
+
+        <!-- Ukrainian Card -->
+        <button @click="confirmPayment('card_ua')" class="p-3 rounded-2xl bg-blue-50 hover:bg-blue-100 border border-blue-200 text-left transition active:scale-95 space-y-1">
+          <div class="w-7 h-7 rounded-lg bg-blue-600 text-white flex items-center justify-center text-xs font-bold">
+            <span>🇺🇦</span>
+          </div>
+          <div class="font-extrabold text-blue-900 text-xs">Укр Карта</div>
+          <div class="text-[10px] text-blue-700 truncate">Монобанк / Приват</div>
+        </button>
+
+        <!-- PayPal -->
+        <button @click="confirmPayment('paypal')" class="p-3 rounded-2xl bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 text-left transition active:scale-95 space-y-1">
+          <div class="w-7 h-7 rounded-lg bg-indigo-600 text-white flex items-center justify-center text-xs font-bold">
+            <i class="fa-brands fa-paypal"></i>
+          </div>
+          <div class="font-extrabold text-indigo-900 text-xs">PayPal</div>
+          <div class="text-[10px] text-indigo-700 truncate">Онлайн рахунок</div>
+        </button>
+
+        <!-- Cash -->
+        <button @click="confirmPayment('cash')" class="p-3 rounded-2xl bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-left transition active:scale-95 space-y-1 col-span-2 flex items-center justify-between">
+          <div class="flex items-center space-x-2.5">
+            <div class="w-8 h-8 rounded-lg bg-emerald-600 text-white flex items-center justify-center text-xs font-bold">
+              <i class="fa-solid fa-money-bill-wave"></i>
+            </div>
+            <div>
+              <div class="font-extrabold text-emerald-900 text-xs">Готівка</div>
+              <div class="text-[10px] text-emerald-700">Оплата готівкою на місці</div>
+            </div>
+          </div>
+          <i class="fa-solid fa-chevron-right text-emerald-500 text-xs mr-1"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: ВСТАНОВИТИ ДОДАТОК НА ТЕЛЕФОН (iOS & Android) -->
+  <div v-if="showInstallModal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4">
+    <div class="bg-white w-full max-w-md rounded-t-3xl sm:rounded-3xl p-5 space-y-4">
+      <div class="flex items-center justify-between pb-2 border-b border-stone-100">
+        <div class="flex items-center space-x-2">
+          <div class="w-8 h-8 rounded-xl bg-amber-400 text-stone-950 flex items-center justify-center text-sm font-bold">
+            <i class="fa-solid fa-mobile-screen"></i>
+          </div>
+          <h3 class="font-extrabold text-base text-stone-900">Встановити на телефон</h3>
+        </div>
+        <button @click="showInstallModal = false" class="text-stone-400 p-1">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <div class="space-y-3 text-xs text-stone-600">
+        <!-- iOS Instructions -->
+        <div class="bg-stone-50 p-3.5 rounded-2xl border border-stone-200 space-y-1.5">
+          <div class="font-bold text-stone-900 flex items-center text-sm">
+            <i class="fa-brands fa-apple mr-2 text-base"></i>Для iPhone (iOS Safari):
+          </div>
+          <p class="leading-relaxed">1. Натисніть кнопку <b>«Поділитися»</b> (<i class="fa-solid fa-arrow-up-from-bracket"></i> або ⎋) внизу Safari.</p>
+          <p class="leading-relaxed">2. Прокрутіть і оберіть <b>«На початковий екран»</b> (Add to Home Screen ➕).</p>
+          <p class="text-emerald-700 font-bold">Іконка Natali Nails з'явиться на екрані як справжній додаток!</p>
+        </div>
+
+        <!-- Android Instructions -->
+        <div class="bg-stone-50 p-3.5 rounded-2xl border border-stone-200 space-y-1.5">
+          <div class="font-bold text-stone-900 flex items-center text-sm">
+            <i class="fa-brands fa-android mr-2 text-base text-emerald-600"></i>Для Android (Google Chrome):
+          </div>
+          <p class="leading-relaxed">1. Натисніть три крапки <b>⋮</b> у верхньому правому кутку Chrome.</p>
+          <p class="leading-relaxed">2. Натисніть <b>«Встановити додаток»</b> (Install App).</p>
+        </div>
+      </div>
+
+      <button @click="showInstallModal = false" class="w-full bg-stone-900 text-white font-bold py-3 rounded-2xl text-xs">
+        Зрозуміло
+      </button>
+    </div>
+  </div>
+
+  <!-- MODAL: НОВИЙ ЗАПИС -->
+  <div v-if="modals.newAppointment" class="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4">
+    <div class="bg-white w-full max-w-md rounded-t-3xl sm:rounded-3xl p-5 space-y-4 max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center justify-between pb-2 border-b border-stone-100">
+        <h3 class="font-extrabold text-base text-stone-900">{{ t('btn_new_appointment') }}</h3>
+        <button @click="modals.newAppointment = false" class="text-stone-400 hover:text-stone-600 p-1">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <div class="space-y-3 text-xs">
+        <div>
+          <label class="block font-semibold text-stone-700 mb-1">{{ t('lbl_client_name') }}</label>
+          <input v-model="formApp.client_name" placeholder="Elena" class="w-full bg-stone-50 border border-stone-200 rounded-xl p-2.5">
+        </div>
+        <div>
+          <label class="block font-semibold text-stone-700 mb-1">{{ t('lbl_client_phone') }}</label>
+          <input v-model="formApp.client_phone" placeholder="+34... / +380..." class="w-full bg-stone-50 border border-stone-200 rounded-xl p-2.5">
+        </div>
+        <div>
+          <label class="block font-semibold text-stone-700 mb-1">{{ t('tab_services') }}</label>
+          <select v-model="selectedServiceId" @change="onServiceSelectChange" class="w-full bg-stone-50 border border-stone-200 rounded-xl p-2.5 font-medium">
+            <option v-for="s in services" :key="s.id" :value="s.id">
+              {{ s.name }} ({{ s.price }} {{ settings.currency || '€' }}, {{ s.duration_minutes }} {{ t('min_suffix') }})
+            </option>
+          </select>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-semibold text-stone-700 mb-1">Date</label>
+            <input v-model="formApp.date" type="date" class="w-full bg-stone-50 border border-stone-200 rounded-xl p-2.5">
+          </div>
+          <div>
+            <label class="block font-semibold text-stone-700 mb-1">Time</label>
+            <input v-model="formApp.time" type="time" class="w-full bg-stone-50 border border-stone-200 rounded-xl p-2.5">
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-semibold text-stone-700 mb-1">{{ t('total_price') }} ({{ settings.currency || '€' }})</label>
+            <input v-model.number="formApp.total_price" type="number" class="w-full bg-stone-50 border border-stone-200 rounded-xl p-2.5 font-bold">
+          </div>
+          <div>
+            <label class="block font-semibold text-stone-700 mb-1">{{ t('total_time') }} ({{ t('min_suffix') }})</label>
+            <input v-model.number="formApp.duration_minutes" type="number" class="w-full bg-stone-50 border border-stone-200 rounded-xl p-2.5 font-bold">
+          </div>
+        </div>
+        <div>
+          <label class="block font-semibold text-stone-700 mb-1">{{ t('lbl_client_notes') }}</label>
+          <input v-model="formApp.notes" :placeholder="t('placeholder_notes')" class="w-full bg-stone-50 border border-stone-200 rounded-xl p-2.5">
+        </div>
+
+        <button @click="saveNewAppointment" class="w-full bg-stone-900 hover:bg-black text-white font-bold py-3 rounded-xl shadow-md transition">
+          {{ t('btn_confirm_booking') }}
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: ДОДАТИ ВИТРАТУ -->
+  <div v-if="modals.newExpense" class="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4">
+    <div class="bg-white w-full max-w-md rounded-t-3xl sm:rounded-3xl p-5 space-y-4">
+      <div class="flex items-center justify-between pb-2 border-b border-stone-100">
+        <h3 class="font-extrabold text-base text-stone-900">{{ t('btn_add_expense') }}</h3>
+        <button @click="modals.newExpense = false" class="text-stone-400 p-1">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+      <div class="space-y-3 text-xs">
+        <div>
+          <label class="block font-semibold text-stone-700 mb-1">Category / Категорія</label>
+          <select v-model="formExpense.category" class="w-full bg-stone-50 border border-stone-200 rounded-xl p-2.5 font-medium">
+            <option>Матеріали (лаки, бази, топи)</option>
+            <option>Дезінфекція та стерилізація</option>
+            <option>Інструменти (фрези, пилочки)</option>
+            <option>Оренда та комунальні</option>
+            <option>Реклама та просування</option>
+            <option>Інше</option>
+          </select>
+        </div>
+        <div>
+          <label class="block font-semibold text-stone-700 mb-1">{{ t('total_amount') }} ({{ settings.currency || '€' }})</label>
+          <input v-model.number="formExpense.amount" type="number" placeholder="50" class="w-full bg-stone-50 border border-stone-200 rounded-xl p-2.5 font-bold text-base text-rose-600">
+        </div>
+        <div>
+          <label class="block font-semibold text-stone-700 mb-1">{{ t('payment_method_label') }}</label>
+          <select v-model="formExpense.payment_method" class="w-full bg-stone-50 border border-stone-200 rounded-xl p-2.5 font-medium">
+            <option value="card_es">🇪🇸 Ісп Карта Visa</option>
+            <option value="card_ua">🇺🇦 Укр Карта (Моно/Приват)</option>
+            <option value="bizum">Bizum</option>
+            <option value="cash">Готівка</option>
+            <option value="paypal">PayPal</option>
+          </select>
+        </div>
+        <div>
+          <label class="block font-semibold text-stone-700 mb-1">Description / Опис</label>
+          <input v-model="formExpense.description" placeholder="База, топи, пилочки..." class="w-full bg-stone-50 border border-stone-200 rounded-xl p-2.5">
+        </div>
+        <div>
+          <label class="block font-semibold text-stone-700 mb-1">Date</label>
+          <input v-model="formExpense.date" type="date" class="w-full bg-stone-50 border border-stone-200 rounded-xl p-2.5">
+        </div>
+        <button @click="saveExpense" class="w-full bg-rose-600 hover:bg-rose-700 text-white font-bold py-3 rounded-xl shadow-md">
+          {{ t('btn_save_settings') }}
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: ДОДАТИ / РЕДАГУВАТИ ПОСЛУГУ -->
+  <div v-if="modals.newService" class="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4">
+    <div class="bg-white w-full max-w-md rounded-t-3xl sm:rounded-3xl p-5 space-y-4">
+      <div class="flex items-center justify-between pb-2 border-b border-stone-100">
+        <h3 class="font-extrabold text-base text-stone-900">{{ formService.id ? t('edit_label') : t('btn_add_service') }}</h3>
+        <button @click="modals.newService = false" class="text-stone-400 p-1">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+      <div class="space-y-3 text-xs">
+        <div>
+          <label class="block font-semibold text-stone-700 mb-1">Назва послуги</label>
+          <input v-model="formService.name" placeholder="Манікюр + покриття" class="w-full bg-stone-50 border border-stone-200 rounded-xl p-2.5">
+        </div>
+        <div>
+          <label class="block font-semibold text-stone-700 mb-1">Категорія</label>
+          <input v-model="formService.category" placeholder="Комплекс, Манікюр, Нарощування..." class="w-full bg-stone-50 border border-stone-200 rounded-xl p-2.5">
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-semibold text-stone-700 mb-1">Ціна ({{ settings.currency || '€' }})</label>
+            <input v-model.number="formService.price" type="number" class="w-full bg-stone-50 border border-stone-200 rounded-xl p-2.5">
+          </div>
+          <div>
+            <label class="block font-semibold text-stone-700 mb-1">Тривалість ({{ t('min_suffix') }})</label>
+            <input v-model.number="formService.duration_minutes" type="number" class="w-full bg-stone-50 border border-stone-200 rounded-xl p-2.5">
+          </div>
+        </div>
+        <div>
+          <label class="block font-semibold text-stone-700 mb-1">Опис для клієнта</label>
+          <textarea v-model="formService.description" rows="2" class="w-full bg-stone-50 border border-stone-200 rounded-xl p-2.5"></textarea>
+        </div>
+        <button @click="saveService" class="w-full bg-stone-900 hover:bg-black text-white font-bold py-3 rounded-xl shadow-md">
+          {{ t('btn_save_settings') }}
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: НОВИЙ КЛІЄНТ -->
+  <div v-if="modals.newClient" class="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4">
+    <div class="bg-white w-full max-w-md rounded-t-3xl sm:rounded-3xl p-5 space-y-4">
+      <div class="flex items-center justify-between pb-2 border-b border-stone-100">
+        <h3 class="font-extrabold text-base text-stone-900">{{ t('btn_add_client') }}</h3>
+        <button @click="modals.newClient = false" class="text-stone-400 p-1">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+      <div class="space-y-3 text-xs">
+        <div>
+          <label class="block font-semibold text-stone-700 mb-1">{{ t('lbl_client_name') }}</label>
+          <input v-model="formClient.name" placeholder="Elena" class="w-full bg-stone-50 border border-stone-200 rounded-xl p-2.5">
+        </div>
+        <div>
+          <label class="block font-semibold text-stone-700 mb-1">{{ t('lbl_client_phone') }}</label>
+          <input v-model="formClient.phone" placeholder="+34... / +380..." class="w-full bg-stone-50 border border-stone-200 rounded-xl p-2.5">
+        </div>
+        <div>
+          <label class="block font-semibold text-stone-700 mb-1">Instagram</label>
+          <input v-model="formClient.instagram" placeholder="@user" class="w-full bg-stone-50 border border-stone-200 rounded-xl p-2.5">
+        </div>
+        <div>
+          <label class="block font-semibold text-stone-700 mb-1">{{ t('lbl_client_notes') }}</label>
+          <textarea v-model="formClient.notes" rows="2" class="w-full bg-stone-50 border border-stone-200 rounded-xl p-2.5"></textarea>
+        </div>
+        <button @click="saveClient" class="w-full bg-stone-900 hover:bg-black text-white font-bold py-3 rounded-xl shadow-md">
+          {{ t('btn_save_settings') }}
+        </button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const { createApp, ref, computed, onMounted } = Vue;
+
+createApp({
+  setup() {
+    const isUnlocked = ref(sessionStorage.getItem('master_token') ? true : false);
+    const pinInput = ref('');
+    const showPassword = ref(false);
+    const pinChange = ref({ old_pin: '', new_pin: '' });
+    const showInstallModal = ref(false);
+
+    const currentLang = ref(localStorage.getItem('nail_lang') || 'uk');
+    const availableLangs = {
+      uk: { code: 'uk', flag: '🇺🇦', name: 'Українська' },
+      en: { code: 'en', flag: '🇬🇧', name: 'English' },
+      es: { code: 'es', flag: '🇪🇸', name: 'Castellano' },
+      va: { code: 'va', flag: '🦇', name: 'Valencià' },
+      de: { code: 'de', flag: '🇩🇪', name: 'Deutsch' },
+      ru: { code: 'ru', flag: '🌐', name: 'Русский' }
+    };
+
+    function setLang(code) {
+      if (availableLangs[code]) {
+        currentLang.value = code;
+        localStorage.setItem('nail_lang', code);
+      }
+    }
+
+    function t(key) {
+      const dict = I18N[currentLang.value] || I18N['uk'];
+      return dict[key] !== undefined ? dict[key] : (I18N['uk'][key] || key);
+    }
+
+    async function submitPin() {
+      if (!pinInput.value.trim()) return;
+      try {
+        const res = await fetch('/api/auth/master-login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ pin: pinInput.value.trim() })
+        });
+        if (res.ok) {
+          const data = await res.json();
+          sessionStorage.setItem('master_token', data.token);
+          isUnlocked.value = true;
+          showToast('Ласкаво просимо, Natali! Кабінет відкрито 💅');
+          await loadAllData();
+        } else {
+          const err = await res.json();
+          alert(err.detail || 'Невірний пароль майстра!');
+        }
+      } catch (e) {
+        alert('Помилка зв\'язку з сервером');
+      }
+    }
+
+    function lockApp() {
+      sessionStorage.removeItem('master_token');
+      isUnlocked.value = false;
+      pinInput.value = '';
+      showToast('Кабінет заблоковано 🔒');
+    }
+
+    async function changePin() {
+      if (!pinChange.value.old_pin || !pinChange.value.new_pin) {
+        alert('Заповніть обидва поля для зміни пароля');
+        return;
+      }
+      try {
+        const res = await fetch('/api/auth/change-pin', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(pinChange.value)
+        });
+        if (res.ok) {
+          showToast('Пароль успішно змінено!');
+          pinChange.value.old_pin = '';
+          pinChange.value.new_pin = '';
+        } else {
+          const err = await res.json();
+          alert(err.detail || 'Помилка');
+        }
+      } catch (e) {
+        alert('Помилка зв’язку');
+      }
+    }
+
+    const currentTab = ref('schedule');
+    const settings = ref({});
+    const services = ref([]);
+    const clients = ref([]);
+    const appointments = ref([]);
+    const transactions = ref([]);
+    const financeSummary = ref({ today: {}, month: {}, expense_categories: [], income_by_method: [] });
+
+    const todayStr = new Date().toISOString().split('T')[0];
+    const selectedDate = ref(todayStr);
+    const selectedMonth = ref(todayStr.slice(0, 7));
+    const clientSearch = ref('');
+
+    const toast = ref({ show: false, message: '' });
+    function showToast(msg) {
+      toast.value = { show: true, message: msg };
+      setTimeout(() => { toast.value.show = false; }, 2600);
+    }
+
+    const bookingUrl = computed(() => {
+      return `${window.location.origin}/book`;
+    });
+
+    const modals = ref({
+      newAppointment: false,
+      newExpense: false,
+      newService: false,
+      newClient: false,
+      payment: false
+    });
+
+    const payingApp = ref(null);
+
+    const formApp = ref({
+      client_name: '', client_phone: '', service_names: '',
+      date: todayStr, time: '12:00', duration_minutes: 90, total_price: 35, payment_method: 'cash', notes: ''
+    });
+    const selectedServiceId = ref(null);
+
+    const formExpense = ref({
+      category: 'Матеріали (лаки, бази, топи)', amount: null, payment_method: 'card_es', description: '', date: todayStr
+    });
+
+    const formService = ref({
+      id: null, name: '', category: 'Манікюр', price: 30, duration_minutes: 60, description: ''
+    });
+
+    const formClient = ref({
+      name: '', phone: '', instagram: '', notes: ''
+    });
+
+    const daysList = computed(() => {
+      const list = [];
+      const dict = I18N[currentLang.value] || I18N['uk'];
+      const dayNames = dict.days_short || ['Нд', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
+      const base = new Date();
+      for (let i = -1; i < 14; i++) {
+        const d = new Date();
+        d.setDate(base.getDate() + i);
+        const iso = d.toISOString().split('T')[0];
+        list.push({
+          dateStr: iso,
+          dayName: dayNames[d.getDay()],
+          dayNum: d.getDate(),
+          hasAppointments: appointments.value.some(a => a.date === iso && a.status !== 'cancelled')
+        });
+      }
+      return list;
+    });
+
+    const dayAppointments = computed(() => {
+      return appointments.value
+        .filter(a => a.date === selectedDate.value)
+        .sort((a, b) => a.time.localeCompare(b.time));
+    });
+
+    const dayTotalSum = computed(() => {
+      return dayAppointments.value
+        .filter(a => a.status !== 'cancelled')
+        .reduce((sum, a) => sum + (a.total_price || 0), 0);
+    });
+
+    const filteredClients = computed(() => {
+      if (!clientSearch.value.trim()) return clients.value;
+      const q = clientSearch.value.toLowerCase();
+      return clients.value.filter(c =>
+        c.name.toLowerCase().includes(q) || c.phone.includes(q)
+      );
+    });
+
+    function selectDate(d) {
+      selectedDate.value = d;
+    }
+
+    function formatDateHeader(dStr) {
+      if (!dStr) return '';
+      const d = new Date(dStr + 'T00:00:00');
+      const dict = I18N[currentLang.value] || I18N['uk'];
+      const months = dict.months_short || ['січ', 'лют', 'бер', 'кві', 'тра', 'чер', 'лип', 'сер', 'вер', 'жов', 'лис', 'гру'];
+      const days = dict.days_short || ['Нд', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
+      return `${days[d.getDay()]}, ${d.getDate()} ${months[d.getMonth()]}`;
+    }
+
+    function getReminderSmsLink(app, type) {
+      if (!app || !app.client_phone) return '#';
+      const cleanPhone = app.client_phone.replace(/\s+/g, '');
+      const dayHeader = formatDateHeader(app.date);
+      let text = '';
+      if (type === 'day_before') {
+        text = `Привіт, ${app.client_name}! 💅 Нагадуємо, що завтра (${dayHeader}) о ${app.time} у вас запис на манікюр у Natali Nails Privé (${app.service_names}). Адреса: ${settings.value.address || 'студія'}. Підтвердіть, будь ласка, вашу присутність відповіддю. Чекаємо на вас! ✨`;
+      } else {
+        text = `Доброго ранку, ${app.client_name}! ☀️ Нагадуємо, що сьогодні о ${app.time} чекаємо на вас на манікюр у Natali Nails Privé. Адреса: ${settings.value.address || 'студія'}. До зустрічі! ☕✨`;
+      }
+      return `sms:${cleanPhone}?body=${encodeURIComponent(text)}`;
+    }
+
+    function getWhatsAppReminderLink(app) {
+      if (!app || !app.client_phone) return '#';
+      const cleanPhone = app.client_phone.replace(/[^0-9]/g, '');
+      const dayHeader = formatDateHeader(app.date);
+      const text = `Привіт, ${app.client_name}! 💅 Нагадуємо про ваш запис на манікюр у Natali Nails Privé:\n📅 ${dayHeader}\n⏰ Час: ${app.time}\n💅 Послуга: ${app.service_names}\n📍 Адреса: ${settings.value.address || ''}\n\nБудемо раді вас бачити! Будь ласка, підтвердіть візит ✨`;
+      return `https://wa.me/${cleanPhone}?text=${encodeURIComponent(text)}`;
+    }
+
+    function getMethodTotal(method) {
+      const list = financeSummary.value.income_by_method || [];
+      const item = list.find(m => m.method === method);
+      return item ? item.total : 0;
+    }
+
+    function formatPaymentMethodName(m) {
+      if (!m) return 'Готівка';
+      if (m === 'bizum') return 'Bizum';
+      if (m === 'card_es') return '🇪🇸 Ісп Visa';
+      if (m === 'card_ua') return '🇺🇦 Укр Карта';
+      if (m === 'paypal') return 'PayPal';
+      if (m === 'cash') return 'Готівка';
+      return m;
+    }
+
+    function getPaymentMethodBadgeClass(m) {
+      if (m === 'bizum') return 'bg-sky-100 text-sky-800';
+      if (m === 'card_es') return 'bg-amber-100 text-amber-800';
+      if (m === 'card_ua') return 'bg-blue-100 text-blue-800';
+      if (m === 'paypal') return 'bg-indigo-100 text-indigo-800';
+      return 'bg-emerald-100 text-emerald-800';
+    }
+
+    async function toggleCurrency() {
+      const res = await fetch('/api/settings/toggle-currency', { method: 'POST' });
+      const data = await res.json();
+      await loadSettings();
+      await loadServices();
+      await loadAppointments();
+      await loadFinance();
+      showToast(`Валюту змінено на: ${data.currency}`);
+    }
+
+    async function loadSettings() {
+      const res = await fetch('/api/settings');
+      settings.value = await res.json();
+    }
+
+    async function loadServices() {
+      const res = await fetch('/api/services');
+      services.value = await res.json();
+      if (services.value.length > 0 && !selectedServiceId.value) {
+        selectedServiceId.value = services.value[0].id;
+      }
+    }
+
+    async function loadAppointments() {
+      const res = await fetch('/api/appointments');
+      appointments.value = await res.json();
+    }
+
+    async function loadClients() {
+      const res = await fetch('/api/clients');
+      clients.value = await res.json();
+    }
+
+    async function loadFinance() {
+      const res1 = await fetch(`/api/finance/summary?month=${selectedMonth.value}`);
+      financeSummary.value = await res1.json();
+      const res2 = await fetch(`/api/finance/transactions?month=${selectedMonth.value}`);
+      transactions.value = await res2.json();
+    }
+
+    async function loadAllData() {
+      await loadSettings();
+      await loadServices();
+      await loadAppointments();
+      await loadClients();
+      await loadFinance();
+    }
+
+    function openPaymentModal(app) {
+      payingApp.value = app;
+      modals.value.payment = true;
+    }
+
+    async function confirmPayment(method) {
+      if (!payingApp.value) return;
+      await fetch(`/api/appointments/${payingApp.value.id}/status?status=completed&payment_method=${method}`, { method: 'PATCH' });
+      modals.value.payment = false;
+      payingApp.value = null;
+      await loadAppointments();
+      await loadFinance();
+      showToast(`Оплачено через ${formatPaymentMethodName(method)}!`);
+    }
+
+    async function setAppStatus(id, status) {
+      await fetch(`/api/appointments/${id}/status?status=${status}`, { method: 'PATCH' });
+      await loadAppointments();
+      await loadFinance();
+      showToast(t('status_completed'));
+    }
+
+    async function deleteApp(id) {
+      if (!confirm(t('delete_confirm'))) return;
+      await fetch(`/api/appointments/${id}`, { method: 'DELETE' });
+      await loadAppointments();
+      await loadFinance();
+      showToast(t('delete_label'));
+    }
+
+    function copyBookingLink() {
+      navigator.clipboard.writeText(bookingUrl.value);
+      showToast(t('booking_link_copied'));
+    }
+
+    function openNewAppointmentModal() {
+      formApp.value.date = selectedDate.value;
+      if (services.value.length > 0) {
+        onServiceSelectChange();
+      }
+      modals.value.newAppointment = true;
+    }
+
+    function onServiceSelectChange() {
+      const s = services.value.find(item => item.id === selectedServiceId.value);
+      if (s) {
+        formApp.value.service_names = s.name;
+        formApp.value.total_price = s.price;
+        formApp.value.duration_minutes = s.duration_minutes;
+      }
+    }
+
+    async function saveNewAppointment() {
+      if (!formApp.value.client_name || !formApp.value.client_phone) {
+        alert("Please enter client name and phone");
+        return;
+      }
+      await fetch('/api/appointments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formApp.value)
+      });
+      modals.value.newAppointment = false;
+      await loadAppointments();
+      await loadClients();
+      showToast(t('status_confirmed'));
+    }
+
+    function openExpenseModal() {
+      formExpense.value = {
+        category: 'Матеріали (лаки, бази, топи)',
+        amount: null,
+        payment_method: 'card_es',
+        description: '',
+        date: todayStr
+      };
+      modals.value.newExpense = true;
+    }
+
+    async function saveExpense() {
+      if (!formExpense.value.amount || formExpense.value.amount <= 0) {
+        alert('Please enter expense amount');
+        return;
+      }
+      await fetch('/api/finance/transactions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'expense',
+          category: formExpense.value.category,
+          amount: formExpense.value.amount,
+          payment_method: formExpense.value.payment_method,
+          date: formExpense.value.date,
+          description: formExpense.value.description
+        })
+      });
+      modals.value.newExpense = false;
+      await loadFinance();
+      showToast(t('btn_add_expense'));
+    }
+
+    async function deleteTransaction(id) {
+      if (!confirm(t('delete_confirm'))) return;
+      await fetch(`/api/finance/transactions/${id}`, { method: 'DELETE' });
+      await loadFinance();
+      showToast(t('delete_label'));
+    }
+
+    function openNewClientModal() {
+      formClient.value = { name: '', phone: '', instagram: '', notes: '' };
+      modals.value.newClient = true;
+    }
+
+    async function saveClient() {
+      if (!formClient.value.name || !formClient.value.phone) {
+        alert("Please fill name and phone");
+        return;
+      }
+      await fetch('/api/clients', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formClient.value)
+      });
+      modals.value.newClient = false;
+      await loadClients();
+      showToast(t('btn_add_client'));
+    }
+
+    function quickBookClient(c) {
+      formApp.value.client_name = c.name;
+      formApp.value.client_phone = c.phone;
+      openNewAppointmentModal();
+    }
+
+    function openNewServiceModal() {
+      formService.value = { id: null, name: '', category: 'Манікюр', price: 30, duration_minutes: 60, description: '' };
+      modals.value.newService = true;
+    }
+
+    function editService(s) {
+      formService.value = { ...s };
+      modals.value.newService = true;
+    }
+
+    async function saveService() {
+      if (!formService.value.name || !formService.value.price) {
+        alert('Please enter service name and price');
+        return;
+      }
+      if (formService.value.id) {
+        await fetch(`/api/services/${formService.value.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(formService.value)
+        });
+      } else {
+        await fetch('/api/services', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(formService.value)
+        });
+      }
+      modals.value.newService = false;
+      await loadServices();
+      showToast(t('btn_save_settings'));
+    }
+
+    async function deleteService(id) {
+      if (!confirm(t('delete_confirm'))) return;
+      await fetch(`/api/services/${id}`, { method: 'DELETE' });
+      await loadServices();
+      showToast(t('delete_label'));
+    }
+
+    async function saveSettings() {
+      await fetch('/api/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(settings.value)
+      });
+      showToast(t('btn_save_settings'));
+    }
+
+    onMounted(async () => {
+      // Register PWA service worker
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('/static/sw.js').catch(err => console.log('SW registration error', err));
+      }
+      if (isUnlocked.value) {
+        await loadAllData();
+      }
+    });
+
+    return {
+      isUnlocked, pinInput, showPassword, pinChange, submitPin, lockApp, changePin, showInstallModal,
+      currentLang, availableLangs, setLang, t,
+      currentTab, settings, services, clients, appointments, transactions, financeSummary,
+      todayStr, selectedDate, selectedMonth, clientSearch, daysList, dayAppointments,
+      dayTotalSum, filteredClients, modals, formApp, formExpense, formService, formClient,
+      selectedServiceId, toast, bookingUrl, payingApp,
+      selectDate, formatDateHeader, setAppStatus, deleteApp, copyBookingLink,
+      openNewAppointmentModal, onServiceSelectChange, saveNewAppointment,
+      openExpenseModal, saveExpense, deleteTransaction,
+      openNewClientModal, saveClient, quickBookClient,
+      openNewServiceModal, editService, saveService, deleteService,
+      saveSettings, loadFinance, toggleCurrency, getMethodTotal,
+      formatPaymentMethodName, getPaymentMethodBadgeClass,
+      openPaymentModal, confirmPayment,
+      getReminderSmsLink, getWhatsAppReminderLink
+    };
+  }
+}).mount('#app');
+</script>
+</body>
+</html>

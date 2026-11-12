@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>VIP Beauty Club — Особистий кабінет клієнтки</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+  <script src="/static/i18n.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,400&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .font-serif-luxury {
+      font-family: 'Cormorant Garamond', Georgia, serif;
+    }
+    .hide-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .hide-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+  </style>
+</head>
+<body class="bg-[#1C1715] text-stone-100 antialiased min-h-screen selection:bg-rose-500">
+<div id="vip-app" class="max-w-md mx-auto min-h-screen bg-[#1F1917] flex flex-col shadow-2xl relative pb-20">
+
+  <!-- Top bar with Lang Switcher -->
+  <header class="px-5 py-3.5 flex items-center justify-between border-b border-white/10 bg-[#161210]/80 backdrop-blur-md sticky top-0 z-40">
+    <div class="flex items-center space-x-2">
+      <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-amber-400 to-rose-500 flex items-center justify-center text-white text-xs shadow-md">
+        <i class="fa-solid fa-crown text-[11px]"></i>
+      </div>
+      <div>
+        <h1 class="font-bold text-xs tracking-wider text-amber-200 uppercase">VIP Beauty Club</h1>
+        <p class="text-[10px] text-stone-400">Закритий клуб клієнток</p>
+      </div>
+    </div>
+
+    <!-- Language selector -->
+    <div class="flex items-center space-x-1 overflow-x-auto hide-scrollbar">
+      <button v-for="(cfg, code) in availableLangs" :key="code"
+        @click="setLang(code)"
+        :class="currentLang === code ? 'bg-amber-500/20 text-amber-300 border border-amber-400/40 font-bold' : 'text-stone-400 hover:text-white'"
+        class="text-[10px] px-2 py-0.5 rounded-full transition">
+        <span>{{ cfg.flag }}</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Notification Toast -->
+  <div v-if="toast.show" class="fixed top-16 left-1/2 -translate-x-1/2 z-50 bg-stone-900 border border-amber-500/30 text-amber-200 text-xs font-medium px-4 py-2.5 rounded-2xl shadow-2xl flex items-center space-x-2 transition-all">
+    <i class="fa-solid fa-sparkles text-amber-400"></i>
+    <span>{{ toast.message }}</span>
+  </div>
+
+  <!-- SCREEN 1: LOGIN / AUTHORIZATION GATE (Facebook, Instagram, Phone) -->
+  <div v-if="!isLoggedIn" class="p-6 flex-1 flex flex-col justify-center space-y-6">
+    <div class="text-center space-y-3">
+      <div class="w-20 h-20 rounded-3xl bg-gradient-to-tr from-amber-500/20 via-rose-500/20 to-amber-300/10 border border-amber-400/30 flex items-center justify-center mx-auto shadow-2xl text-amber-300 text-3xl">
+        <i class="fa-solid fa-gem animate-pulse"></i>
+      </div>
+      <div class="space-y-1">
+        <span class="text-[10px] uppercase font-extrabold tracking-widest text-amber-400">Privé Lounge</span>
+        <h2 class="text-2xl font-bold font-serif-luxury text-white">Вхід для постійних клієнток</h2>
+        <p class="text-xs text-stone-400 max-w-xs mx-auto leading-relaxed">
+          Накопичуйте бали за візити, обмінюйте їх на спеціальні VIP-смайлики в коментарях та отримуйте знижки на манікюр.
+        </p>
+      </div>
+    </div>
+
+    <!-- Login Options -->
+    <div class="space-y-3 pt-2">
+      <!-- Instagram Login Button -->
+      <button @click="loginWithSocial('Instagram')" class="w-full bg-gradient-to-r from-[#833ab4] via-[#fd1d1d] to-[#fcb045] hover:opacity-95 text-white font-bold py-3.5 rounded-2xl shadow-lg shadow-rose-900/20 flex items-center justify-center space-x-2.5 text-xs transition active:scale-95">
+        <i class="fa-brands fa-instagram text-base"></i>
+        <span>Продовжити через Instagram</span>
+      </button>
+
+      <!-- Facebook Login Button -->
+      <button @click="loginWithSocial('Facebook')" class="w-full bg-[#1877F2] hover:bg-[#166fe5] text-white font-bold py-3.5 rounded-2xl shadow-lg shadow-blue-900/20 flex items-center justify-center space-x-2.5 text-xs transition active:scale-95">
+        <i class="fa-brands fa-facebook text-base"></i>
+        <span>Продовжити через Facebook</span>
+      </button>
+
+      <div class="flex items-center space-x-3 py-1">
+        <div class="flex-1 h-px bg-white/10"></div>
+        <span class="text-[11px] text-stone-500 uppercase font-semibold">або за номером телефону</span>
+        <div class="flex-1 h-px bg-white/10"></div>
+      </div>
+
+      <!-- Phone Login Form -->
+      <div class="space-y-2.5">
+        <input v-model="loginPhone" type="tel" placeholder="+34... або +380..." class="w-full bg-white/5 border border-white/15 focus:border-amber-400 rounded-2xl p-3.5 text-xs text-white placeholder-stone-500 focus:outline-none">
+
+        <button @click="loginWithPhone" class="w-full bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-stone-950 font-black py-3.5 rounded-2xl shadow-xl shadow-amber-500/20 text-xs transition active:scale-95 flex items-center justify-center space-x-1.5">
+          <span>Увійти в кабінет</span>
+          <i class="fa-solid fa-arrow-right text-[11px]"></i>
+        </button>
+      </div>
+
+      <!-- Hint for demo testing -->
+      <div class="bg-white/5 rounded-2xl p-3 border border-white/10 text-center">
+        <p class="text-[11px] text-stone-400">
+          💡 Для тесту введіть номер постійної клієнтки: <b class="text-amber-300 cursor-pointer" @click="loginPhone = '+380671112233'">+380671112233</b> (Оксана)
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCREEN 2: VERIFIED CLIENT VIP DASHBOARD -->
+  <div v-else class="flex-1 p-4 space-y-5">
+    <!-- VIP Profile Header Card -->
+    <div class="relative bg-gradient-to-br from-[#2E2420] via-[#241C1A] to-[#171312] border border-amber-400/25 rounded-3xl p-5 shadow-2xl overflow-hidden space-y-4">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center space-x-3">
+          <div class="w-14 h-14 rounded-full ring-2 ring-amber-400/50 p-0.5 bg-gradient-to-tr from-rose-500 to-amber-300 flex items-center justify-center text-white font-serif-luxury text-xl font-bold shadow-lg">
+            {{ client.name ? client.name.split(' ').map(n=>n[0]).join('') : 'VIP' }}
+          </div>
+          <div>
+            <div class="flex items-center space-x-1.5">
+              <span class="text-[10px] uppercase font-black tracking-widest text-amber-300 bg-amber-950/80 border border-amber-500/40 px-2 py-0.5 rounded-full flex items-center space-x-1">
+                <i class="fa-solid fa-crown text-[9px] text-amber-400"></i>
+                <span>{{ client.vip_tier || 'Gold VIP' }}</span>
+              </span>
+            </div>
+            <h2 class="text-lg font-bold text-white font-serif-luxury mt-0.5">{{ client.name }}</h2>
+            <p class="text-[11px] text-stone-400">{{ client.phone }}</p>
+          </div>
+        </div>
+
+        <button @click="logout" class="text-stone-400 hover:text-rose-400 text-xs p-1" title="Вийти">
+          <i class="fa-solid fa-arrow-right-from-bracket"></i>
+        </button>
+      </div>
+
+      <!-- Points & Balance Box -->
+      <div class="bg-white/5 border border-white/10 rounded-2xl p-3.5 flex items-center justify-between">
+        <div>
+          <span class="text-[10px] uppercase tracking-wider text-stone-400 font-bold">Мій баланс балів</span>
+          <div class="text-2xl font-black text-amber-300 flex items-center space-x-1.5 mt-0.5">
+            <i class="fa-solid fa-gem text-lg text-amber-400"></i>
+            <span>{{ client.points || 0 }}</span>
+            <span class="text-xs text-stone-400 font-normal">Coins</span>
+          </div>
+        </div>
+        <button @click="activeTab = 'shop'" class="bg-amber-400 hover:bg-amber-300 text-stone-950 font-black text-xs px-3.5 py-2 rounded-xl shadow-md transition active:scale-95">
+          Витратити 🎁
+        </button>
+      </div>
+
+      <!-- Unlocked VIP Emojis Bar -->
+      <div class="pt-1 border-t border-white/10 flex items-center justify-between text-xs">
+        <span class="text-[11px] text-stone-400">Мої VIP-смайлики:</span>
+        <div class="flex items-center space-x-1.5">
+          <span v-for="em in unlockedEmojisList" :key="em" class="w-7 h-7 rounded-lg bg-white/10 flex items-center justify-center text-sm shadow-inner">
+            {{ em }}
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Navigation Tabs inside Club -->
+    <div class="flex space-x-2 bg-white/5 p-1 rounded-2xl border border-white/10 text-xs font-bold">
+      <button @click="activeTab = 'shop'" :class="activeTab === 'shop' ? 'bg-amber-400 text-stone-950 shadow' : 'text-stone-300 hover:text-white'" class="flex-1 py-2 rounded-xl transition text-center">
+        💎 Магазин балів
+      </button>
+      <button @click="activeTab = 'reviews'" :class="activeTab === 'reviews' ? 'bg-amber-400 text-stone-950 shadow' : 'text-stone-300 hover:text-white'" class="flex-1 py-2 rounded-xl transition text-center">
+        💬 VIP-Відгуки
+      </button>
+      <button @click="activeTab = 'history'" :class="activeTab === 'history' ? 'bg-amber-400 text-stone-950 shadow' : 'text-stone-300 hover:text-white'" class="flex-1 py-2 rounded-xl transition text-center">
+        📅 Мої візити
+      </button>
+    </div>
+
+    <!-- TAB: LOYALTY REWARDS SHOP (Обмін балів на ексклюзивні смайлики та подарунки) -->
+    <div v-if="activeTab === 'shop'" class="space-y-3">
+      <div class="flex items-center justify-between px-1">
+        <h3 class="font-bold text-sm text-stone-200">Ексклюзивні винагороди</h3>
+        <span class="text-[11px] text-amber-300">Баланс: {{ client.points }} балів</span>
+      </div>
+
+      <div class="grid grid-cols-2 gap-2.5">
+        <div v-for="reward in rewardsCatalog" :key="reward.id" class="bg-white/5 border border-white/10 rounded-2xl p-3.5 flex flex-col justify-between space-y-2 hover:border-amber-400/40 transition">
+          <div>
+            <div class="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-400/30 flex items-center justify-center text-xl mb-2">
+              {{ reward.icon }}
+            </div>
+            <h4 class="font-bold text-xs text-white leading-snug">{{ reward.title }}</h4>
+            <p class="text-[10px] text-stone-400 mt-0.5 leading-tight">{{ reward.desc }}</p>
+          </div>
+          <div class="pt-2 border-t border-white/10 flex items-center justify-between">
+            <span class="text-xs font-black text-amber-300">{{ reward.cost }} 💎</span>
+            <button @click="redeem(reward)" :disabled="(client.points || 0) < reward.cost || isRewardOwned(reward.id)"
+              :class="isRewardOwned(reward.id) ? 'bg-white/10 text-stone-400' : ((client.points || 0) >= reward.cost ? 'bg-amber-400 text-stone-950 hover:bg-amber-300' : 'bg-white/5 text-stone-500')"
+              class="text-[10px] font-black px-2.5 py-1.5 rounded-lg transition active:scale-95">
+              {{ isRewardOwned(reward.id) ? 'Є' : 'Отримати' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB: REVIEWS WALL (Стіна відгуків з VIP-смайликами) -->
+    <div v-if="activeTab === 'reviews'" class="space-y-4">
+      <!-- Leave Review Form -->
+      <div class="bg-white/5 border border-white/10 rounded-2xl p-4 space-y-3">
+        <h3 class="font-bold text-xs uppercase tracking-wider text-amber-300 flex items-center space-x-1.5">
+          <i class="fa-solid fa-pen-nib"></i>
+          <span>Залишити відгук (+20 бонусних балів!)</span>
+        </h3>
+
+        <!-- Rating Stars -->
+        <div class="flex items-center space-x-1.5 text-amber-400 text-base">
+          <button v-for="star in 5" :key="star" @click="newReview.rating = star" class="focus:outline-none">
+            <i :class="star <= newReview.rating ? 'fa-solid fa-star' : 'fa-regular fa-star'"></i>
+          </button>
+        </div>
+
+        <!-- Custom Emojis Selector (Client inserts their unlocked exclusive emojis) -->
+        <div>
+          <label class="block text-[10px] text-stone-400 mb-1">Додати ваші VIP-смайлики:</label>
+          <div class="flex items-center space-x-1.5">
+            <button v-for="em in unlockedEmojisList" :key="em" @click="insertEmoji(em)" class="w-8 h-8 rounded-xl bg-white/10 hover:bg-amber-400/20 border border-white/15 flex items-center justify-center text-sm transition active:scale-95">
+              {{ em }}
+            </button>
+          </div>
+        </div>
+
+        <textarea v-model="newReview.comment" rows="2" placeholder="Напишіть ваші враження про манікюр..." class="w-full bg-white/5 border border-white/15 focus:border-amber-400 rounded-xl p-2.5 text-xs text-white placeholder-stone-500 focus:outline-none"></textarea>
+
+        <button @click="submitReview" class="w-full bg-gradient-to-r from-amber-400 to-amber-500 text-stone-950 font-bold py-2.5 rounded-xl text-xs transition active:scale-95 shadow-md">
+          Опублікувати та отримати +20 балів
+        </button>
+      </div>
+
+      <!-- Reviews Feed -->
+      <div class="space-y-3">
+        <div v-for="r in reviews" :key="r.id" class="bg-white/5 border border-white/10 rounded-2xl p-3.5 space-y-2">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center space-x-2">
+              <span class="w-7 h-7 rounded-full bg-amber-500/20 text-amber-300 font-bold flex items-center justify-center text-xs">
+                {{ r.client_name.slice(0, 1) }}
+              </span>
+              <div>
+                <span class="font-bold text-xs text-white">{{ r.client_name }}</span>
+                <span class="text-[9px] text-amber-400 ml-1.5 bg-amber-950/60 px-1.5 py-0.5 rounded border border-amber-500/30">Verified VIP</span>
+              </div>
+            </div>
+            <div class="text-[10px] text-amber-400 font-bold">
+              <i v-for="s in r.rating" :key="s" class="fa-solid fa-star text-[9px]"></i>
+            </div>
+          </div>
+          <p class="text-xs text-stone-300 leading-relaxed">{{ r.comment }}</p>
+          <div v-if="r.emojis" class="text-sm tracking-widest pt-1 border-t border-white/5">
+            {{ r.emojis }}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB: MY VISITS HISTORY -->
+    <div v-if="activeTab === 'history'" class="space-y-3">
+      <div v-if="appointments.length === 0" class="text-center py-8 text-stone-400 text-xs">
+        Історія візитів порожня
+      </div>
+      <div v-for="app in appointments" :key="app.id" class="bg-white/5 border border-white/10 rounded-2xl p-3.5 space-y-1.5">
+        <div class="flex items-center justify-between">
+          <span class="font-bold text-xs text-white">{{ app.date }} о {{ app.time }}</span>
+          <span class="text-xs font-extrabold text-amber-300">{{ app.total_price }} €</span>
+        </div>
+        <p class="text-[11px] text-stone-300"><i class="fa-solid fa-sparkles text-amber-400 mr-1"></i>{{ app.service_names }}</p>
+        <div class="pt-1 flex items-center justify-between text-[10px] text-stone-400">
+          <span>Оплата: {{ app.payment_method ? app.payment_method.toUpperCase() : 'CASH' }}</span>
+          <span class="text-emerald-400 font-bold flex items-center"><i class="fa-solid fa-check text-[9px] mr-1"></i>Виконано</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Booking Button -->
+    <div class="pt-4">
+      <a href="/book" class="w-full bg-gradient-to-r from-stone-800 to-stone-900 border border-amber-400/40 text-amber-300 hover:text-white font-bold py-3.5 rounded-2xl shadow-xl flex items-center justify-center space-x-2 text-xs transition active:scale-95">
+        <i class="fa-solid fa-calendar-plus text-xs"></i>
+        <span>Записатися на наступний манікюр</span>
+      </a>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const { createApp, ref, computed, onMounted } = Vue;
+
+createApp({
+  setup() {
+    const currentLang = ref(localStorage.getItem('nail_lang') || 'uk');
+    const availableLangs = {
+      uk: { code: 'uk', flag: '🇺🇦' },
+      en: { code: 'en', flag: '🇬🇧' },
+      es: { code: 'es', flag: '🇪🇸' },
+      va: { code: 'va', flag: '🦇' },
+      de: { code: 'de', flag: '🇩🇪' },
+      ru: { code: 'ru', flag: '🌐' }
+    };
+
+    function setLang(code) {
+      currentLang.value = code;
+      localStorage.setItem('nail_lang', code);
+    }
+
+    const isLoggedIn = ref(false);
+    const loginPhone = ref('+380671112233');
+    const activeTab = ref('shop');
+
+    const client = ref({});
+    const appointments = ref([]);
+    const reviews = ref([]);
+
+    const toast = ref({ show: false, message: '' });
+    function showToast(msg) {
+      toast.value = { show: true, message: msg };
+      setTimeout(() => { toast.value.show = false; }, 2800);
+    }
+
+    const rewardsCatalog = [
+      { id: '👑', icon: '👑', title: 'Золота VIP-Корона', desc: 'Ексклюзивний смайлик корони для ваших відгуків', cost: 30 },
+      { id: '💎', icon: '💎', title: 'Діамантове сяйво', desc: 'Смайлик діаманту поруч з вашим ім’ям', cost: 25 },
+      { id: '🔥', icon: '🔥', title: 'Вельветовий вогник', desc: 'Смайлик тренду Velvet Nails', cost: 20 },
+      { id: '☕', icon: '☕', title: 'Кава & Prosecco', desc: 'Улюблений напій у студії безкоштовно', cost: 15 },
+      { id: '🏷️1.50', icon: '🏷️', title: 'Знижка 1.50€ на візит', desc: 'Приємна знижка на наступну процедуру', cost: 100 },
+      { id: '🏷️2.50', icon: '🏷️', title: 'Знижка 2.50€ на візит', desc: 'Супер-знижка на будь-який комплекс', cost: 150 },
+      { id: '🌸', icon: '🌸', title: 'SPA-догляд для рук', desc: 'Холодний парафін + скрабування в подарунок', cost: 80 }
+    ];
+
+    const newReview = ref({
+      rating: 5,
+      comment: '',
+      emojis: ''
+    });
+
+    const unlockedEmojisList = computed(() => {
+      const s = client.value.unlocked_emojis || '💅,✨,💖';
+      return s.split(',').filter(Boolean);
+    });
+
+    function isRewardOwned(id) {
+      if (id.startsWith('🏷️')) return false; // Знижки можна отримувати щоразу при наявності балів
+      return unlockedEmojisList.value.includes(id);
+    }
+
+    async function loginWithPhone() {
+      if (!loginPhone.value.trim()) {
+        alert('Введіть номер телефону');
+        return;
+      }
+      try {
+        const res = await fetch('/api/client/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ provider: 'phone', phone: loginPhone.value.trim() })
+        });
+        const data = await res.json();
+        if (data.status === 'ok') {
+          client.value = data.client;
+          isLoggedIn.value = true;
+          localStorage.setItem('vip_phone', client.value.phone);
+          await loadProfile();
+          await loadReviews();
+          showToast(`Ласкаво просимо, ${client.value.name}! 👑`);
+        } else {
+          alert(data.message || 'Доступ відхилено');
+        }
+      } catch (e) {
+        alert('Помилка сервера');
+      }
+    }
+
+    async function loginWithSocial(provider) {
+      // Modern mock OAuth authentication for Instagram / Facebook
+      const name = prompt(`Увійдіть через ${provider}.\nВкажіть ваше ім'я або нікнейм:`, 'Марина');
+      if (!name) return;
+      const phone = prompt(`Для підтвердження оплачених візитів введіть номер телефону:`, '+380504445566');
+      if (!phone) return;
+
+      loginPhone.value = phone;
+      await loginWithPhone();
+    }
+
+    async function loadProfile() {
+      if (!client.value.phone) return;
+      const res = await fetch(`/api/client/profile?phone=${encodeURIComponent(client.value.phone)}`);
+      if (res.ok) {
+        const data = await res.json();
+        client.value = data.client;
+        appointments.value = data.appointments;
+      }
+    }
+
+    async function loadReviews() {
+      const res = await fetch('/api/reviews');
+      if (res.ok) {
+        reviews.value = await res.json();
+      }
+    }
+
+    async function redeem(reward) {
+      try {
+        const res = await fetch('/api/client/redeem', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            phone: client.value.phone,
+            item_id: reward.id,
+            points_cost: reward.cost
+          })
+        });
+        if (!res.ok) {
+          const err = await res.json();
+          alert(err.detail || 'Помилка');
+          return;
+        }
+        const data = await res.json();
+        client.value.points = data.points;
+        client.value.unlocked_emojis = data.unlocked_emojis;
+        showToast(`Ви отримали: ${reward.title}! 🎉`);
+      } catch (e) {
+        alert('Помилка обміну балів');
+      }
+    }
+
+    function insertEmoji(em) {
+      newReview.value.emojis += ' ' + em;
+      newReview.value.comment += ' ' + em;
+    }
+
+    async function submitReview() {
+      if (!newReview.value.comment.trim()) {
+        alert('Напишіть текст відгуку');
+        return;
+      }
+      try {
+        const res = await fetch('/api/reviews', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            client_name: client.value.name,
+            client_phone: client.value.phone,
+            rating: newReview.value.rating,
+            comment: newReview.value.comment,
+            emojis: newReview.value.emojis
+          })
+        });
+        if (res.ok) {
+          showToast('Дякуємо за відгук! Нараховано +20 балів 💎');
+          newReview.value.comment = '';
+          newReview.value.emojis = '';
+          await loadProfile();
+          await loadReviews();
+        }
+      } catch (e) {
+        alert('Помилка відправки відгуку');
+      }
+    }
+
+    function logout() {
+      isLoggedIn.value = false;
+      localStorage.removeItem('vip_phone');
+      showToast('Ви вийшли з VIP-кабінету');
+    }
+
+    onMounted(async () => {
+      const saved = localStorage.getItem('vip_phone');
+      if (saved) {
+        loginPhone.value = saved;
+        await loginWithPhone();
+      }
+      await loadReviews();
+    });
+
+    return {
+      currentLang, availableLangs, setLang,
+      isLoggedIn, loginPhone, activeTab, client, appointments, reviews,
+      toast, rewardsCatalog, newReview, unlockedEmojisList, isRewardOwned,
+      loginWithPhone, loginWithSocial, redeem, insertEmoji, submitReview, logout
+    };
+  }
+}).mount('#vip-app');
+</script>
+</body>
+</html>
