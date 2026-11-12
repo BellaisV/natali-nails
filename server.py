@@ -346,6 +346,13 @@ def init_db():
     except Exception:
         pass
 
+    # Ensure client social & notes columns exist in clients
+    for c_col in ['telegram', 'whatsapp', 'facebook']:
+        try:
+            cursor.execute(f"ALTER TABLE clients ADD COLUMN {c_col} TEXT DEFAULT ''")
+        except Exception:
+            pass
+
     # Ensure client avatar_url column exists
     try:
         cursor.execute("ALTER TABLE clients ADD COLUMN avatar_url TEXT DEFAULT ''")
@@ -961,28 +968,52 @@ class ClientProfileUpdate(BaseModel):
     name: str
     phone: str
     instagram: Optional[str] = ""
+    telegram: Optional[str] = ""
+    whatsapp: Optional[str] = ""
+    facebook: Optional[str] = ""
+    notes: Optional[str] = ""
     avatar_url: Optional[str] = ""
 
 @app.post("/api/client/update-profile")
 def update_client_profile(data: ClientProfileUpdate):
     conn = get_db()
     cursor = conn.cursor()
-    safe_cur_phone = sanitize_text(data.current_phone)
-    safe_name = sanitize_text(data.name)
-    safe_phone = sanitize_text(data.phone)
-    safe_insta = sanitize_text(data.instagram)
-    safe_avatar = data.avatar_url or ''
+    safe_cur_phone = sanitize_text(data.current_phone).strip()
+    digits = re.sub(r'\D', '', safe_cur_phone)
+    suffix = digits[-9:] if len(digits) >= 9 else digits
 
-    cursor.execute("SELECT id FROM clients WHERE phone = ? OR phone LIKE ?", (safe_cur_phone, f"%{safe_cur_phone[-9:]}%"))
+    safe_name = sanitize_text(data.name).strip()
+    safe_phone = sanitize_text(data.phone).strip()
+    safe_insta = sanitize_text(data.instagram or '').strip()
+    safe_tg = sanitize_text(data.telegram or '').strip()
+    safe_wa = sanitize_text(data.whatsapp or '').strip()
+    safe_fb = sanitize_text(data.facebook or '').strip()
+    safe_notes = sanitize_text(data.notes or '').strip()
+    safe_avatar = (data.avatar_url or '').strip()
+
+    cursor.execute("SELECT id, avatar_url FROM clients WHERE phone = ? OR phone LIKE ?", (safe_cur_phone, f"%{suffix}%"))
     client = cursor.fetchone()
     if not client:
+        # Create client if doesn't exist yet
+        now_str = datetime.now().isoformat()
+        cursor.execute("""
+            INSERT INTO clients (name, phone, instagram, telegram, whatsapp, facebook, notes, avatar_url, created_at, points, is_vip)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0)
+        """, (safe_name, safe_phone, safe_insta, safe_tg, safe_wa, safe_fb, safe_notes, safe_avatar, now_str))
+        conn.commit()
+        new_id = cursor.lastrowid
+        cursor.execute("SELECT * FROM clients WHERE id = ?", (new_id,))
+        updated = cursor.fetchone()
         conn.close()
-        raise HTTPException(status_code=404, detail="Client not found")
+        return {"status": "ok", "client": dict(updated)}
+
+    final_avatar = safe_avatar if safe_avatar else (client["avatar_url"] or "")
 
     cursor.execute("""
-    UPDATE clients SET name = ?, phone = ?, instagram = ?, avatar_url = COALESCE(NULLIF(?, ''), avatar_url)
-    WHERE id = ?
-    """, (safe_name, safe_phone, safe_insta, safe_avatar, client["id"]))
+        UPDATE clients SET
+            name = ?, phone = ?, instagram = ?, telegram = ?, whatsapp = ?, facebook = ?, notes = ?, avatar_url = ?
+        WHERE id = ?
+    """, (safe_name, safe_phone, safe_insta, safe_tg, safe_wa, safe_fb, safe_notes, final_avatar, client["id"]))
     conn.commit()
 
     cursor.execute("SELECT * FROM clients WHERE id = ?", (client["id"],))

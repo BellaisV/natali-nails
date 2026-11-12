@@ -21,6 +21,27 @@
       font-family: 'Plus Jakarta Sans', sans-serif;
       -webkit-tap-highlight-color: transparent;
     }
+    /* Visible Luxury Category Scrollbar / Slider */
+    .category-slider {
+      scrollbar-width: thin;
+      scrollbar-color: #f59e0b #292524;
+      scroll-behavior: smooth;
+      -webkit-overflow-scrolling: touch;
+    }
+    .category-slider::-webkit-scrollbar {
+      height: 6px;
+    }
+    .category-slider::-webkit-scrollbar-track {
+      background: #e7e5e4;
+      border-radius: 9999px;
+    }
+    .category-slider::-webkit-scrollbar-thumb {
+      background: #e11d48;
+      border-radius: 9999px;
+    }
+    .category-slider::-webkit-scrollbar-thumb:hover {
+      background: #be123c;
+    }
     .font-serif-luxury {
       font-family: 'Cormorant Garamond', Georgia, serif;
     }
@@ -40,10 +61,15 @@
   <div class="bg-[#2E2421] text-stone-200 px-4 py-2.5 flex items-center justify-between text-xs border-b border-white/10 shadow-sm">
     <div class="flex items-center space-x-2">
       <!-- Logged in state (auto-remembered) -->
-      <div v-if="loggedInClient.name" class="flex items-center space-x-1.5 cursor-pointer" @click="openProfileModal">
-        <span class="bg-amber-400/20 border border-amber-400/50 px-2.5 py-1 rounded-full text-amber-300 font-bold text-[11px]">
-          👑 {{ loggedInClient.name.split(' ')[0] }} <i class="fa-solid fa-pen text-[9px] ml-1 opacity-70"></i>
-        </span>
+      <div v-if="loggedInClient.name" class="flex items-center space-x-1.5 cursor-pointer" @click="openProfileModal" title="Редагувати профіль">
+        <div class="flex items-center space-x-1.5 bg-amber-400/20 border border-amber-400/50 pl-1 pr-2.5 py-1 rounded-full text-amber-300 font-bold text-[11px] hover:bg-amber-400/30 transition">
+          <div class="w-5 h-5 rounded-full overflow-hidden bg-stone-800 flex items-center justify-center text-[10px] text-amber-300 ring-1 ring-amber-400/60 flex-shrink-0">
+            <img v-if="loggedInClient.avatar_url" :src="loggedInClient.avatar_url" class="w-full h-full object-cover">
+            <span v-else>👑</span>
+          </div>
+          <span>{{ loggedInClient.name.split(' ')[0] }}</span>
+          <i class="fa-solid fa-pen text-[9px] ml-0.5 opacity-70"></i>
+        </div>
         <button @click="logoutClient" class="text-stone-400 hover:text-rose-400 text-xs p-1" title="Змінити номер">
           <i class="fa-solid fa-arrow-right-from-bracket"></i>
         </button>
@@ -152,12 +178,28 @@
     </div>
 
     <!-- Category filter buttons -->
-    <div class="flex space-x-2 overflow-x-auto hide-scrollbar py-1">
-      <button v-for="cat in categories" :key="cat"
-        @click="selectedCategory = cat"
-        :class="selectedCategory === cat ? 'bg-stone-900 text-white shadow-md' : 'bg-white text-stone-600 border border-stone-200'"
-        class="text-xs font-bold px-3 py-1.5 rounded-full whitespace-nowrap transition active:scale-95">
-        {{ cat === 'Всі' ? t('all_categories') : cat }}
+    <!-- Category Filter Bar with Smooth Slider & Navigation Arrows -->
+    <div class="relative py-1">
+      <!-- Left scroll arrow button -->
+      <button type="button" @click="scrollCategories(-160)" aria-label="Назад"
+        class="absolute -left-2 top-1/2 -translate-y-1/2 z-10 w-7 h-7 rounded-full bg-stone-900/90 hover:bg-stone-900 text-amber-300 flex items-center justify-center shadow-lg transition active:scale-90 border border-white/20">
+        <i class="fa-solid fa-chevron-left text-[11px]"></i>
+      </button>
+
+      <!-- Scrollable Categories Slider -->
+      <div id="categorySlider" class="flex items-center space-x-2 overflow-x-auto category-slider py-2 px-6">
+        <button v-for="cat in categories" :key="cat"
+          @click="selectedCategory = cat"
+          :class="selectedCategory === cat ? 'bg-stone-900 text-amber-300 shadow-md ring-2 ring-amber-400' : 'bg-white text-stone-700 hover:bg-stone-100 border border-stone-200 shadow-sm'"
+          class="text-xs font-bold px-3.5 py-1.5 rounded-full whitespace-nowrap transition active:scale-95 flex-shrink-0">
+          {{ cat === 'Всі' ? t('all_categories') : cat }}
+        </button>
+      </div>
+
+      <!-- Right scroll arrow button -->
+      <button type="button" @click="scrollCategories(160)" aria-label="Вперед"
+        class="absolute -right-2 top-1/2 -translate-y-1/2 z-10 w-7 h-7 rounded-full bg-stone-900/90 hover:bg-stone-900 text-amber-300 flex items-center justify-center shadow-lg transition active:scale-90 border border-white/20">
+        <i class="fa-solid fa-chevron-right text-[11px]"></i>
       </button>
     </div>
 
@@ -594,17 +636,17 @@
     </div>
   </div>
 
-  <!-- MODAL: ПРОФІЛЬ КЛІЄНТКИ (Редагування профілю) -->
+  <!-- MODAL: ПОВНИЙ ПРОФІЛЬ КЛІЄНТА (Аватар, Ім'я, Телефон, Instagram, Telegram, WhatsApp, Facebook, Опис) -->
   <div v-if="showProfileModal" @click.self="showProfileModal = false" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-end sm:items-center justify-center p-0 sm:p-4">
-    <div class="bg-[#1C1715] text-white w-full max-w-sm rounded-t-3xl sm:rounded-3xl p-6 space-y-4 border border-white/15 shadow-2xl text-left">
+    <div class="bg-[#1C1715] text-white w-full max-w-md max-h-[90vh] overflow-y-auto hide-scrollbar rounded-t-3xl sm:rounded-3xl p-5 sm:p-6 space-y-4 border border-white/15 shadow-2xl text-left">
       <div class="flex items-center justify-between pb-3 border-b border-white/10">
         <div class="flex items-center space-x-2.5">
           <div class="w-9 h-9 rounded-full bg-gradient-to-tr from-rose-500 to-amber-400 flex items-center justify-center text-white text-sm font-bold shadow">
             <i class="fa-solid fa-crown text-xs"></i>
           </div>
           <div>
-            <h3 class="font-bold text-sm text-white">Профіль клієнтки</h3>
-            <p class="text-[10px] text-amber-300">Natali Nails</p>
+            <h3 class="font-bold text-sm text-white">Мій профіль</h3>
+            <p class="text-[10px] text-amber-300">Natali Nails Client Club</p>
           </div>
         </div>
         <button @click="showProfileModal = false" class="text-stone-400 hover:text-white p-1">
@@ -612,20 +654,101 @@
         </button>
       </div>
 
+      <!-- Avatar Upload & Preview -->
+      <div class="flex items-center space-x-3.5 bg-white/5 p-3 rounded-2xl border border-white/10">
+        <div class="relative group cursor-pointer" @click="$refs.clientAvatarInput.click()">
+          <div class="w-16 h-16 rounded-full ring-2 ring-amber-400/60 overflow-hidden bg-stone-800 flex items-center justify-center text-amber-300 font-bold text-xl shadow-md">
+            <img v-if="profileForm.avatar_url" :src="profileForm.avatar_url" class="w-full h-full object-cover">
+            <span v-else>{{ profileForm.name ? profileForm.name[0] : 'V' }}</span>
+          </div>
+          <div class="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition">
+            <i class="fa-solid fa-camera text-white text-xs"></i>
+          </div>
+        </div>
+        <div class="flex-1 space-y-1">
+          <button type="button" @click="$refs.clientAvatarInput.click()" class="bg-white/10 hover:bg-white/20 text-white font-bold text-xs px-3 py-1.5 rounded-xl border border-white/15 transition flex items-center space-x-1.5">
+            <i class="fa-solid fa-image text-amber-400"></i>
+            <span>{{ profileForm.avatar_url ? 'Змінити фото' : 'Додати аватарку' }}</span>
+          </button>
+          <input type="file" ref="clientAvatarInput" @change="onClientAvatarUpload" accept="image/*" class="hidden">
+          <p class="text-[10px] text-stone-400">Натисніть, щоб обрати фото з галереї</p>
+        </div>
+        <button v-if="profileForm.avatar_url" type="button" @click="profileForm.avatar_url = ''" class="text-stone-400 hover:text-rose-400 p-1.5 text-xs" title="Видалити фото">
+          <i class="fa-solid fa-trash"></i>
+        </button>
+      </div>
+
       <div class="space-y-3 text-xs">
-        <div>
-          <label class="block font-bold text-stone-300 mb-1">Ваше ім'я:</label>
-          <input v-model="profileForm.name" placeholder="Олена" class="w-full bg-white/5 border border-white/20 rounded-xl p-3 text-sm text-white font-bold focus:border-amber-400 focus:outline-none">
+        <!-- Main: Name & Phone -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+          <div>
+            <label class="block font-bold text-stone-300 mb-1">Ваше ім'я:</label>
+            <input v-model="profileForm.name" placeholder="Олена, Віктор..." class="w-full bg-white/5 border border-white/20 rounded-xl p-2.5 text-xs text-white font-bold focus:border-amber-400 focus:outline-none">
+          </div>
+          <div>
+            <label class="block font-bold text-stone-300 mb-1">Номер телефону:</label>
+            <input v-model="profileForm.phone" type="tel" placeholder="+380... або +34..." class="w-full bg-white/5 border border-white/20 rounded-xl p-2.5 text-xs text-white font-bold focus:border-amber-400 focus:outline-none">
+          </div>
         </div>
 
-        <div>
-          <label class="block font-bold text-stone-300 mb-1">Номер телефону:</label>
-          <input v-model="profileForm.phone" type="tel" placeholder="+380..." class="w-full bg-white/5 border border-white/20 rounded-xl p-3 text-sm text-white font-bold focus:border-amber-400 focus:outline-none">
+        <!-- Social Networks (Instagram, Telegram, WhatsApp, Facebook) -->
+        <div class="pt-2 border-t border-white/10 space-y-2.5">
+          <span class="block font-bold text-[11px] text-amber-300 uppercase tracking-wider">Мої контакти та соцмережі:</span>
+          
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+            <!-- Instagram -->
+            <div>
+              <label class="block text-[11px] text-stone-300 mb-1 flex items-center space-x-1">
+                <i class="fa-brands fa-instagram text-rose-400"></i>
+                <span>Instagram:</span>
+              </label>
+              <input v-model="profileForm.instagram" placeholder="@olenka_nails" class="w-full bg-white/5 border border-white/20 rounded-xl p-2.5 text-xs text-white focus:border-amber-400 focus:outline-none">
+            </div>
+
+            <!-- Telegram -->
+            <div>
+              <label class="block text-[11px] text-stone-300 mb-1 flex items-center space-x-1">
+                <i class="fa-brands fa-telegram text-sky-400"></i>
+                <span>Telegram:</span>
+              </label>
+              <input v-model="profileForm.telegram" placeholder="@username або номер" class="w-full bg-white/5 border border-white/20 rounded-xl p-2.5 text-xs text-white focus:border-amber-400 focus:outline-none">
+            </div>
+
+            <!-- WhatsApp -->
+            <div>
+              <label class="block text-[11px] text-stone-300 mb-1 flex items-center space-x-1">
+                <i class="fa-brands fa-whatsapp text-emerald-400"></i>
+                <span>WhatsApp:</span>
+              </label>
+              <input v-model="profileForm.whatsapp" placeholder="+34... або +380..." class="w-full bg-white/5 border border-white/20 rounded-xl p-2.5 text-xs text-white focus:border-amber-400 focus:outline-none">
+            </div>
+
+            <!-- Facebook -->
+            <div>
+              <label class="block text-[11px] text-stone-300 mb-1 flex items-center space-x-1">
+                <i class="fa-brands fa-facebook text-blue-400"></i>
+                <span>Facebook:</span>
+              </label>
+              <input v-model="profileForm.facebook" placeholder="facebook.com/..." class="w-full bg-white/5 border border-white/20 rounded-xl p-2.5 text-xs text-white focus:border-amber-400 focus:outline-none">
+            </div>
+          </div>
         </div>
 
-        <button @click="saveClientProfile" class="w-full bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 text-stone-950 font-black py-3 rounded-xl shadow-lg transition active:scale-95 flex items-center justify-center space-x-1.5 mt-2">
-          <i class="fa-solid fa-check"></i>
-          <span>Зберегти зміни</span>
+        <!-- Description / Preferences for Master -->
+        <div class="pt-2 border-t border-white/10">
+          <label class="block font-bold text-stone-300 mb-1 flex items-center space-x-1">
+            <i class="fa-solid fa-comment-dots text-amber-400"></i>
+            <span>Побажання / опис для майстра:</span>
+          </label>
+          <textarea v-model="profileForm.notes" rows="2" placeholder="Наприклад: люблю квадратну форму нігтів, ніжні нюдові відтінки..."
+            class="w-full bg-white/5 border border-white/20 rounded-xl p-2.5 text-xs text-white placeholder-stone-500 focus:border-amber-400 focus:outline-none"></textarea>
+        </div>
+
+        <!-- Save Button -->
+        <button @click="saveClientProfile" :disabled="savingProfile" class="w-full bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 text-stone-950 font-black py-3 rounded-xl shadow-lg transition active:scale-95 flex items-center justify-center space-x-1.5 mt-2">
+          <i v-if="!savingProfile" class="fa-solid fa-check"></i>
+          <i v-else class="fa-solid fa-circle-notch fa-spin"></i>
+          <span>{{ savingProfile ? 'Збереження...' : 'Зберегти зміни' }}</span>
         </button>
       </div>
     </div>
@@ -1121,22 +1244,65 @@ createApp({
 
     
     const showProfileModal = ref(false);
-    const profileForm = ref({ name: '', phone: '', instagram: '' });
+    const savingProfile = ref(false);
+    const profileForm = ref({
+      name: '',
+      phone: '',
+      instagram: '',
+      telegram: '',
+      whatsapp: '',
+      facebook: '',
+      notes: '',
+      avatar_url: ''
+    });
+
+    function scrollCategories(offset) {
+      const el = document.getElementById('categorySlider');
+      if (el) {
+        el.scrollBy({ left: offset, behavior: 'smooth' });
+      }
+    }
+
+    function onClientAvatarUpload(e) {
+      const file = e.target.files && e.target.files[0];
+      if (!file) return;
+      if (file.size > 5 * 1024 * 1024) {
+        showToast('Фото занадто велике (макс 5MB)');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = (evt) => {
+        profileForm.value.avatar_url = evt.target.result;
+        showToast('Фото обрано! Натисніть «Зберегти»');
+      };
+      reader.readAsDataURL(file);
+    }
 
     function openProfileModal() {
+      const c = loggedInClient.value || {};
       profileForm.value = {
-        name: loggedInClient.value.name || clientName.value || '',
-        phone: loggedInClient.value.phone || clientPhone.value || '',
-        instagram: loggedInClient.value.instagram || ''
+        name: c.name || clientName.value || localStorage.getItem('client_name') || '',
+        phone: c.phone || clientPhone.value || localStorage.getItem('vip_phone') || '',
+        instagram: c.instagram || '',
+        telegram: c.telegram || '',
+        whatsapp: c.whatsapp || '',
+        facebook: c.facebook || '',
+        notes: c.notes || '',
+        avatar_url: c.avatar_url || ''
       };
       showProfileModal.value = true;
     }
 
     async function saveClientProfile() {
-      if (!profileForm.value.phone || profileForm.value.phone.length < 8) {
+      if (!profileForm.value.name || profileForm.value.name.trim().length < 2) {
+        showToast("Вкажіть ваше ім'я");
+        return;
+      }
+      if (!profileForm.value.phone || profileForm.value.phone.trim().length < 8) {
         showToast("Введіть коректний номер телефону");
         return;
       }
+      savingProfile.value = true;
       try {
         const curPhone = loggedInClient.value.phone || localStorage.getItem('vip_phone') || profileForm.value.phone;
         const res = await fetch('/api/client/update-profile', {
@@ -1146,28 +1312,37 @@ createApp({
             current_phone: curPhone,
             name: profileForm.value.name.trim(),
             phone: profileForm.value.phone.trim(),
-            instagram: profileForm.value.instagram.trim()
+            instagram: (profileForm.value.instagram || '').trim(),
+            telegram: (profileForm.value.telegram || '').trim(),
+            whatsapp: (profileForm.value.whatsapp || '').trim(),
+            facebook: (profileForm.value.facebook || '').trim(),
+            notes: (profileForm.value.notes || '').trim(),
+            avatar_url: profileForm.value.avatar_url || ''
           })
         });
         const data = await res.json();
-        if (data.status === 'ok') {
+        if (res.ok && data.status === 'ok') {
           loggedInClient.value = data.client;
           clientName.value = data.client.name;
           clientPhone.value = data.client.phone;
           localStorage.setItem('vip_phone', data.client.phone);
+          localStorage.setItem('client_phone', data.client.phone);
+          localStorage.setItem('client_name', data.client.name);
           localStorage.setItem('vip_client', JSON.stringify(data.client));
           showProfileModal.value = false;
           showToast("Профіль успішно оновлено ✨");
         } else {
-          showToast("Помилка збереження");
+          showToast(data.detail || data.message || "Помилка збереження");
         }
       } catch (e) {
-        showToast("Помилка з'єднання");
+        showToast("Помилка з'єднання з сервером");
+      } finally {
+        savingProfile.value = false;
       }
     }
 
     return {
-      showProfileModal, profileForm, openProfileModal, saveClientProfile,
+      showProfileModal, profileForm, openProfileModal, saveClientProfile, savingProfile, scrollCategories, onClientAvatarUpload,
       showLoginModal,
       loggedInClient,
       loginPhoneInput,
