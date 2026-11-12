@@ -36,38 +36,34 @@
 <body class="bg-[#FAF7F5] text-stone-800 antialiased selection:bg-rose-200">
 <div id="booking-app" class="max-w-md lg:max-w-5xl mx-auto min-h-screen bg-[#FAF7F5] pb-28 lg:pb-12 shadow-2xl relative lg:my-6 lg:rounded-3xl lg:border lg:border-stone-200 lg:overflow-hidden">
 
-  <!-- TOP BAR: Account / VIP Club & Language selector -->
-  <div class="bg-[#2E2421] text-stone-200 px-4 pt-3 pb-2 flex items-center justify-between text-xs border-b border-white/10">
+  <!-- TOP BAR: Account Status & Prominent Language Selector (When opening the link) -->
+  <div class="bg-[#2E2421] text-stone-200 px-4 py-2.5 flex items-center justify-between text-xs border-b border-white/10 shadow-sm">
     <div class="flex items-center space-x-2">
-      <!-- Logged in state -->
+      <!-- Logged in state (auto-remembered) -->
       <div v-if="loggedInClient.name" class="flex items-center space-x-1.5">
-        <a href="/club" class="flex items-center space-x-1.5 bg-gradient-to-r from-amber-500/20 to-amber-600/30 border border-amber-400/50 px-2.5 py-1 rounded-full text-amber-300 font-bold text-[11px] hover:text-white transition">
-          <i class="fa-solid fa-crown text-[10px] text-amber-400"></i>
-          <span>{{ loggedInClient.name.split(' ')[0] }}: {{ loggedInClient.points || 0 }} 💎</span>
-        </a>
-        <button @click="logoutClient" class="text-stone-400 hover:text-rose-400 text-xs p-1" title="Вийти">
+        <span class="bg-amber-400/20 border border-amber-400/50 px-2.5 py-1 rounded-full text-amber-300 font-bold text-[11px]">
+          👑 {{ loggedInClient.name.split(' ')[0] }}
+        </span>
+        <button @click="logoutClient" class="text-stone-400 hover:text-rose-400 text-xs p-1" title="Змінити номер">
           <i class="fa-solid fa-arrow-right-from-bracket"></i>
         </button>
       </div>
 
       <!-- Guest: Login Button -->
       <button v-else @click="showLoginModal = true" class="flex items-center space-x-1.5 bg-white/10 hover:bg-white/20 text-white font-bold px-2.5 py-1 rounded-full border border-white/20 transition text-[11px] active:scale-95">
-        <i class="fa-solid fa-user text-[10px] text-amber-400"></i>
-        <span>Увійти</span>
+        <i class="fa-solid fa-phone text-[10px] text-amber-400"></i>
+        <span>Вхід за номером</span>
       </button>
-
-      <a href="/club" class="flex items-center space-x-1 text-amber-300/80 hover:text-amber-200 text-[10px] font-semibold">
-        <span>VIP Club</span>
-      </a>
     </div>
-    <!-- Language pills -->
-    <div class="flex items-center space-x-1.5 overflow-x-auto hide-scrollbar">
+
+    <!-- PROMINENT LANGUAGE SELECTOR RIGHT AT TOP OF LINK -->
+    <div class="flex items-center space-x-1 bg-black/40 p-1 rounded-full border border-white/10 overflow-x-auto hide-scrollbar">
       <button v-for="(cfg, code) in availableLangs" :key="code"
         @click="setLang(code)"
-        :class="currentLang === code ? 'bg-rose-600 text-white font-bold shadow-sm' : 'bg-white/10 text-stone-300 hover:bg-white/20'"
-        class="text-[11px] px-2.5 py-1 rounded-full transition flex items-center space-x-1 flex-shrink-0">
-        <span>{{ cfg.flag }}</span>
-        <span>{{ cfg.code.toUpperCase() }}</span>
+        :class="currentLang === code ? 'bg-amber-400 text-stone-950 font-black shadow-md' : 'text-stone-300 hover:text-white'"
+        class="text-xs px-2.5 py-1 rounded-full transition flex items-center space-x-1 flex-shrink-0">
+        <span class="text-sm">{{ cfg.flag }}</span>
+        <span class="text-[10px] font-bold uppercase">{{ code }}</span>
       </button>
     </div>
   </div>
@@ -560,7 +556,7 @@
       <div class="flex items-center justify-between pb-3 border-b border-white/10">
         <div class="flex items-center space-x-2.5">
           <div class="w-8 h-8 rounded-xl bg-amber-400/20 text-amber-300 flex items-center justify-center text-sm font-bold">
-            <i class="fa-solid fa-user"></i>
+            <i class="fa-solid fa-phone"></i>
           </div>
           <div>
             <h3 class="font-extrabold text-base text-white">Вхід в особистий кабінет</h3>
@@ -572,45 +568,23 @@
         </button>
       </div>
 
-      <!-- Quick Social Buttons -->
-      <div class="space-y-2.5">
-        <!-- Instagram -->
-        <button @click="openSocialLogin('Instagram')" class="w-full bg-gradient-to-r from-[#833ab4] via-[#fd1d1d] to-[#fcb045] text-white font-bold py-3 rounded-xl shadow-md flex items-center justify-center space-x-2 text-xs transition active:scale-95">
-          <i class="fa-brands fa-instagram text-base"></i>
-          <span>Увійти через Instagram (+50 💎)</span>
-        </button>
+      <!-- Phone Form (ONLY BY PHONE) -->
+      <form @submit.prevent="submitPhoneLogin" class="space-y-3">
+        <div>
+          <label class="block text-xs font-bold text-stone-300 mb-1.5">Введіть ваш номер телефону:</label>
+          <div class="relative">
+            <span class="absolute left-3.5 top-3 text-stone-400 text-sm"><i class="fa-solid fa-phone"></i></span>
+            <input v-model="loginPhoneInput" type="tel" placeholder="+380... або +34..." required
+              class="w-full bg-white/5 border border-white/20 focus:border-amber-400 rounded-xl py-3 pl-10 pr-3 text-sm text-white placeholder-stone-500 font-bold focus:outline-none">
+          </div>
+          <p class="text-[11px] text-stone-400 mt-1.5">Система запам'ятає ваш вхід на цьому пристрої</p>
+        </div>
 
-        <!-- Facebook -->
-        <button @click="openSocialLogin('Facebook')" class="w-full bg-[#1877F2] text-white font-bold py-3 rounded-xl shadow-md flex items-center justify-center space-x-2 text-xs transition active:scale-95">
-          <i class="fa-brands fa-facebook text-base"></i>
-          <span>Увійти через Facebook (+50 💎)</span>
+        <button type="submit" class="w-full bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 text-stone-950 font-black py-3.5 rounded-xl text-xs transition active:scale-95 shadow-lg flex items-center justify-center space-x-1.5">
+          <span>Увійти в кабінет</span>
+          <i class="fa-solid fa-arrow-right text-[11px]"></i>
         </button>
-
-        <!-- Google -->
-        <button @click="openSocialLogin('Google')" class="w-full bg-white hover:bg-stone-100 text-stone-900 font-bold py-3 rounded-xl shadow-md flex items-center justify-center space-x-2 text-xs transition active:scale-95 border border-stone-200">
-          <svg class="w-4 h-4 mr-1" viewBox="0 0 24 24">
-            <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-            <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-            <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
-            <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
-          </svg>
-          <span>Увійти через Google (+50 💎)</span>
-        </button>
-      </div>
-
-      <div class="flex items-center space-x-2 py-1">
-        <div class="flex-1 h-px bg-white/10"></div>
-        <span class="text-[10px] text-stone-400 uppercase font-bold">або за номером</span>
-        <div class="flex-1 h-px bg-white/10"></div>
-      </div>
-
-      <!-- Phone Form -->
-      <div class="space-y-2">
-        <input v-model="loginPhoneInput" type="tel" placeholder="+380... або +34..." class="w-full bg-white/5 border border-white/15 focus:border-amber-400 rounded-xl p-3 text-xs text-white placeholder-stone-500">
-        <button @click="submitPhoneLogin" class="w-full bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 text-stone-950 font-black py-3 rounded-xl text-xs transition active:scale-95 shadow">
-          Увійти в кабінет
-        </button>
-      </div>
+      </form>
 
       <button @click="showLoginModal = false" class="w-full text-center text-xs text-stone-400 hover:text-white pt-1">
         Закрити
@@ -618,46 +592,8 @@
     </div>
   </div>
 
-  <!-- SUB-MODAL: СОЦІАЛЬНИЙ ВХІД (ІМ'Я ТА НОМЕР) -->
-  <div v-if="socialAuthModal.open" @click.self="socialAuthModal.open = false" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-end sm:items-center justify-center p-0 sm:p-4">
-    <div class="bg-[#1C1715] text-white w-full max-w-sm rounded-t-3xl sm:rounded-3xl p-6 space-y-4 border border-white/15 shadow-2xl text-left">
-      <div class="flex items-center justify-between pb-2 border-b border-white/10">
-        <div class="flex items-center space-x-2">
-          <i :class="socialAuthModal.provider === 'Instagram' ? 'fa-brands fa-instagram text-rose-400' : (socialAuthModal.provider === 'Facebook' ? 'fa-brands fa-facebook text-blue-400' : 'fa-brands fa-google text-amber-400')" class="text-lg"></i>
-          <h3 class="font-bold text-sm text-white">Вхід через {{ socialAuthModal.provider }}</h3>
-        </div>
-        <button @click="socialAuthModal.open = false" class="text-stone-400 hover:text-white p-1">
-          <i class="fa-solid fa-xmark text-lg"></i>
-        </button>
-      </div>
-
-      <div class="space-y-3.5 text-xs">
-        <div>
-          <label class="block font-bold text-stone-200 mb-1.5">
-            <span v-if="socialAuthModal.provider === 'Instagram'">Введіть ваш Instagram-нікнейм:</span>
-            <span v-else>Ваш нікнейм або логін:</span>
-          </label>
-          <div class="relative">
-            <span class="absolute left-3.5 top-2.5 text-stone-400 font-bold text-base">@</span>
-            <input v-model="socialAuthModal.handle" @keyup.enter="submitSocialLogin" placeholder="olenka_nails" class="w-full bg-white/5 border border-white/20 rounded-xl py-2.5 pl-8 pr-3 text-sm text-white placeholder-stone-500 font-bold focus:border-amber-400 focus:outline-none">
-          </div>
-          <p class="text-[11px] text-amber-300 mt-2 flex items-center space-x-1.5 leading-snug">
-            <i class="fa-solid fa-gift text-xs"></i>
-            <span>Вхід за 1 секунду! Ви відразу отримуєте <b>+50 💎</b> на баланс. Номер телефону ви вкажете пізніше при бронюванні візиту.</span>
-          </p>
-        </div>
-
-        <button @click="submitSocialLogin" class="w-full bg-gradient-to-r from-amber-400 via-amber-300 to-amber-500 hover:brightness-110 text-stone-950 font-black py-3 rounded-xl shadow-lg transition active:scale-95 flex items-center justify-center space-x-1.5 text-xs mt-1">
-          <i class="fa-solid fa-check"></i>
-          <span>Увійти в акаунт (+50 💎)</span>
-        </button>
-      </div>
-    </div>
-  </div>
-
   
-
-</div>
+  </div>
 
 <script>
 const { createApp, ref, computed, onMounted } = Vue;
@@ -891,6 +827,10 @@ createApp({
           return;
         }
         step.value = 4;
+        // Save session permanently so user is remembered next time they open the link
+        localStorage.setItem('vip_phone', clientPhone.value.trim());
+        localStorage.setItem('vip_client', JSON.stringify({ name: clientName.value.trim(), phone: clientPhone.value.trim() }));
+        loggedInClient.value = { name: clientName.value.trim(), phone: clientPhone.value.trim() };
       } catch (e) {
         alert('Server connection error');
       } finally {
@@ -985,8 +925,9 @@ createApp({
     }
 
     async function submitPhoneLogin() {
-      if (!loginPhoneInput.value.trim() || loginPhoneInput.value.trim().length < 8) {
-        alert("Введіть коректний номер телефону");
+      const p = (loginPhoneInput.value || '').trim();
+      if (!p || p.length < 8) {
+        showToast("Введіть коректний номер телефону");
         return;
       }
       try {
@@ -995,20 +936,23 @@ createApp({
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             provider: 'phone',
-            phone: loginPhoneInput.value.trim()
+            phone: p
           })
         });
         const data = await res.json();
         if (data.status === 'ok') {
           loggedInClient.value = data.client;
-          clientName.value = data.client.name;
+          if (data.client.name) clientName.value = data.client.name;
           clientPhone.value = data.client.phone;
           localStorage.setItem('vip_phone', data.client.phone);
+          localStorage.setItem('vip_client', JSON.stringify(data.client));
           showLoginModal.value = false;
-          showToast(`Вітаємо, ${data.client.name}! 👑`);
+          showToast(`✨ Вітаємо, ${data.client.name || 'клієнтка'}! Вхід збережено`);
+        } else {
+          showToast("Помилка входу");
         }
       } catch (e) {
-        alert("Помилка зв'язку");
+        showToast("Помилка зв'язку");
       }
     }
 

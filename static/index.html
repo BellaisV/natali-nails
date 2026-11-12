@@ -46,15 +46,26 @@
 
   <!-- SECURITY / CLIENT GATE SCREEN -->
   <div v-if="!isUnlocked" class="fixed inset-0 z-50 bg-[#1C1715] text-white flex flex-col justify-between p-6 overflow-y-auto hide-scrollbar">
-    <!-- Top Bar with App Name & Install Button -->
-    <div class="flex items-center justify-between pt-1">
+    <!-- Top Bar: Brand & Language Selector on Entry -->
+    <div class="flex items-center justify-between pt-1 pb-3 border-b border-white/10">
       <div class="flex items-center space-x-2">
         <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-rose-500 to-amber-400 flex items-center justify-center text-white text-xs shadow-md">
           <i class="fa-solid fa-crown text-[10px]"></i>
         </div>
         <span class="font-serif-luxury font-bold text-sm tracking-wide text-amber-200">Natali Nails</span>
       </div>
-      
+
+      <!-- PROMINENT LANGUAGE SELECTOR (RIGHT ON ENTRY) -->
+      <div class="flex items-center space-x-1 bg-white/10 p-1 rounded-2xl border border-white/10 shadow-sm overflow-x-auto hide-scrollbar">
+        <button v-for="(l, code) in availableLangs" :key="code"
+          @click="setLang(code)"
+          :class="currentLang === code ? 'bg-amber-400 text-stone-950 font-black shadow-md' : 'text-stone-300 hover:text-white'"
+          class="px-2 py-1 rounded-xl text-xs transition active:scale-95 flex items-center space-x-1"
+          :title="l.name">
+          <span class="text-sm">{{ l.flag }}</span>
+          <span class="text-[10px] uppercase font-bold">{{ code }}</span>
+        </button>
+      </div>
     </div>
 
     <!-- VIEW 1: CLIENT REGISTRATION & LOGIN -->
@@ -70,40 +81,24 @@
       </div>
 
       <!-- Registration Card with Options -->
-      <div class="bg-white/5 border border-white/10 rounded-3xl p-5 space-y-4 shadow-xl backdrop-blur-md">
-        <div class="text-left pb-1 border-b border-white/10 flex items-center justify-between">
-          <div>
-            <h3 class="font-bold text-sm text-white">Зареєструватися / Увійти</h3>
-            <p class="text-[10px] text-amber-300 font-semibold">Отримайте 50 Beauty Coins у подарунок 🎁</p>
+      <div class="bg-white/5 border border-white/10 rounded-3xl p-5 space-y-4 shadow-xl backdrop-blur-md text-left">
+        <div>
+          <h3 class="font-bold text-sm text-white">Вхід за номером телефону</h3>
+          <p class="text-[11px] text-stone-400 mt-0.5">Введіть ваш телефон для входу та збереження записів</p>
+        </div>
+
+        <form @submit.prevent="submitDirectPhoneLogin" class="space-y-3">
+          <div class="relative">
+            <span class="absolute left-3.5 top-3.5 text-stone-400 text-sm"><i class="fa-solid fa-phone"></i></span>
+            <input v-model="directPhoneInput" type="tel" placeholder="+380... або +34..." required
+              class="w-full bg-white/5 border border-white/20 focus:border-amber-400 rounded-2xl py-3.5 pl-10 pr-4 text-sm text-white placeholder-stone-500 font-bold focus:outline-none">
           </div>
-          <span class="text-xs text-amber-400">✨</span>
-        </div>
 
-        <div class="space-y-2.5">
-          <!-- Instagram Button -->
-          <button @click="openSocialClientModal('Instagram')" class="w-full bg-gradient-to-r from-[#833ab4] via-[#fd1d1d] to-[#fcb045] hover:opacity-95 text-white font-bold py-3.5 rounded-2xl shadow-lg shadow-rose-900/30 flex items-center justify-center space-x-2 text-xs transition active:scale-95">
-            <i class="fa-brands fa-instagram text-base"></i>
-            <span>Продовжити через Instagram</span>
+          <button type="submit" class="w-full bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 text-stone-950 font-black py-3.5 rounded-2xl shadow-xl shadow-amber-500/20 text-xs transition active:scale-95 flex items-center justify-center space-x-2">
+            <span>Увійти</span>
+            <i class="fa-solid fa-arrow-right text-[11px]"></i>
           </button>
-
-          <!-- Facebook Button -->
-          <button @click="openSocialClientModal('Facebook')" class="w-full bg-[#1877F2] hover:bg-[#166fe5] text-white font-bold py-3.5 rounded-2xl shadow-lg shadow-blue-900/30 flex items-center justify-center space-x-2 text-xs transition active:scale-95">
-            <i class="fa-brands fa-facebook text-base"></i>
-            <span>Продовжити через Facebook</span>
-          </button>
-
-          <!-- Google Button -->
-          <button @click="openSocialClientModal('Google')" class="w-full bg-white hover:bg-stone-100 text-stone-900 font-bold py-3.5 rounded-2xl shadow-lg flex items-center justify-center space-x-2 text-xs transition active:scale-95">
-            <i class="fa-brands fa-google text-base text-rose-500"></i>
-            <span>Продовжити через Google</span>
-          </button>
-
-          <!-- Phone Button -->
-          <button @click="openSocialClientModal('Phone')" class="w-full bg-white/10 hover:bg-white/20 text-white font-bold py-3 rounded-2xl border border-white/15 flex items-center justify-center space-x-2 text-xs transition active:scale-95">
-            <i class="fa-solid fa-mobile-screen text-amber-400"></i>
-            <span>За номером телефону</span>
-          </button>
-        </div>
+        </form>
       </div>
 
       <!-- Quick booking link without registration -->
@@ -1236,6 +1231,14 @@ createApp({
 
     const currentLang = ref(localStorage.getItem('nail_lang') || 'uk');
     const availableLangs = {
+      uk: { code: 'uk', flag: '🇺🇦', name: 'Українська' },
+      es: { code: 'es', flag: '🇪🇸', name: 'Español' },
+      en: { code: 'en', flag: '🇬🇧', name: 'English' },
+      de: { code: 'de', flag: '🇩🇪', name: 'Deutsch' },
+      va: { code: 'va', flag: '🦇', name: 'Valencià' },
+      ru: { code: 'ru', flag: '🌐', name: 'Русский' }
+    };
+    const _ignoredAvailableLangs = {
       uk: { code: 'uk', flag: '🇺🇦', name: 'Українська' },
       en: { code: 'en', flag: '🇬🇧', name: 'English' },
       es: { code: 'es', flag: '🇪🇸', name: 'Castellano' },
