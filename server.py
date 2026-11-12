@@ -322,6 +322,30 @@ def init_db():
     except Exception:
         pass
 
+    # Ensure whatsapp column exists in settings
+    try:
+        cursor.execute("ALTER TABLE settings ADD COLUMN whatsapp TEXT DEFAULT ''")
+    except Exception:
+        pass
+
+    # Ensure facebook column exists in settings
+    try:
+        cursor.execute("ALTER TABLE settings ADD COLUMN facebook TEXT DEFAULT ''")
+    except Exception:
+        pass
+
+    # Ensure working_days column exists in settings
+    try:
+        cursor.execute("ALTER TABLE settings ADD COLUMN working_days TEXT DEFAULT '1,2,3,4,5,6'")
+    except Exception:
+        pass
+
+    # Ensure client password column exists in clients
+    try:
+        cursor.execute("ALTER TABLE clients ADD COLUMN password TEXT DEFAULT ''")
+    except Exception:
+        pass
+
     # Ensure client avatar_url column exists
     try:
         cursor.execute("ALTER TABLE clients ADD COLUMN avatar_url TEXT DEFAULT ''")

@@ -1344,7 +1344,12 @@ createApp({
             password: loginForm.value.password.trim()
           })
         });
-        const data = await res.json();
+        let data = {};
+        try {
+          data = await res.json();
+        } catch (e) {
+          data = { detail: 'Помилка відповіді сервера' };
+        }
         if (res.ok && data.status === 'ok') {
           const client = data.client || {};
           localStorage.setItem('vip_phone', client.phone || loginForm.value.phone.trim());
@@ -1354,10 +1359,11 @@ createApp({
           // Redirect straight to booking
           window.location.href = '/book';
         } else {
-          alert(data.detail || data.message || 'Помилка входу');
+          alert(data.detail || data.message || 'Невірний телефон або пароль');
         }
       } catch (err) {
-        alert('Помилка зв\'язку з сервером');
+        console.error('Login fetch error:', err);
+        alert('Помилка зв\'язку: ' + (err.message || 'перевірте інтернет'));
       } finally {
         authLoading.value = false;
       }
@@ -1365,11 +1371,11 @@ createApp({
 
     async function handleClientRegister() {
       if (!regForm.value.name.trim()) {
-        alert(t('lbl_your_name') + ' обов\'язкове!');
+        alert((t('lbl_your_name') || "Ваше ім'я") + ' обов\'язкове!');
         return;
       }
       if (!regForm.value.phone.trim()) {
-        alert(t('lbl_phone') + ' обов\'язковий!');
+        alert((t('lbl_phone') || 'Номер телефону') + ' обов\'язковий!');
         return;
       }
       if (regForm.value.password !== regForm.value.passwordConfirm) {
@@ -1391,7 +1397,12 @@ createApp({
             password: regForm.value.password.trim()
           })
         });
-        const data = await res.json();
+        let data = {};
+        try {
+          data = await res.json();
+        } catch (e) {
+          data = { detail: 'Помилка відповіді сервера' };
+        }
         if (res.ok && data.status === 'ok') {
           const client = data.client || {};
           localStorage.setItem('vip_phone', client.phone || regForm.value.phone.trim());
@@ -1404,7 +1415,8 @@ createApp({
           alert(data.detail || data.message || 'Помилка реєстрації');
         }
       } catch (err) {
-        alert('Помилка зв\'язку з сервером');
+        console.error('Register fetch error:', err);
+        alert('Помилка зв\'язку: ' + (err.message || 'перевірте інтернет'));
       } finally {
         authLoading.value = false;
       }
