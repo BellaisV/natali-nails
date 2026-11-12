@@ -845,6 +845,67 @@ createApp({
       showToast('Ви вийшли з VIP-кабінету');
     }
 
+    
+    const showAvatarModal = ref(false);
+    const avatarPresets = ref([
+      { id: 'p1', url: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&auto=format&fit=crop&q=80', label: 'Classic' },
+      { id: 'p2', url: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=80', label: 'Glamour' },
+      { id: 'p3', url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80', label: 'Elegance' },
+      { id: 'p4', url: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=150&auto=format&fit=crop&q=80', label: 'Natural' }
+    ]);
+
+    function onClientPhotoUpload(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = async (evt) => {
+        const base64 = evt.target.result;
+        client.value.avatar_url = base64;
+        showAvatarModal.value = false;
+        try {
+          await fetch('/api/client/avatar', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ avatar_url: base64 })
+          });
+          showToast('Фото оновлено');
+        } catch (err) {
+          showToast('Помилка збереження фото');
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+
+    async function setClientPresetAvatar(preset) {
+      client.value.avatar_url = preset.url;
+      showAvatarModal.value = false;
+      try {
+        await fetch('/api/client/avatar', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ avatar_url: preset.url })
+        });
+        showToast('Аватар оновлено');
+      } catch (err) {
+        showToast('Помилка збереження');
+      }
+    }
+
+    async function removeClientAvatar() {
+      client.value.avatar_url = '';
+      showAvatarModal.value = false;
+      try {
+        await fetch('/api/client/avatar', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ avatar_url: '' })
+        });
+        showToast('Аватар видалено');
+      } catch (err) {
+        showToast('Помилка видалення');
+      }
+    }
+
     onMounted(async () => {
       if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('/static/sw.js').catch(err => console.log('SW registration error', err));

@@ -1744,7 +1744,128 @@ createApp({
       showToast(t('btn_save_settings'));
     }
 
+    
+    // --- VIP REWARDS SHOP HELPERS ---
+    async function loadRewards() {
+      try {
+        const res = await fetch('/api/rewards');
+        if (res.ok) {
+          vipRewards.value = await res.json();
+        }
+      } catch (e) {
+        console.error('Error loading rewards:', e);
+      }
+    }
+
+    function openNewRewardModal() {
+      editingRewardId.value = null;
+      formReward.value = { icon: '💎', title: '', description: '', cost: 50, reward_type: 'discount' };
+      modals.value.reward = true;
+    }
+
+    function editReward(r) {
+      editingRewardId.value = r.id;
+      formReward.value = { icon: r.icon || '💎', title: r.title || '', description: r.description || '', cost: r.cost || 50, reward_type: r.reward_type || 'discount' };
+      modals.value.reward = true;
+    }
+
+    async function saveReward() {
+      if (!formReward.value.title || !formReward.value.cost) {
+        showToast('Вкажіть назву та вартість винагороди');
+        return;
+      }
+      try {
+        const url = editingRewardId.value ? `/api/rewards/${editingRewardId.value}` : '/api/rewards';
+        const method = editingRewardId.value ? 'PUT' : 'POST';
+        const res = await fetch(url, {
+          method,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(formReward.value)
+        });
+        if (res.ok) {
+          showToast(editingRewardId.value ? 'Винагороду оновлено' : 'Винагороду створено');
+          modals.value.reward = false;
+          loadRewards();
+        } else {
+          showToast('Помилка збереження винагороди');
+        }
+      } catch (e) {
+        showToast('Помилка з\'єднання');
+      }
+    }
+
+    async function deleteReward(id) {
+      if (!confirm('Видалити цю винагороду з крамниці?')) return;
+      try {
+        const res = await fetch(`/api/rewards/${id}`, { method: 'DELETE' });
+        if (res.ok) {
+          showToast('Винагороду видалено');
+          loadRewards();
+        }
+      } catch (e) {
+        showToast('Помилка видалення');
+      }
+    }
+
+    // --- INSTALL HELPERS ---
+    const showAndroidHelp = ref(false);
+    let deferredPrompt = null;
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+    });
+
+    function triggerAndroidInstall() {
+      if (deferredPrompt) {
+        deferredPrompt.prompt();
+        deferredPrompt.userChoice.then(() => { deferredPrompt = null; });
+      } else {
+        showInstallModal.value = true;
+      }
+    }
+
+    function handleIosClick() {
+      showInstallModal.value = true;
+    }
+
+    // --- MASTER AVATAR HELPERS ---
+    function onMasterAvatarUpload(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = async (evt) => {
+        const base64 = evt.target.result;
+        settings.value.master_avatar = base64;
+        try {
+          await fetch('/api/settings/avatar', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ master_avatar: base64 })
+          });
+          showToast('Аватар оновлено');
+        } catch (err) {
+          showToast('Помилка збереження аватара');
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+
+    async function removeMasterAvatar() {
+      settings.value.master_avatar = '';
+      try {
+        await fetch('/api/settings/avatar', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ master_avatar: '' })
+        });
+        showToast('Аватар видалено');
+      } catch (err) {
+        showToast('Помилка видалення аватара');
+      }
+    }
+
     onMounted(async () => {
+      loadRewards();
       // Register PWA service worker
       if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('/static/sw.js').catch(err => console.log('SW registration error', err));
