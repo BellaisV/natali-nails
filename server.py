@@ -205,8 +205,80 @@ def auto_translate_service(name: str, description: str = "") -> dict:
 # --- Persistent Clients & Data Protection Engine ---
 BACKUP_FILE = "clients_backup.json"
 APPOINTMENTS_BACKUP_FILE = "appointments_backup.json"
+SERVICES_BACKUP_FILE = "services_backup.json"
 GITHUB_BACKUP_TOKEN = os.environ.get("GITHUB_TOKEN", "")
 GITHUB_BACKUP_REPO = os.environ.get("GITHUB_REPO", "BellaisV/natali-nails")
+
+def export_services_backup():
+    """Exports all current services to services_backup.json to prevent loss of custom services."""
+    try:
+        conn = get_db()
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM services ORDER BY category, id")
+        rows = [dict(r) for r in cursor.fetchall()]
+        conn.close()
+        for r in rows:
+            if isinstance(r.get("translations"), str):
+                try:
+                    r["translations"] = json.loads(r["translations"])
+                except Exception:
+                    pass
+        with open(SERVICES_BACKUP_FILE, "w", encoding="utf-8") as f:
+            json.dump(rows, f, ensure_ascii=False, indent=2)
+        return len(rows)
+    except Exception as e:
+        print(f"[SERVICES BACKUP ERROR] {e}")
+        return 0
+
+def restore_services_from_backup():
+    """Restores any missing custom services from services_backup.json."""
+    if not os.path.exists(SERVICES_BACKUP_FILE):
+        return 0
+    try:
+        with open(SERVICES_BACKUP_FILE, "r", encoding="utf-8") as f:
+            backup_services = json.load(f)
+        if not isinstance(backup_services, list):
+            return 0
+        conn = get_db()
+        cursor = conn.cursor()
+        restored = 0
+        for s in backup_services:
+            name = (s.get("name") or "").strip()
+            if not name:
+                continue
+            cursor.execute("SELECT id FROM services WHERE name = ? OR id = ?", (name, s.get("id")))
+            existing = cursor.fetchone()
+            tr_obj = s.get("translations") or {}
+            tr_str = json.dumps(tr_obj, ensure_ascii=False) if isinstance(tr_obj, dict) else str(tr_obj)
+            if not existing:
+                cursor.execute("""
+                    INSERT INTO services (name, category, price, duration_minutes, description, is_active, translations)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                """, (
+                    name,
+                    s.get("category") or "Манікюр",
+                    float(s.get("price") or 30.0),
+                    int(s.get("duration_minutes") or 60),
+                    s.get("description") or "",
+                    int(s.get("is_active", 1)),
+                    tr_str
+                ))
+                restored += 1
+            else:
+                cursor.execute("""
+                    UPDATE services
+                    SET category = COALESCE(?, category),
+                        price = COALESCE(?, price),
+                        duration_minutes = COALESCE(?, duration_minutes),
+                        description = COALESCE(?, description)
+                    WHERE id = ?
+                """, (s.get("category"), s.get("price"), s.get("duration_minutes"), s.get("description"), existing[0]))
+        conn.commit()
+        conn.close()
+        return restored
+    except Exception as e:
+        print(f"[SERVICES RESTORE ERROR] {e}")
+        return 0
 
 def export_clients_backup():
     """Exports all current clients to clients_backup.json to prevent data loss on updates."""
@@ -764,6 +836,13 @@ def init_db():
     conn.commit()
     conn.close()
 
+    # Restore any custom services created by admin, then export fresh services backup
+    try:
+        restore_services_from_backup()
+        export_services_backup()
+    except Exception:
+        pass
+
 init_db()
 
 # --- Pydantic Models with Validation ---
@@ -794,12 +873,12 @@ class AddPointsRequest(BaseModel):
 
 class AppointmentCreate(BaseModel):
     client_name: str
-    client_phone: str
-    service_names: str
+    client_phone: Optional[str] = "номер відсутній"
+    service_names: Optional[str] = "Манікюр"
     date: str
     time: str
-    duration_minutes: int
-    total_price: float
+    duration_minutes: Optional[int] = 60
+    total_price: Optional[float] = 35.0
     payment_method: Optional[str] = "cash"
     notes: Optional[str] = ""
     source: Optional[str] = "master"
@@ -1093,6 +1172,7 @@ def create_service(data: ServiceCreate):
     conn.commit()
     new_id = cursor.lastrowid
     conn.close()
+    export_services_backup()
     return {"id": new_id, "status": "created", "translations": tr_obj}
 
 @app.put("/api/services/{service_id}")
@@ -1110,6 +1190,7 @@ def update_service(service_id: int, data: ServiceCreate):
     """, (safe_name, sanitize_text(data.category), data.price, data.duration_minutes, safe_desc, data.is_active, tr_json, service_id))
     conn.commit()
     conn.close()
+    export_services_backup()
     return {"status": "ok", "translations": tr_obj}
 
 @app.delete("/api/services/{service_id}")
@@ -1119,6 +1200,7 @@ def delete_service(service_id: int):
     cursor.execute("DELETE FROM services WHERE id = ?", (service_id,))
     conn.commit()
     conn.close()
+    export_services_backup()
     on_client_data_changed()
     return {"status": "deleted"}
 
@@ -1269,25 +1351,39 @@ def create_appointment(data: AppointmentCreate):
     cursor = conn.cursor()
 
     safe_name = sanitize_text(data.client_name)
-    safe_phone = sanitize_text(data.client_phone)
+    raw_phone = (data.client_phone or "").strip()
+    if not raw_phone or raw_phone.lower() in ["номер відсутній", "відсутній", "none", "null", "no", "-", "без номера"]:
+        safe_phone = "номер відсутній"
+    else:
+        safe_phone = sanitize_text(raw_phone)
     safe_notes = sanitize_text(data.notes)
 
-    # Check if client exists by phone or by instagram without phone
-    cursor.execute("SELECT id FROM clients WHERE phone = ? OR (phone = '' AND (name = ? OR instagram LIKE ?))", (safe_phone, safe_name, f"%{safe_name}%"))
-    client_row = cursor.fetchone()
-    if client_row:
-        client_id = client_row[0]
+    # Check if client exists
+    if safe_phone == "номер відсутній":
+        cursor.execute("SELECT id FROM clients WHERE name = ?", (safe_name,))
+        client_row = cursor.fetchone()
+        if client_row:
+            client_id = client_row[0]
+        else:
+            cursor.execute("INSERT INTO clients (name, phone, points, vip_tier, unlocked_emojis, created_at) VALUES (?, 'номер відсутній', 50, 'Gold VIP', '💅,✨,💖', ?)",
+                           (safe_name, datetime.now().isoformat()))
+            client_id = cursor.lastrowid
     else:
-        cursor.execute("INSERT INTO clients (name, phone, points, vip_tier, unlocked_emojis, created_at) VALUES (?, ?, 50, 'Gold VIP', '💅,✨,💖', ?)",
-                       (safe_name, safe_phone, datetime.now().isoformat()))
-        client_id = cursor.lastrowid
+        cursor.execute("SELECT id FROM clients WHERE phone = ?", (safe_phone,))
+        client_row = cursor.fetchone()
+        if client_row:
+            client_id = client_row[0]
+        else:
+            cursor.execute("INSERT INTO clients (name, phone, points, vip_tier, unlocked_emojis, created_at) VALUES (?, ?, 50, 'Gold VIP', '💅,✨,💖', ?)",
+                           (safe_name, safe_phone, datetime.now().isoformat()))
+            client_id = cursor.lastrowid
 
     end_time = add_minutes(data.time, data.duration_minutes)
 
     cursor.execute("""
     INSERT INTO appointments (client_id, client_name, client_phone, service_names, date, time, end_time, total_price, status, payment_method, notes, source, created_at)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'confirmed', ?, ?, ?, ?)
-    """, (client_id, safe_name, safe_phone, data.service_names, data.date, data.time, end_time, data.total_price, data.payment_method or 'cash', safe_notes, data.source, datetime.now().isoformat()))
+    """, (client_id, safe_name, safe_phone, data.service_names or 'Манікюр', data.date, data.time, end_time, data.total_price or 35.0, data.payment_method or 'cash', safe_notes, data.source, datetime.now().isoformat()))
 
     conn.commit()
     aid = cursor.lastrowid
