@@ -126,5 +126,37 @@
     "source": "master",
     "created_at": "2026-11-13T11:21:23.487123",
     "payment_method": "cash"
+  },
+  {
+    "id": 9,
+    "client_id": 14,
+    "client_name": "Тестова Клієнтка",
+    "client_phone": "+380997776655",
+    "service_names": "Clean Girl: Milky Nude (Комплекс)",
+    "date": "2026-11-17",
+    "time": "14:00",
+    "end_time": "15:30",
+    "total_price": 35.0,
+    "status": "confirmed",
+    "notes": "Адмін створив запис",
+    "source": "master",
+    "created_at": "2026-11-13T11:26:56.982700",
+    "payment_method": "cash"
+  },
+  {
+    "id": 10,
+    "client_id": 15,
+    "client_name": "Олена Тестова",
+    "client_phone": "+380991112233",
+    "service_names": "Clean Girl: Milky Nude (Комплекс)",
+    "date": "2026-11-18",
+    "time": "15:00",
+    "end_time": "16:30",
+    "total_price": 35.0,
+    "status": "confirmed",
+    "notes": "Адмін успішно записав клієнтку!",
+    "source": "master",
+    "created_at": "2026-11-13T11:27:35.565412",
+    "payment_method": "cash"
   }
 ]
