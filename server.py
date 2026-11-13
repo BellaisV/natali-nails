@@ -6,6 +6,7 @@ import sqlite3
 import secrets
 import html
 import time
+import random
 import threading
 import urllib.request
 from datetime import datetime, timedelta, date
@@ -1333,6 +1334,7 @@ def cleanup_old_cancelled_appointments():
 
 @app.get("/api/appointments")
 def get_appointments(date_str: Optional[str] = None, month_str: Optional[str] = None):
+    cleanup_old_cancelled_appointments()
     conn = get_db()
     cursor = conn.cursor()
     if date_str:
@@ -2218,12 +2220,15 @@ def redeem_reward(data: RedeemRequest):
 
     conn.commit()
     conn.close()
+    on_client_data_changed()
+    unused_perks = [p for p in perk_list if not p.get("is_used")] if is_consumable else []
     return {
         "status": "ok",
         "points": new_points,
         "unlocked_emojis": new_emojis_str,
         "reward_title": reward_title,
-        "reward_icon": reward_icon
+        "reward_icon": reward_icon,
+        "redeemed_perks": unused_perks
     }
 
 @app.post("/api/client/appointments/{app_id}/pay")
