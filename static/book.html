@@ -537,11 +537,11 @@
       <!-- Messages Stream -->
       <div id="step4ChatContainer" class="space-y-2 max-h-48 overflow-y-auto pr-1 text-xs">
         <div v-if="step4ChatMessages.length === 0" class="text-center py-4 text-stone-400 text-xs">
-          Завантаження чату...
+          {{ t('chat_empty_prompt') || 'Завантаження чату...' }}
         </div>
         <div v-for="m in step4ChatMessages" :key="m.id" :class="m.sender === 'client' ? 'text-right' : 'text-left'">
           <div :class="m.sender === 'client' ? 'bg-stone-900 text-white rounded-2xl rounded-tr-none ml-auto' : 'bg-stone-100 text-stone-900 rounded-2xl rounded-tl-none mr-auto'" class="inline-block px-3 py-2 max-w-[85%] text-xs shadow-sm">
-            <p class="leading-relaxed">{{ m.text }}</p>
+            <p class="leading-relaxed">{{ formatChatMessageText(m.text) }}</p>
             <span class="text-[9px] opacity-60 block mt-0.5">{{ formatMsgTime(m.created_at) }}</span>
           </div>
         </div>
@@ -556,7 +556,7 @@
 
       <!-- Message input -->
       <form @submit.prevent="sendStep4ChatMessage" class="flex items-center space-x-2 pt-1">
-        <input v-model="newStep4Msg" placeholder="Напишіть майстру..." class="flex-1 bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 text-xs focus:ring-2 focus:ring-rose-500 focus:outline-none">
+        <input v-model="newStep4Msg" :placeholder="t('chat_input_placeholder') || 'Напишіть майстру...'" class="flex-1 bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 text-xs focus:ring-2 focus:ring-rose-500 focus:outline-none">
         <button type="submit" :disabled="!newStep4Msg.trim()" class="bg-rose-500 hover:bg-rose-600 disabled:opacity-50 text-white w-8 h-8 rounded-xl flex items-center justify-center transition active:scale-95 shadow">
           <i class="fa-solid fa-paper-plane text-xs"></i>
         </button>
@@ -928,19 +928,153 @@
             <span class="font-bold">{{ t('chat_new_msg_from_master') }}</span>
           </div>
 
-          <div class="pt-2 border-t border-white/10 flex items-center justify-between text-xs">
-            <button @click="openClientChat(app)" class="relative bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-400/40 px-3 py-1.5 rounded-xl font-bold text-[11px] flex items-center space-x-1.5 transition active:scale-95">
-              <i class="fa-regular fa-comments text-xs"></i>
-              <span>{{ t('btn_chat_master') || 'Чат з майстром' }}</span>
-              <span v-if="clientUnreadByApp[app.id]" class="bg-gradient-to-r from-rose-500 to-amber-500 text-white font-black text-[10px] px-1.5 py-0.5 rounded-full shadow-md animate-bounce flex items-center space-x-0.5 ring-1 ring-white/50 ml-1">
-                <i class="fa-solid fa-bell text-[8px]"></i>
-                <span>{{ clientUnreadByApp[app.id] }}</span>
-              </span>
-            </button>
-            <button v-if="app.status !== 'cancelled'" @click="cancelClientAppointment(app)" class="text-stone-400 hover:text-rose-400 text-[11px] font-semibold transition">
+          <div class="pt-2 border-t border-white/10 flex items-center justify-between text-xs gap-2 flex-wrap">
+            <div class="flex items-center space-x-1.5 flex-wrap gap-1.5">
+              <!-- Pay Button -->
+              <button v-if="app.status !== 'cancelled'" @click="openPaymentModalForApp(app)" class="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-stone-950 font-bold px-2.5 py-1.5 rounded-xl text-[11px] flex items-center space-x-1 transition active:scale-95 shadow">
+                <i class="fa-regular fa-credit-card"></i>
+                <span>{{ t('btn_pay_now') || 'Оплатити' }} ({{ app.total_price }} {{ settings.currency || '€' }})</span>
+              </button>
+              
+              <!-- Chat Button -->
+              <button @click="openClientChat(app)" class="relative bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-400/40 px-2.5 py-1.5 rounded-xl font-bold text-[11px] flex items-center space-x-1.5 transition active:scale-95">
+                <i class="fa-regular fa-comments text-xs"></i>
+                <span>{{ t('btn_chat_master') || 'Чат з майстром' }}</span>
+                <span v-if="clientUnreadByApp[app.id]" class="bg-gradient-to-r from-rose-500 to-amber-500 text-white font-black text-[10px] px-1.5 py-0.5 rounded-full shadow-md animate-bounce flex items-center space-x-0.5 ring-1 ring-white/50 ml-1">
+                  <i class="fa-solid fa-bell text-[8px]"></i>
+                  <span>{{ clientUnreadByApp[app.id] }}</span>
+                </span>
+              </button>
+            </div>
+
+            <button v-if="app.status !== 'cancelled'" @click="cancelClientAppointment(app)" class="text-stone-400 hover:text-rose-400 text-[11px] font-semibold transition ml-auto">
               <i class="fa-solid fa-xmark mr-1"></i>{{ t('btn_cancel_app') || 'Скасувати' }}
             </button>
           </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: ОПЛАТА ЗАПИСУ ДЛЯ КЛІЄНТА -->
+  <div v-if="showClientPaymentModal" @click.self="showClientPaymentModal = false" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-end sm:items-center justify-center p-0 sm:p-4">
+    <div class="bg-[#1C1715] text-white w-full max-w-md max-h-[90vh] overflow-y-auto hide-scrollbar rounded-t-3xl sm:rounded-3xl p-5 space-y-4 border border-white/15 shadow-2xl text-left">
+      <div class="flex items-center justify-between pb-3 border-b border-white/10">
+        <div class="flex items-center space-x-2">
+          <div class="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-300 flex items-center justify-center text-sm font-bold">
+            <i class="fa-solid fa-credit-card"></i>
+          </div>
+          <div>
+            <h3 class="font-bold text-sm text-white">{{ t('pay_modal_title') || 'Оплата запису' }}</h3>
+            <p class="text-[10px] text-amber-400 font-bold">{{ payingApp?.date }} {{ t('at_time') || 'о' }} {{ payingApp?.time }} • {{ payingApp?.total_price }} {{ settings.currency || '€' }}</p>
+          </div>
+        </div>
+        <button @click="showClientPaymentModal = false" class="text-stone-400 hover:text-white p-1">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <div class="p-3 bg-white/5 rounded-2xl border border-white/10 space-y-1">
+        <div class="text-[10px] text-stone-400 uppercase tracking-wider font-bold">{{ t('select_services') || 'Послуги' }}</div>
+        <div class="text-xs font-semibold text-rose-300">{{ payingApp?.service_names }}</div>
+        <div class="text-xs text-stone-300 pt-1 flex justify-between border-t border-white/10 mt-2">
+          <span>{{ t('to_pay') || 'До сплати' }}:</span>
+          <span class="text-base font-black text-amber-400">{{ payingApp?.total_price }} {{ settings.currency || '€' }}</span>
+        </div>
+      </div>
+
+      <p class="text-xs text-stone-300 font-medium">{{ t('choose_payment_method') || 'Оберіть зручний спосіб оплати:' }}</p>
+
+      <!-- PAYMENT OPTIONS -->
+      <div class="space-y-2.5">
+        <!-- 1. Bizum -->
+        <div class="p-3.5 bg-gradient-to-r from-teal-950/40 to-stone-900 border border-teal-500/30 rounded-2xl space-y-2">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center space-x-2">
+              <span class="w-7 h-7 rounded-lg bg-teal-500/20 text-teal-300 flex items-center justify-center font-black text-xs">B</span>
+              <div>
+                <div class="text-xs font-bold text-white">Bizum (Іспанія)</div>
+                <div class="text-[11px] text-stone-400">{{ settings.bizum_phone || '+34 612 345 678' }}</div>
+              </div>
+            </div>
+            <button type="button" @click="copyBizumPhone" class="text-[10px] bg-teal-500/20 hover:bg-teal-500/30 text-teal-300 font-bold px-2 py-1 rounded-lg border border-teal-500/40">
+              <i class="fa-regular fa-copy mr-1"></i>{{ t('copy') || 'Копіювати' }}
+            </button>
+          </div>
+          <button type="button" @click="notifyClientPayment('bizum')" :disabled="paymentSubmitting" class="w-full bg-teal-600 hover:bg-teal-500 text-white font-bold py-2 rounded-xl text-xs flex items-center justify-center space-x-1 transition active:scale-95 shadow">
+            <span>{{ t('btn_i_paid') || 'Я оплатила' }} через Bizum ➔</span>
+          </button>
+        </div>
+
+        <!-- 2. Spanish Bank Card (IBAN) -->
+        <div class="p-3.5 bg-gradient-to-r from-blue-950/40 to-stone-900 border border-blue-500/30 rounded-2xl space-y-2">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center space-x-2">
+              <span class="w-7 h-7 rounded-lg bg-blue-500/20 text-blue-300 flex items-center justify-center font-black text-xs"><i class="fa-brands fa-cc-visa"></i></span>
+              <div>
+                <div class="text-xs font-bold text-white">🇪🇸 Картка ES (IBAN / Transfer)</div>
+                <div class="text-[11px] text-stone-400 font-mono">ES91 2100 0418 4502 0005 1332</div>
+              </div>
+            </div>
+            <button type="button" @click="copyCardEs" class="text-[10px] bg-blue-500/20 hover:bg-blue-500/30 text-blue-300 font-bold px-2 py-1 rounded-lg border border-blue-500/40">
+              <i class="fa-regular fa-copy mr-1"></i>{{ t('copy') || 'Копіювати' }}
+            </button>
+          </div>
+          <button type="button" @click="notifyClientPayment('card_es')" :disabled="paymentSubmitting" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 rounded-xl text-xs flex items-center justify-center space-x-1 transition active:scale-95 shadow">
+            <span>{{ t('btn_i_paid') || 'Я оплатила' }} на карту ES ➔</span>
+          </button>
+        </div>
+
+        <!-- 3. Ukrainian Bank Card -->
+        <div class="p-3.5 bg-gradient-to-r from-amber-950/30 to-stone-900 border border-amber-500/30 rounded-2xl space-y-2">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center space-x-2">
+              <span class="w-7 h-7 rounded-lg bg-amber-500/20 text-amber-300 flex items-center justify-center font-black text-xs">🇺🇦</span>
+              <div>
+                <div class="text-xs font-bold text-white">Картка UA (Mono / Privat)</div>
+                <div class="text-[11px] text-stone-400 font-mono">4441 1144 5555 6666</div>
+              </div>
+            </div>
+            <button type="button" @click="copyCardUa" class="text-[10px] bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 font-bold px-2 py-1 rounded-lg border border-amber-500/40">
+              <i class="fa-regular fa-copy mr-1"></i>{{ t('copy') || 'Копіювати' }}
+            </button>
+          </div>
+          <button type="button" @click="notifyClientPayment('card_ua')" :disabled="paymentSubmitting" class="w-full bg-amber-600 hover:bg-amber-500 text-stone-950 font-bold py-2 rounded-xl text-xs flex items-center justify-center space-x-1 transition active:scale-95 shadow">
+            <span>{{ t('btn_i_paid') || 'Я оплатила' }} на карту UA ➔</span>
+          </button>
+        </div>
+
+        <!-- 4. PayPal -->
+        <div class="p-3.5 bg-gradient-to-r from-indigo-950/40 to-stone-900 border border-indigo-500/30 rounded-2xl space-y-2">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center space-x-2">
+              <span class="w-7 h-7 rounded-lg bg-indigo-500/20 text-indigo-300 flex items-center justify-center font-black text-xs"><i class="fa-brands fa-paypal"></i></span>
+              <div>
+                <div class="text-xs font-bold text-white">PayPal</div>
+                <div class="text-[11px] text-stone-400">{{ settings.paypal_link || 'paypal.me/natalinails' }}</div>
+              </div>
+            </div>
+            <a :href="'https://' + (settings.paypal_link || 'paypal.me/natalinails')" target="_blank" class="text-[10px] bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-300 font-bold px-2 py-1 rounded-lg border border-indigo-500/40">
+              <i class="fa-solid fa-arrow-up-right-from-square mr-1"></i>PayPal
+            </a>
+          </div>
+          <button type="button" @click="notifyClientPayment('paypal')" :disabled="paymentSubmitting" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2 rounded-xl text-xs flex items-center justify-center space-x-1 transition active:scale-95 shadow">
+            <span>{{ t('btn_i_paid') || 'Я оплатила' }} через PayPal ➔</span>
+          </button>
+        </div>
+
+        <!-- 5. Pay in cash / on site -->
+        <div class="p-3.5 bg-stone-900 border border-white/10 rounded-2xl space-y-2">
+          <div class="flex items-center space-x-2">
+            <span class="w-7 h-7 rounded-lg bg-white/10 text-stone-300 flex items-center justify-center font-black text-xs">💵</span>
+            <div>
+              <div class="text-xs font-bold text-white">{{ t('pay_on_visit') || 'Оплата на місці' }}</div>
+              <div class="text-[11px] text-stone-400">Готівкою або терміналом при візиті в студію</div>
+            </div>
+          </div>
+          <button type="button" @click="notifyClientPayment('cash')" :disabled="paymentSubmitting" class="w-full bg-stone-800 hover:bg-stone-700 text-stone-200 font-bold py-2 rounded-xl text-xs flex items-center justify-center space-x-1 transition active:scale-95 border border-white/10">
+            <span>{{ t('pay_on_visit') || 'Оплатити при візиті' }} ➔</span>
+          </button>
         </div>
       </div>
     </div>
@@ -955,8 +1089,8 @@
             N
           </div>
           <div>
-            <h3 class="font-bold text-xs text-white">Майстер Natali</h3>
-            <p class="text-[9px] text-stone-400">Запис #{{ activeChatApp?.id }} ({{ activeChatApp?.date }} о {{ activeChatApp?.time }})</p>
+            <h3 class="font-bold text-xs text-white">{{ t('chat_master_title') || 'Майстер Natali' }}</h3>
+            <p class="text-[9px] text-stone-400">{{ t('chat_appointment_label') || 'Запис' }} #{{ activeChatApp?.id }} ({{ activeChatApp?.date }} {{ t('at_time') || 'о' }} {{ activeChatApp?.time }})</p>
           </div>
         </div>
         <button @click="closeClientChat" class="text-stone-400 hover:text-white p-1">
@@ -967,7 +1101,7 @@
       <!-- Messages scroll -->
       <div id="modalChatScroll" class="flex-1 overflow-y-auto space-y-2 py-3 pr-1 text-xs">
         <div v-if="modalChatMessages.length === 0" class="text-center py-6 text-stone-400 text-xs">
-          Напишіть перше повідомлення майстру!
+          {{ t('chat_empty_prompt') || 'Напишіть повідомлення або запитання майстру!' }}
         </div>
         <div v-for="m in modalChatMessages" :key="m.id || m.created_at" :class="m.sender === 'client' ? 'text-right' : 'text-left'">
           <div :class="m.sender === 'client' ? 'bg-amber-400 text-stone-950 font-medium rounded-2xl rounded-tr-none ml-auto' : 'bg-stone-800 text-stone-100 rounded-2xl rounded-tl-none mr-auto border border-white/15'" class="inline-block px-3 py-2 max-w-[85%] text-xs shadow-sm">
@@ -975,7 +1109,7 @@
               <i class="fa-solid fa-crown text-[8px]"></i>
               <span>Natali</span>
             </div>
-            <p class="leading-relaxed whitespace-pre-wrap">{{ m.text }}</p>
+            <p class="leading-relaxed whitespace-pre-wrap">{{ formatChatMessageText(m.text) }}</p>
             <span class="text-[9px] opacity-60 block mt-0.5 text-right">{{ formatMsgTime(m.created_at) }}</span>
           </div>
         </div>
@@ -990,7 +1124,7 @@
 
       <!-- Input box -->
       <form @submit.prevent="sendModalChatMessage" class="flex items-center space-x-2 pt-2 border-t border-white/10 flex-shrink-0">
-        <input v-model="newModalMsg" placeholder="Ваше повідомлення..." class="flex-1 bg-white/5 border border-white/20 rounded-xl px-3 py-2 text-xs text-white placeholder-stone-500 focus:border-amber-400 focus:outline-none">
+        <input v-model="newModalMsg" :placeholder="t('chat_input_placeholder') || 'Ваше повідомлення...'" class="flex-1 bg-white/5 border border-white/20 rounded-xl px-3 py-2 text-xs text-white placeholder-stone-500 focus:border-amber-400 focus:outline-none">
         <button type="submit" :disabled="!newModalMsg.trim()" class="bg-amber-400 hover:bg-amber-300 disabled:opacity-40 text-stone-950 w-9 h-9 rounded-xl flex items-center justify-center font-bold transition active:scale-95 shadow">
           <i class="fa-solid fa-paper-plane text-xs"></i>
         </button>
@@ -1306,6 +1440,92 @@ createApp({
       } catch (e) {}
     }
 
+    // Client Payment Modal logic
+    const showClientPaymentModal = ref(false);
+    const payingApp = ref(null);
+    const paymentSubmitting = ref(false);
+
+    function openPaymentModalForApp(app) {
+      payingApp.value = app;
+      showClientPaymentModal.value = true;
+    }
+
+    async function notifyClientPayment(method) {
+      if (!payingApp.value) return;
+      paymentSubmitting.value = true;
+      try {
+        const res = await fetch(`/api/client/appointments/${payingApp.value.id}/pay`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ payment_method: method })
+        });
+        if (res.ok) {
+          payingApp.value.payment_method = method;
+          const found = clientAppointments.value.find(a => a.id === payingApp.value.id);
+          if (found) found.payment_method = method;
+          showToast(t('payment_notified_toast') || 'Дякуємо! Сповіщення про оплату надіслано майстру');
+          showClientPaymentModal.value = false;
+          loadClientAppointments();
+        } else {
+          showToast('Помилка оновлення статусу оплати');
+        }
+      } catch (err) {
+        showToast('Помилка з\'єднання');
+      } finally {
+        paymentSubmitting.value = false;
+      }
+    }
+
+    function formatChatMessageText(rawText) {
+      if (!rawText) return '';
+      const lang = currentLang.value || 'uk';
+      if (lang === 'uk') return rawText;
+
+      // Greeting match
+      const greetingMatch = rawText.match(/Привіт,\s*([^!]+)!\s*✨\s*Ваше онлайн-бронювання на\s*([0-9\-]+)\s*о\s*([0-9:]+)\s*\((.*?)\)\s*отримано та очікує підтвердження\.\s*Якщо треба скоригувати час або є запитання — пишіть тут!/);
+      if (greetingMatch) {
+        const [, name, date, time, services] = greetingMatch;
+        if (lang === 'es') return `¡Hola, ${name}! ✨ Tu reserva online para el ${date} a las ${time} (${services}) ha sido recibida y espera confirmación. Si necesitas ajustar la hora o tienes preguntas, ¡escribe aquí!`;
+        if (lang === 'va') return `Hola, ${name}! ✨ La teva reserva online per al ${date} a les ${time} (${services}) s'ha rebut i espera confirmació. Si necessites ajustar l'hora o tens preguntes, escriu ací!`;
+        if (lang === 'en') return `Hello, ${name}! ✨ Your online booking for ${date} at ${time} (${services}) has been received and is awaiting confirmation. If you need to adjust time or have questions — please write here!`;
+        if (lang === 'de') return `Hallo, ${name}! ✨ Ihre Online-Buchung für den ${date} um ${time} (${services}) ist eingegangen und wartet auf Bestätigung. Bei Fragen schreiben Sie bitte hier!`;
+        if (lang === 'ru') return `Привет, ${name}! ✨ Ваша онлайн-запись на ${date} в ${time} (${services}) получена и ожидает подтверждения. Если нужно скорректировать время или есть вопросы — пишите здесь!`;
+      }
+
+      // Confirmed match
+      const confMatch = rawText.match(/✅\s*Ваше замовлення на\s*([0-9\-]+)\s*о\s*([0-9:]+)\s*підтверджено!\s*Чекаю на вас у студії 💅/);
+      if (confMatch) {
+        const [, date, time] = confMatch;
+        if (lang === 'es') return `✅ ¡Tu reserva para el ${date} a las ${time} está confirmada! Te espero en el estudio 💅`;
+        if (lang === 'va') return `✅ La teva reserva per al ${date} a les ${time} està confirmada! T'espere a l'estudi 💅`;
+        if (lang === 'en') return `✅ Your booking for ${date} at ${time} is confirmed! See you at the studio 💅`;
+        if (lang === 'de') return `✅ Ihre Buchung für den ${date} um ${time} ist bestätigt! Bis bald im Studio 💅`;
+        if (lang === 'ru') return `✅ Ваша запись на ${date} в ${time} подтверждена! Жду вас в студии 💅`;
+      }
+
+      // Payment match
+      const payMatch = rawText.match(/💳\s*Оплата:\s*обрано\s*(.*?)\.\s*Дякую!/);
+      if (payMatch) {
+        const method = payMatch[1];
+        if (lang === 'es') return `💳 Pago: seleccionado ${method}. ¡Gracias!`;
+        if (lang === 'va') return `💳 Pagament: seleccionat ${method}. Gràcies!`;
+        if (lang === 'en') return `💳 Payment: selected ${method}. Thank you!`;
+        if (lang === 'de') return `💳 Zahlung: ${method} gewählt. Danke!`;
+        if (lang === 'ru') return `💳 Оплата: выбрано ${method}. Спасибо!`;
+      }
+
+      // Cancelled match
+      if (rawText.includes('Клієнт скасував цей запис через додаток.')) {
+        if (lang === 'es') return 'La clienta ha cancelado esta cita desde la aplicación.';
+        if (lang === 'va') return 'La clienta ha cancel·lat esta cita des de l\'aplicació.';
+        if (lang === 'en') return 'Client cancelled this appointment via the app.';
+        if (lang === 'de') return 'Die Kundin hat diesen Termin über die App storniert.';
+        if (lang === 'ru') return 'Клиент отменил эту запись через приложение.';
+      }
+
+      return rawText;
+    }
+
     function openClientChat(app) {
       activeChatApp.value = app;
       showClientChatModal.value = true;
@@ -1355,7 +1575,15 @@ createApp({
     const currentAppStatus = ref('pending');
     const step4ChatMessages = ref([]);
     const newStep4Msg = ref('');
-    const quickChips = ref(['Доброго дня! 👋', 'Чи все гаразд із часом?', 'Буду вчасно! 👍', 'Дякую! ✨']);
+        const quickChips = computed(() => {
+      const lang = currentLang.value || 'uk';
+      if (lang === 'es') return ['¡Hola! 👋', '¿Todo bien con la hora?', '¡Estaré puntual! 👍', '¡Gracias! ✨'];
+      if (lang === 'va') return ['Hola! 👋', 'Tot bé amb l\'hora?', 'Arribaré puntual! 👍', 'Gràcies! ✨'];
+      if (lang === 'en') return ['Hello! 👋', 'Is the time good?', 'I\'ll be on time! 👍', 'Thank you! ✨'];
+      if (lang === 'de') return ['Hallo! 👋', 'Passt die Uhrzeit?', 'Ich bin pünktlich! 👍', 'Danke! ✨'];
+      if (lang === 'ru') return ['Добрый день! 👋', 'Все ли хорошо со временем?', 'Буду вовремя! 👍', 'Спасибо! ✨'];
+      return ['Доброго дня! 👋', 'Чи все гаразд із часом?', 'Буду вчасно! 👍', 'Дякую! ✨'];
+    });
     let step4Timer = null;
 
     async function fetchStep4StatusAndChat() {
@@ -1448,21 +1676,21 @@ createApp({
     }
 
     function copyBizumPhone() {
-      if (!settings.value.bizum_phone) return;
-      navigator.clipboard.writeText(settings.value.bizum_phone);
-      showToast(t('bizum_copied'));
+      const val = settings.value.bizum_phone || '+34 612 345 678';
+      if (navigator.clipboard) navigator.clipboard.writeText(val);
+      showToast(t('bizum_copied') || 'Номер для Bizum скопійовано!');
     }
 
     function copyCardEs() {
-      if (!settings.value.card_es) return;
-      navigator.clipboard.writeText(settings.value.card_es);
-      showToast(t('card_es_copied'));
+      const val = settings.value.card_es || 'ES91 2100 0418 4502 0005 1332';
+      if (navigator.clipboard) navigator.clipboard.writeText(val);
+      showToast(t('card_es_copied') || 'Реквізити Ісп карти Visa скопійовано!');
     }
 
     function copyCardUa() {
-      if (!settings.value.card_ua) return;
-      navigator.clipboard.writeText(settings.value.card_ua);
-      showToast(t('card_ua_copied'));
+      const val = settings.value.card_ua || '4441 1144 5555 6666';
+      if (navigator.clipboard) navigator.clipboard.writeText(val);
+      showToast(t('card_ua_copied') || 'Реквізити Укр карти скопійовано!');
     }
 
     async function submitBooking() {
@@ -1883,7 +2111,8 @@ createApp({
       showClientChatModal, activeChatApp, modalChatMessages, newModalMsg, openClientChat, closeClientChat,
       sendModalChatMessage, sendModalQuickChip, createdAppointmentId, currentAppStatus,
       step4ChatMessages, newStep4Msg, quickChips, sendStep4ChatMessage, sendStep4QuickChip,
-      formatMsgTime, selectedDayScheduleLabel
+      formatMsgTime, selectedDayScheduleLabel,
+      showClientPaymentModal, payingApp, paymentSubmitting, openPaymentModalForApp, notifyClientPayment, formatChatMessageText
     };
   }
 }).mount('#booking-app');

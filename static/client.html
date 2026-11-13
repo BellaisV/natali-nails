@@ -63,20 +63,6 @@
       </button>
     </div>
   </header>
-  <!-- INSTALL BANNER -->
-  <div class="bg-gradient-to-r from-amber-950 via-stone-900 to-amber-950 text-white px-4 py-2.5 flex items-center justify-between border-b border-amber-500/30 text-xs shadow-md">
-    <div class="flex items-center space-x-2.5">
-      <img src="/static/icon-192.png" class="w-7 h-7 rounded-lg shadow-sm border border-amber-400/40">
-      <div class="text-left">
-        <div class="font-bold text-[11px] text-amber-200">{{ t('vip_app_title') }}</div>
-        <div class="text-[9px] text-stone-300">{{ t('vip_app_desc') }}</div>
-      </div>
-    </div>
-    <button @click="triggerInstall" class="bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 text-stone-950 text-[11px] font-black px-3 py-1.5 rounded-xl shadow transition active:scale-95 flex items-center space-x-1">
-      <i class="fa-solid fa-download text-[10px]"></i>
-      <span>{{ t('vip_btn_install') }}</span>
-    </button>
-  </div>
 
   <!-- Notification Toast -->
   <div v-if="toast.show" class="fixed top-16 left-1/2 -translate-x-1/2 z-50 bg-stone-900 border border-amber-500/30 text-amber-200 text-xs font-medium px-4 py-2.5 rounded-2xl shadow-2xl flex items-center space-x-2 transition-all">
@@ -743,20 +729,32 @@ createApp({
           body: JSON.stringify({
             phone: client.value.phone,
             item_id: reward.id,
-            points_cost: reward.cost
+            points_cost: reward.cost,
+            reward_icon: reward.icon,
+            reward_title: reward.title
           })
         });
         if (!res.ok) {
-          const err = await res.json();
-          alert(err.detail || 'Помилка');
+          let msg = 'Помилка';
+          try {
+            const err = await res.json();
+            if (typeof err.detail === 'string') {
+              msg = err.detail;
+            } else if (Array.isArray(err.detail)) {
+              msg = err.detail.map(d => d.msg).join(', ');
+            } else if (err.message) {
+              msg = err.message;
+            }
+          } catch(e) {}
+          showToast(msg);
           return;
         }
         const data = await res.json();
         client.value.points = data.points;
         client.value.unlocked_emojis = data.unlocked_emojis;
-        showToast(`Ви отримали: ${reward.title}! 🎉`);
+        showToast(`Ви отримали: ${getRewardTitle(reward)}! 🎉`);
       } catch (e) {
-        alert('Помилка обміну балів');
+        showToast('Помилка обміну балів');
       }
     }
 
@@ -783,15 +781,15 @@ createApp({
           })
         });
         if (res.ok) {
-          showToast('Дякуємо за відгук! Нараховано +20 балів 💎');
+          showToast('Дякуємо за відгук! Нараховано +1 💎');
           newReview.value.comment = '';
           newReview.value.emojis = '';
           await loadProfile();
           await loadReviews();
-      await loadRewards();
+          await loadRewards();
         }
       } catch (e) {
-        alert('Помилка відправки відгуку');
+        showToast('Помилка відправки відгуку');
       }
     }
 

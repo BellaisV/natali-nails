@@ -7,7 +7,7 @@ import secrets
 import html
 import time
 from datetime import datetime, timedelta, date
-from typing import List, Optional, Dict
+from typing import List, Optional, Dict, Union
 from fastapi import FastAPI, HTTPException, Query, Request, Response, Depends, Header
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
@@ -692,8 +692,13 @@ class ReviewCreate(BaseModel):
 
 class RedeemRequest(BaseModel):
     phone: str
-    item_id: str
-    points_cost: int
+    item_id: Union[int, str]
+    points_cost: Optional[int] = 0
+    reward_icon: Optional[str] = None
+    reward_title: Optional[str] = None
+
+class ClientPaymentNotifyRequest(BaseModel):
+    payment_method: str
 
 # --- Authentication Helpers ---
 def add_minutes(time_str: str, minutes: int) -> str:
@@ -1728,28 +1733,79 @@ def cancel_client_appointment(app_id: int, phone: str = Query("")):
 def redeem_reward(data: RedeemRequest):
     conn = get_db()
     cursor = conn.cursor()
-    safe_phone = sanitize_text(data.phone)
-    cursor.execute("SELECT points, unlocked_emojis FROM clients WHERE phone = ? OR phone LIKE ?", (safe_phone, f"%{safe_phone[-9:]}%"))
+    safe_phone = sanitize_text(data.phone).strip()
+    digits = re.sub(r'\D', '', safe_phone)
+    suffix = digits[-9:] if len(digits) >= 9 else digits
+
+    cursor.execute("SELECT id, points, unlocked_emojis, notes FROM clients WHERE phone = ? OR phone LIKE ?", (safe_phone, f"%{suffix}%"))
     row = cursor.fetchone()
     if not row:
         conn.close()
-        raise HTTPException(status_code=404, detail="Client not found")
+        raise HTTPException(status_code=404, detail="Клієнта не знайдено")
+
+    # Look up reward details
+    cursor.execute("SELECT * FROM vip_rewards WHERE id = ?", (data.item_id,))
+    reward_row = cursor.fetchone()
+    cost = data.points_cost if (data.points_cost and data.points_cost > 0) else (reward_row["cost"] if reward_row else 0)
+    reward_icon = (reward_row["icon"] if reward_row else None) or data.reward_icon or "💎"
+    reward_type = (reward_row["reward_type"] if reward_row else None) or "emoji"
+    reward_title = (reward_row["title"] if reward_row else None) or data.reward_title or "Бонус"
 
     cur_points = row["points"] or 0
-    if cur_points < data.points_cost:
+    if cur_points < cost:
         conn.close()
-        raise HTTPException(status_code=400, detail="Недостатньо балів для цього бонусу")
+        raise HTTPException(status_code=400, detail=f"Недостатньо балів. У вас {cur_points} 💎, а потрібно {cost} 💎")
 
-    emojis = (row["unlocked_emojis"] or "").split(",")
-    if data.item_id not in emojis:
-        emojis.append(data.item_id)
-    new_emojis_str = ",".join(filter(None, emojis))
+    emojis = [e.strip() for e in (row["unlocked_emojis"] or "").split(",") if e.strip()]
+    if reward_icon and reward_icon not in emojis and len(reward_icon) <= 4 and reward_icon != '🏷️':
+        emojis.append(reward_icon)
+    new_emojis_str = ",".join(emojis)
 
-    new_points = cur_points - data.points_cost
-    cursor.execute("UPDATE clients SET points = ?, unlocked_emojis = ? WHERE phone = ? OR phone LIKE ?", (new_points, new_emojis_str, safe_phone, f"%{safe_phone[-9:]}%"))
+    existing_notes = row["notes"] or ""
+    if 'знижк' in reward_title.lower() or reward_type == 'discount' or reward_icon == '🏷️':
+        discount_entry = f"[💎 {reward_title}]"
+        if discount_entry not in existing_notes:
+            new_notes = f"{existing_notes} {discount_entry}".strip()
+        else:
+            new_notes = existing_notes
+    else:
+        new_notes = existing_notes
+
+    new_points = cur_points - cost
+    cursor.execute("UPDATE clients SET points = ?, unlocked_emojis = ?, notes = ? WHERE id = ?", (new_points, new_emojis_str, new_notes, row["id"]))
     conn.commit()
     conn.close()
-    return {"status": "ok", "points": new_points, "unlocked_emojis": new_emojis_str}
+    return {
+        "status": "ok",
+        "points": new_points,
+        "unlocked_emojis": new_emojis_str,
+        "reward_title": reward_title,
+        "reward_icon": reward_icon
+    }
+
+@app.post("/api/client/appointments/{app_id}/pay")
+def client_notify_payment(app_id: int, data: ClientPaymentNotifyRequest):
+    conn = get_db()
+    cursor = conn.cursor()
+    method = sanitize_text(data.payment_method).strip().lower()
+    cursor.execute("UPDATE appointments SET payment_method = ? WHERE id = ?", (method, app_id))
+
+    now_iso = datetime.now().isoformat()
+    method_names = {'bizum': 'Bizum', 'card_es': 'Картка ES (IBAN)', 'card_ua': 'Картка UA', 'paypal': 'PayPal', 'cash': 'Готівка'}
+    m_label = method_names.get(method, method.upper())
+    cursor.execute("SELECT client_name, client_phone FROM appointments WHERE id = ?", (app_id,))
+    app_row = cursor.fetchone()
+    c_name = (app_row["client_name"] if app_row else "Клієнтка")
+    c_phone = (app_row["client_phone"] if app_row else "")
+
+    cursor.execute("""
+    INSERT INTO chat_messages (appointment_id, client_phone, sender, sender_name, text, created_at, is_read)
+    VALUES (?, ?, 'client', ?, ?, ?, 0)
+    """, (app_id, c_phone, c_name, f"💳 Оплата: обрано {m_label}. Дякую!", now_iso))
+
+    conn.commit()
+    conn.close()
+    return {"status": "ok", "payment_method": method}
 
 
 class VipRewardCreate(BaseModel):
@@ -1826,7 +1882,7 @@ def add_review(data: ReviewCreate):
     VALUES (?, ?, ?, ?, ?, ?)
     """, (safe_name, safe_phone, data.rating, safe_comment, data.emojis or '', today_str))
 
-    cursor.execute("UPDATE clients SET points = COALESCE(points, 0) + 20 WHERE phone = ? OR phone LIKE ?", (safe_phone, f"%{safe_phone[-9:]}%"))
+    cursor.execute("UPDATE clients SET points = COALESCE(points, 0) + 1 WHERE phone = ? OR phone LIKE ?", (safe_phone, f"%{safe_phone[-9:]}%"))
     conn.commit()
     conn.close()
     return {"status": "created"}
