@@ -430,6 +430,28 @@
             <p v-if="app.notes" class="text-xs text-stone-600 italic mt-1.5 bg-rose-50/60 p-2.5 rounded-xl border border-rose-100/80">
               <span class="font-bold text-rose-800 not-italic mr-1"><i class="fa-solid fa-note-sticky mr-1"></i>Нотатка:</span>"{{ app.notes }}"
             </p>
+
+            <!-- Client Reference Design Photo -->
+            <div v-if="app.design_photo_url" class="mt-2 p-2 bg-stone-50 rounded-xl border border-stone-200/80 flex items-center justify-between">
+              <div class="flex items-center space-x-2.5">
+                <div class="w-12 h-12 rounded-lg overflow-hidden border border-stone-300 bg-stone-200 flex-shrink-0 cursor-pointer shadow-sm relative group" @click="openPhotoLightbox(app.design_photo_url, app.client_name)">
+                  <img :src="app.design_photo_url" class="w-full h-full object-cover">
+                  <div class="absolute inset-0 bg-black/25 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-white text-xs">
+                    <i class="fa-solid fa-magnifying-glass-plus"></i>
+                  </div>
+                </div>
+                <div>
+                  <div class="text-xs font-bold text-stone-900 flex items-center space-x-1">
+                    <span>📸 Фото бажаного дизайну</span>
+                  </div>
+                  <div class="text-[10px] text-stone-500">Клієнтка прикріпила референс дизайну</div>
+                </div>
+              </div>
+              <button type="button" @click="openPhotoLightbox(app.design_photo_url, app.client_name)" class="px-2.5 py-1 bg-white hover:bg-stone-100 text-stone-700 border border-stone-200 rounded-lg text-[11px] font-bold shadow-sm transition flex items-center space-x-1">
+                <i class="fa-solid fa-eye text-stone-500 text-[10px]"></i>
+                <span>Дивитись</span>
+              </button>
+            </div>
           </div>
 
           <!-- Quick SMS Reminders -->
@@ -651,6 +673,20 @@
         </span>
       </div>
 
+      <!-- Client Filter Tabs: Всі / 👑 VIP / ⏳ Не були понад 25 днів -->
+      <div class="flex items-center space-x-1.5 overflow-x-auto pb-1 hide-scrollbar">
+        <button type="button" @click="clientFilterTab = 'all'" :class="clientFilterTab === 'all' ? 'bg-stone-900 text-white font-bold shadow-sm' : 'bg-white text-stone-600 border border-stone-200'" class="px-3 py-1.5 rounded-xl text-xs whitespace-nowrap transition">
+          Всі клієнти ({{ clients.length }})
+        </button>
+        <button type="button" @click="clientFilterTab = 'vip'" :class="clientFilterTab === 'vip' ? 'bg-amber-400 text-stone-950 font-black shadow-sm ring-1 ring-amber-300' : 'bg-white text-stone-600 border border-stone-200'" class="px-3 py-1.5 rounded-xl text-xs whitespace-nowrap transition">
+          👑 VIP ({{ vipClientsCount }})
+        </button>
+        <button type="button" @click="clientFilterTab = 'sleeping'" :class="clientFilterTab === 'sleeping' ? 'bg-rose-600 text-white font-bold shadow-sm' : 'bg-rose-50 text-rose-800 border border-rose-200'" class="px-3 py-1.5 rounded-xl text-xs whitespace-nowrap transition flex items-center space-x-1.5">
+          <span>⏳ Не були понад 25 днів</span>
+          <span :class="clientFilterTab === 'sleeping' ? 'bg-white text-rose-700' : 'bg-rose-200 text-rose-900'" class="px-1.5 py-0.5 rounded-full font-black text-[10px]">{{ sleepingClientsCount }}</span>
+        </button>
+      </div>
+
       <div class="relative">
         <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3 text-stone-400 text-xs"></i>
         <input v-model="clientSearch" type="text" :placeholder="t('search_client_placeholder')" class="w-full bg-white pl-9 pr-4 py-2.5 rounded-xl border border-stone-200 text-xs font-medium focus:outline-rose-500">
@@ -688,7 +724,13 @@
                     <span>% Знижки</span>
                   </button>
                 </div>
-                <p class="text-xs text-stone-500 mt-1">{{ c.phone }}</p>
+                <div class="mt-1 flex items-center space-x-2 flex-wrap">
+                  <p class="text-xs text-stone-500">{{ c.phone }}</p>
+                  <span v-if="getDaysSinceLastVisit(c) >= 25" class="bg-rose-100 text-rose-800 text-[10px] font-bold px-2 py-0.5 rounded-full border border-rose-200 flex items-center space-x-1">
+                    <i class="fa-solid fa-clock-rotate-left text-[9px]"></i>
+                    <span>Не була {{ getDaysSinceLastVisit(c) }} дн.</span>
+                  </span>
+                </div>
               </div>
             </div>
             <div class="text-right">
@@ -702,7 +744,11 @@
           </p>
 
           <div class="pt-2 border-t border-stone-100 flex items-center justify-between text-xs">
-            <div class="flex items-center space-x-2">
+            <div class="flex items-center space-x-2 flex-wrap gap-1">
+              <a v-if="getDaysSinceLastVisit(c) >= 25 && isRealPhone(c.phone)" :href="getReturnClientWhatsAppLink(c)" target="_blank" class="bg-emerald-600 hover:bg-emerald-700 text-white px-2.5 py-1 rounded-md font-bold text-[11px] flex items-center space-x-1 shadow-sm transition active:scale-95" title="Запросити у WhatsApp повернутися">
+                <i class="fa-brands fa-whatsapp text-xs"></i>
+                <span>Запросити у WhatsApp</span>
+              </a>
               <a :href="'tel:' + c.phone" class="text-stone-600 hover:text-stone-900 bg-stone-100 px-2 py-1 rounded-md font-semibold text-[11px]">
                 <i class="fa-solid fa-phone mr-1"></i>{{ t('btn_call') }}
               </a>
@@ -2107,6 +2153,32 @@
     </div>
   </div>
 
+  <!-- PHOTO LIGHTBOX MODAL -->
+  <div v-if="photoLightbox.show" class="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4" @click.self="photoLightbox.show = false">
+    <div class="bg-stone-900 text-white rounded-3xl max-w-lg w-full overflow-hidden border border-stone-800 shadow-2xl space-y-3 p-4">
+      <div class="flex items-center justify-between border-b border-stone-800 pb-2">
+        <div class="flex items-center space-x-2">
+          <span class="text-lg">📸</span>
+          <div>
+            <div class="text-xs font-bold text-white">Референс дизайну нігтів</div>
+            <div class="text-[10px] text-stone-400">Клієнт: {{ photoLightbox.clientName }}</div>
+          </div>
+        </div>
+        <button @click="photoLightbox.show = false" class="w-8 h-8 rounded-full bg-stone-800 hover:bg-stone-700 text-stone-300 flex items-center justify-center text-sm transition">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+      <div class="max-h-[75vh] flex items-center justify-center bg-black/60 rounded-2xl overflow-hidden p-2">
+        <img :src="photoLightbox.url" class="max-w-full max-h-[70vh] object-contain rounded-xl shadow-lg">
+      </div>
+      <div class="flex items-center justify-end">
+        <button @click="photoLightbox.show = false" class="bg-white hover:bg-stone-100 text-stone-900 font-bold px-4 py-1.5 rounded-xl text-xs transition">
+          Закрити
+        </button>
+      </div>
+    </div>
+  </div>
+
 </div>
 
 <script>
@@ -2486,6 +2558,11 @@ createApp({
     const selectedDate = ref(todayStr);
     const selectedMonth = ref(todayStr.slice(0, 7));
     const clientSearch = ref('');
+    const clientFilterTab = ref('all');
+    const photoLightbox = ref({ show: false, url: '', clientName: '' });
+    function openPhotoLightbox(url, name) {
+      photoLightbox.value = { show: true, url: url, clientName: name || 'Клієнт' };
+    }
 
     const toast = ref({ show: false, message: '' });
     function showToast(msg) {
@@ -2627,11 +2704,50 @@ createApp({
         .reduce((sum, a) => sum + (a.total_price || 0), 0);
     });
 
+    function getDaysSinceLastVisit(c) {
+      if (!c) return 999;
+      const lv = c.last_visit || (c.created_at ? c.created_at.slice(0, 10) : null);
+      if (!lv) return 999;
+      try {
+        const lastDate = new Date(lv + 'T00:00:00');
+        const now = new Date();
+        const diffMs = now.getTime() - lastDate.getTime();
+        const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+        return days >= 0 ? days : 0;
+      } catch (e) {
+        return 999;
+      }
+    }
+
+    function getReturnClientWhatsAppLink(c) {
+      if (!c || !isRealPhone(c.phone)) return '#';
+      const cleanPhone = String(c.phone).replace(/\D/g, '');
+      const firstName = (c.name || 'Олено').trim().split(' ')[0] || 'красуне';
+      const origin = window.location.origin;
+      const bUrl = `${origin}/book`;
+      const text = `Привіт, ${firstName}! 💅 Минуло вже майже 4 тижні з нашого манікюру. Час освіжити нігтики! Для вас є зручні віконця на цьому тижні: ${bUrl}`;
+      return `https://wa.me/${cleanPhone}?text=${encodeURIComponent(text)}`;
+    }
+
+    const sleepingClientsCount = computed(() => {
+      return (clients.value || []).filter(c => getDaysSinceLastVisit(c) >= 25).length;
+    });
+
+    const vipClientsCount = computed(() => {
+      return (clients.value || []).filter(c => c.is_vip == 1).length;
+    });
+
     const filteredClients = computed(() => {
-      if (!clientSearch.value.trim()) return clients.value;
+      let list = clients.value || [];
+      if (clientFilterTab.value === 'vip') {
+        list = list.filter(c => c.is_vip == 1);
+      } else if (clientFilterTab.value === 'sleeping') {
+        list = list.filter(c => getDaysSinceLastVisit(c) >= 25);
+      }
+      if (!clientSearch.value.trim()) return list;
       const q = clientSearch.value.toLowerCase();
-      return clients.value.filter(c =>
-        c.name.toLowerCase().includes(q) || c.phone.includes(q)
+      return list.filter(c =>
+        (c.name && c.name.toLowerCase().includes(q)) || (c.phone && c.phone.includes(q))
       );
     });
 
@@ -3684,7 +3800,7 @@ createApp({
       gateMode, directPhoneInput, submitDirectPhoneLogin, authTab, authLoading, showClientPassword, loginForm, regForm, handleClientLogin, handleClientRegister, weekDaysList, isDayActive, toggleWorkingDay, setDaysPreset, clientAuthModal, openSocialClientModal, submitClientSocialAuth,
       currentLang, availableLangs, setLang, t,
       currentTab, holidayDiscounts, loadHolidayDiscounts, saveHolidayDiscount, toggleHolidayDiscount, promoDays, customAchievements, savingPromo, savingAchieve, newPromo, newAchieve, loadPromoDays, createPromoDay, deletePromoDay, togglePromoDay, loadCustomAchievements, createCustomAchievement, deleteCustomAchievement, settings, services, clients, appointments, transactions, financeSummary,
-      todayStr, selectedDate, selectedMonth, clientSearch, daysList, dayAppointments,
+      todayStr, selectedDate, selectedMonth, clientSearch, clientFilterTab, photoLightbox, openPhotoLightbox, getDaysSinceLastVisit, getReturnClientWhatsAppLink, sleepingClientsCount, vipClientsCount, daysList, dayAppointments,
       dayTotalSum, filteredClients, modals, formApp, formExpense, formService, formClient,
       selectedServiceId, toast, bookingUrl, payingApp,
       selectedAppCategory, adminBookingCategories, filteredAppServices, servicesByCategory,

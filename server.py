@@ -834,6 +834,24 @@ def init_db():
         cursor.execute("DELETE FROM transactions WHERE (category IN ('Матеріали', 'Дезінфекція') AND appointment_id IS NULL) OR id IN (1, 2)")
     except Exception:
         pass
+    try:
+        cursor.execute("ALTER TABLE appointments ADD COLUMN design_photo_url TEXT DEFAULT ''")
+    except Exception:
+        pass
+    try:
+        cursor.execute("DELETE FROM holiday_discounts WHERE id = 'manicure_5eur'")
+    except Exception:
+        pass
+    try:
+        cursor.execute("""
+            UPDATE settings 
+            SET phone = '+34 631 883 158', 
+                bizum_phone = '+34 631 883 158', 
+                whatsapp = '+34 631 883 158' 
+            WHERE id = 1
+        """)
+    except Exception:
+        pass
     conn.commit()
     conn.close()
 
@@ -883,6 +901,8 @@ class AppointmentCreate(BaseModel):
     payment_method: Optional[str] = "cash"
     notes: Optional[str] = ""
     source: Optional[str] = "master"
+    design_photo_url: Optional[str] = ""
+    applied_perk_id: Optional[str] = ""
 
 class TransactionCreate(BaseModel):
     type: str
@@ -952,6 +972,7 @@ class PublicBookingRequest(BaseModel):
     notes: Optional[str] = ""
     applied_discount_id: Optional[str] = ""
     applied_perk_id: Optional[str] = ""
+    design_photo_url: Optional[str] = ""
 
 class InstagramLoginRequest(BaseModel):
     instagram: str
@@ -1228,7 +1249,7 @@ def get_clients():
     SELECT c.*,
            COUNT(a.id) as visits_count,
            COALESCE(SUM(CASE WHEN a.status = 'completed' THEN a.total_price ELSE 0 END), 0) as total_spent,
-           MAX(a.date) as last_visit
+           COALESCE(MAX(CASE WHEN a.status = 'completed' THEN a.date ELSE NULL END), MAX(a.date), SUBSTR(c.created_at, 1, 10)) as last_visit
     FROM clients c
     LEFT JOIN appointments a ON a.client_phone = c.phone
     GROUP BY c.id
@@ -1383,9 +1404,9 @@ def create_appointment(data: AppointmentCreate):
     end_time = add_minutes(data.time, data.duration_minutes)
 
     cursor.execute("""
-    INSERT INTO appointments (client_id, client_name, client_phone, service_names, date, time, end_time, total_price, status, payment_method, notes, source, created_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'confirmed', ?, ?, ?, ?)
-    """, (client_id, safe_name, safe_phone, data.service_names or 'Манікюр', data.date, data.time, end_time, data.total_price or 35.0, data.payment_method or 'cash', safe_notes, data.source, datetime.now().isoformat()))
+    INSERT INTO appointments (client_id, client_name, client_phone, service_names, date, time, end_time, total_price, status, payment_method, notes, source, design_photo_url, created_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'confirmed', ?, ?, ?, ?, ?)
+    """, (client_id, safe_name, safe_phone, data.service_names or 'Манікюр', data.date, data.time, end_time, data.total_price or 35.0, data.payment_method or 'cash', safe_notes, data.source, getattr(data, 'design_photo_url', '') or '', datetime.now().isoformat()))
 
     conn.commit()
     aid = cursor.lastrowid
@@ -2556,9 +2577,9 @@ def public_book(data: PublicBookingRequest, request: Request):
 
     now_iso = datetime.now().isoformat()
     cursor.execute("""
-    INSERT INTO appointments (client_id, client_name, client_phone, service_names, date, time, end_time, total_price, status, payment_method, notes, source, created_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', 'cash', ?, 'client', ?)
-    """, (client_id, safe_name, safe_phone, data.service_names, data.date, data.time, end_time, data.total_price, safe_notes, now_iso))
+    INSERT INTO appointments (client_id, client_name, client_phone, service_names, date, time, end_time, total_price, status, payment_method, notes, source, design_photo_url, created_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', 'cash', ?, 'client', ?, ?)
+    """, (client_id, safe_name, safe_phone, data.service_names, data.date, data.time, end_time, data.total_price, safe_notes, getattr(data, 'design_photo_url', '') or '', now_iso))
     aid = cursor.lastrowid
 
     # Create initial greeting/status message in chat
@@ -2877,8 +2898,7 @@ def get_default_discounts_for_client(client_row):
         {"id": "loyalty", "type": "loyalty", "percent": 1, "is_used": 0, "title_key": "disc_loyalty_title", "desc_key": "disc_loyalty_desc", "active": 1},
         {"id": "march8", "type": "march8", "percent": 1, "is_used": 0, "title_key": "disc_march8_title", "desc_key": "disc_march8_desc", "active": 1},
         {"id": "valentine", "type": "valentine", "percent": 1, "is_used": 0, "title_key": "disc_valentine_title", "desc_key": "disc_valentine_desc", "active": 1},
-        {"id": "newyear", "type": "newyear", "percent": 1, "is_used": 0, "title_key": "disc_newyear_title", "desc_key": "disc_newyear_desc", "active": 1},
-        {"id": "manicure_5eur", "type": "manicure_discount", "percent": 5, "is_used": 0, "title_key": "disc_manicure_title", "desc_key": "disc_manicure_desc", "discount_unit": "€", "active": 1}
+        {"id": "newyear", "type": "newyear", "percent": 1, "is_used": 0, "title_key": "disc_newyear_title", "desc_key": "disc_newyear_desc", "active": 1}
     ]
 
 def calculate_account_age_days(created_str: str) -> int:

@@ -574,6 +574,38 @@
         </div>
 
         <textarea v-model="clientNotes" rows="2" :placeholder="t('placeholder_notes')" class="w-full bg-white border border-stone-300 rounded-2xl p-3 text-xs focus:ring-2 focus:ring-rose-500 focus:outline-none"></textarea>
+
+        <!-- Reference Design Photo Upload -->
+        <div class="mt-3 p-3 bg-stone-50 border border-stone-200/80 rounded-2xl">
+          <div class="flex items-center justify-between mb-2">
+            <div class="flex items-center space-x-2">
+              <span class="text-base">📸</span>
+              <div>
+                <div class="text-xs font-bold text-stone-900">Фото бажаного дизайну (Референс)</div>
+                <div class="text-[10px] text-stone-500">Прикріпіть приклад з Pinterest / Instagram чи галереї</div>
+              </div>
+            </div>
+            <button v-if="designPhotoUrl" type="button" @click="designPhotoUrl = ''" class="text-xs text-rose-500 hover:text-rose-700 font-bold">
+              Видалити
+            </button>
+          </div>
+
+          <div v-if="!designPhotoUrl">
+            <label class="flex flex-col items-center justify-center border-2 border-dashed border-stone-300 hover:border-rose-400 bg-white rounded-xl p-3.5 cursor-pointer transition text-center">
+              <i class="fa-solid fa-cloud-arrow-up text-rose-500 text-lg mb-1"></i>
+              <span class="text-xs font-semibold text-stone-700">Прикріпити фото дизайну</span>
+              <span class="text-[10px] text-stone-400">JPG, PNG з телефону (оптимізується)</span>
+              <input type="file" accept="image/*" @change="onDesignPhotoSelected" class="hidden">
+            </label>
+          </div>
+
+          <div v-else class="relative rounded-xl overflow-hidden border border-stone-300 bg-stone-900/5 aspect-video max-h-48 flex items-center justify-center">
+            <img :src="designPhotoUrl" alt="Дизайн" class="w-full h-full object-contain">
+            <button type="button" @click="designPhotoUrl = ''" class="absolute top-2 right-2 w-7 h-7 bg-stone-900/80 hover:bg-rose-600 text-white rounded-full flex items-center justify-center text-xs shadow transition">
+              <i class="fa-solid fa-xmark"></i>
+            </button>
+          </div>
+        </div>
       </div>
 
       <!-- SMS Reminder Checkbox -->
@@ -1209,7 +1241,39 @@ createApp({
     const clientName = ref('');
     const clientPhone = ref('+34');
     const clientNotes = ref('');
+    const designPhotoUrl = ref('');
     const submitting = ref(false);
+
+    function onDesignPhotoSelected(e) {
+      const file = e.target.files && e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          let width = img.width;
+          let height = img.height;
+          const maxDim = 900;
+          if (width > maxDim || height > maxDim) {
+            if (width > height) {
+              height = Math.round((height * maxDim) / width);
+              width = maxDim;
+            } else {
+              width = Math.round((width * maxDim) / height);
+              height = maxDim;
+            }
+          }
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+          designPhotoUrl.value = canvas.toDataURL('image/jpeg', 0.82);
+        };
+        img.src = event.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
 
     // Days for booking (next 14 days)
     const days = computed(() => {
@@ -1352,8 +1416,8 @@ createApp({
 
     const discountAmount = computed(() => {
       if (!appliedDiscount.value) return 0;
-      if (appliedDiscount.value.discount_unit === '€' || appliedDiscount.value.type === 'manicure_discount' || appliedDiscount.value.id === 'manicure_5eur') {
-        const val = Number(appliedDiscount.value.percent || appliedDiscount.value.fixed_amount || 5);
+      if (appliedDiscount.value.discount_unit === '€' || appliedDiscount.value.type === 'fixed_discount') {
+        const val = Number(appliedDiscount.value.percent || appliedDiscount.value.fixed_amount || 0);
         return Math.min(totalPrice.value, val);
       }
       if (!appliedDiscount.value.percent) return 0;
@@ -1810,6 +1874,7 @@ createApp({
           total_price: finalTotalPrice.value,
           applied_discount_id: appliedDiscount.value ? appliedDiscount.value.id : "",
           applied_perk_id: selectedPerk.value ? selectedPerk.value.id : "",
+          design_photo_url: designPhotoUrl.value || "",
           date: bookingDate.value,
           time: bookingTime.value,
           notes: bookingNotes
@@ -1862,6 +1927,7 @@ createApp({
       selectedServices.value = [];
       bookingTime.value = '';
       clientNotes.value = '';
+      designPhotoUrl.value = '';
       step.value = 1;
     }
 
@@ -2243,7 +2309,7 @@ createApp({
       step, settings, services, categories, selectedCategory, filteredServices,
       selectedServices, totalDuration, totalPrice, finalTotalPrice, appliedDiscount, availableDiscounts, upcomingDiscounts, clientRedeemedPerks, selectedPerk, perkDiscountAmount, discountAmount, selectedServiceNames,
       days, bookingDate, bookingTime, availableSlots, loadingSlots,
-      clientName, clientPhone, clientNotes, submitting,
+      clientName, clientPhone, clientNotes, designPhotoUrl, onDesignPhotoSelected, submitting,
       clientRecognized, formatWorkSchedule, isServiceSelected, toggleService, selectDate, goToStep2,
       formatSummaryDate, submitBooking, resetBooking, copyBizumPhone, copyCardEs, copyCardUa,
       appendNoteTag, calendarUrl, showInstallModal, triggerInstall,
