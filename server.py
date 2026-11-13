@@ -1205,15 +1205,24 @@ def send_chat_message(data: SendChatMessageRequest):
     }
 
 @app.get("/api/chat/unread-counts")
-def get_unread_counts():
+def get_unread_counts(viewer: Optional[str] = "master", phone: Optional[str] = None):
     conn = get_db()
     cursor = conn.cursor()
-    cursor.execute("""
-    SELECT appointment_id, client_phone, COUNT(*) as unread
-    FROM chat_messages
-    WHERE sender = 'client' AND is_read = 0
-    GROUP BY appointment_id, client_phone
-    """)
+    target_sender = 'master' if viewer == 'client' else 'client'
+
+    query = "SELECT appointment_id, client_phone, COUNT(*) as unread FROM chat_messages WHERE sender = ? AND is_read = 0"
+    params = [target_sender]
+
+    if phone:
+        safe_phone = sanitize_text(phone).strip()
+        digits = re.sub(r'\D', '', safe_phone)
+        suffix = digits[-9:] if len(digits) >= 9 else digits
+        if suffix:
+            query += " AND client_phone LIKE ?"
+            params.append(f"%{suffix}%")
+
+    query += " GROUP BY appointment_id, client_phone"
+    cursor.execute(query, tuple(params))
     rows = cursor.fetchall()
     total_unread = 0
     by_app = {}
@@ -1222,7 +1231,7 @@ def get_unread_counts():
         unread = r["unread"]
         total_unread += unread
         if r["appointment_id"]:
-            by_app[r["appointment_id"]] = unread
+            by_app[str(r["appointment_id"])] = unread
         if r["client_phone"]:
             by_phone[r["client_phone"]] = unread
     conn.close()
@@ -1991,11 +2000,13 @@ def public_book(data: PublicBookingRequest, request: Request):
             conn.close()
             raise HTTPException(status_code=400, detail="На жаль, цей час вже зайняли. Будь ласка, оберіть інший час.")
 
-    cursor.execute("SELECT id FROM clients WHERE phone = ?", (safe_phone,))
+    digits = re.sub(r'\D', '', safe_phone)
+    suffix = digits[-9:] if len(digits) >= 9 else digits
+    cursor.execute("SELECT id FROM clients WHERE phone = ? OR phone LIKE ?", (safe_phone, f"%{suffix}%"))
     client_row = cursor.fetchone()
     if client_row:
         client_id = client_row[0]
-        cursor.execute("UPDATE clients SET name = ? WHERE id = ?", (safe_name, client_id))
+        cursor.execute("UPDATE clients SET name = ?, phone = ? WHERE id = ?", (safe_name, safe_phone, client_id))
     else:
         cursor.execute("INSERT INTO clients (name, phone, points, vip_tier, unlocked_emojis, created_at) VALUES (?, ?, 50, 'Gold VIP', '💅,✨,💖', ?)",
                        (safe_name, safe_phone, datetime.now().isoformat()))
@@ -2015,12 +2026,6 @@ def public_book(data: PublicBookingRequest, request: Request):
     """, (aid, safe_phone, f"Привіт, {safe_name}! ✨ Ваше онлайн-бронювання на {data.date} о {data.time} ({data.service_names}) отримано та очікує підтвердження. Якщо треба скоригувати час або є запитання — пишіть тут!", now_iso))
 
     conn.commit()
-    conn.close()
-
-    return {"status": "success", "appointment_id": aid}
-
-    conn.commit()
-    aid = cursor.lastrowid
     conn.close()
 
     return {"status": "success", "appointment_id": aid}

@@ -67,7 +67,7 @@
             <img v-if="loggedInClient.avatar_url" :src="loggedInClient.avatar_url" class="w-full h-full object-cover">
             <span v-else>👑</span>
           </div>
-          <span>{{ clientFirstName }}</span>
+          <span>{{ (clientFirstName && clientFirstName !== 'Клієнтка') ? clientFirstName : (t('client_label') || 'Клієнтка') }}</span>
           <i class="fa-solid fa-pen text-[9px] ml-0.5 opacity-70"></i>
         </div>
         <button @click.stop="logoutClient" class="text-stone-400 hover:text-rose-400 text-xs p-1" title="Змінити номер">
@@ -81,18 +81,23 @@
         <span>Вхід за номером</span>
       </button>
 
-      <!-- My Bookings Button -->
-      <button @click="openMyAppointmentsModal" class="flex items-center space-x-1.5 bg-white/10 hover:bg-white/20 text-white font-bold px-2.5 py-1 rounded-full border border-white/20 transition text-[11px] active:scale-95 shadow-sm" title="Мої записи">
+      <!-- My Bookings Button with Unread Message Bell Badge -->
+      <button @click="openMyAppointmentsModal" class="relative flex items-center space-x-1.5 bg-white/10 hover:bg-white/20 text-white font-bold px-2.5 py-1 rounded-full border border-white/20 transition text-[11px] active:scale-95 shadow-sm" title="Мої записи">
         <i class="fa-regular fa-calendar-check text-rose-400"></i>
         <span class="hidden sm:inline">{{ t('my_bookings') || 'Мої записи' }}</span>
-        <span class="sm:hidden">Записи</span>
-        <span v-if="clientAppointments.length > 0" class="w-4 h-4 rounded-full bg-rose-500 text-[10px] font-black flex items-center justify-center text-white ml-0.5">{{ clientAppointments.length }}</span>
+        <span class="sm:hidden">{{ t('my_bookings_short') || 'Записи' }}</span>
+        <span v-if="clientAppointments.length > 0 && clientUnreadChatTotal === 0" class="w-4 h-4 rounded-full bg-rose-500 text-[10px] font-black flex items-center justify-center text-white ml-0.5">{{ clientAppointments.length }}</span>
+        <!-- UNREAD MESSAGES BELL BADGE -->
+        <span v-if="clientUnreadChatTotal > 0" class="flex items-center space-x-1 bg-gradient-to-r from-rose-500 to-amber-500 text-white text-[10px] font-black px-1.5 py-0.5 rounded-full shadow-md animate-bounce ring-1 ring-white/40">
+          <i class="fa-solid fa-bell text-[9px] animate-pulse"></i>
+          <span>{{ clientUnreadChatTotal }}</span>
+        </span>
       </button>
 
       <!-- VIP Club Button (Direct link to VIP section for clients!) -->
-      <a href="/vip" class="flex items-center space-x-1 bg-gradient-to-r from-amber-400 via-amber-300 to-amber-500 text-stone-950 font-black px-2.5 py-1 rounded-full shadow-md hover:opacity-95 transition text-[11px] active:scale-95 border border-amber-300" title="Перейти у VIP Beauty Club">
+      <a href="/vip" class="flex items-center space-x-1 bg-gradient-to-r from-amber-400 via-amber-300 to-amber-500 text-stone-950 font-black px-2.5 py-1 rounded-full shadow-md hover:opacity-95 transition text-[11px] active:scale-95 border border-amber-300" title="VIP Beauty Club">
         <i class="fa-solid fa-crown text-[10px] text-stone-950"></i>
-        <span>VIP Клуб</span>
+        <span>{{ t('vip_club_btn') }}</span>
       </a>
     </div>
 
@@ -199,11 +204,11 @@
         </div>
         <div>
           <div class="font-bold text-xs text-amber-200">VIP Beauty Club</div>
-          <div class="text-[10px] text-stone-300">Накопичуйте кристали 💎 за візити та обмінюйте на знижки</div>
+          <div class="text-[10px] text-stone-300">{{ t('vip_promo_banner_desc') }}</div>
         </div>
       </div>
       <a href="/vip" class="bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 text-stone-950 font-black text-[11px] px-3 py-1.5 rounded-xl shadow-md transition active:scale-95 flex items-center space-x-1 flex-shrink-0">
-        <span>VIP Клуб</span>
+        <span>{{ t('vip_promo_banner_btn') }}</span>
         <i class="fa-solid fa-arrow-right text-[10px]"></i>
       </a>
     </div>
@@ -917,10 +922,20 @@
             <p class="text-[11px] text-stone-300 mt-1"><i class="fa-solid fa-sparkles text-rose-400 mr-1"></i>{{ app.service_names }}</p>
           </div>
 
+          <!-- UNREAD MESSAGE NOTICE FROM MASTER -->
+          <div v-if="clientUnreadByApp[app.id]" class="bg-gradient-to-r from-amber-500/20 to-rose-500/20 border border-amber-400/40 rounded-xl px-2.5 py-1 text-[11px] text-amber-200 flex items-center space-x-1.5 animate-pulse">
+            <i class="fa-solid fa-bell text-amber-400"></i>
+            <span class="font-bold">{{ t('chat_new_msg_from_master') }}</span>
+          </div>
+
           <div class="pt-2 border-t border-white/10 flex items-center justify-between text-xs">
-            <button @click="openClientChat(app)" class="bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-400/40 px-3 py-1.5 rounded-xl font-bold text-[11px] flex items-center space-x-1.5 transition active:scale-95">
+            <button @click="openClientChat(app)" class="relative bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-400/40 px-3 py-1.5 rounded-xl font-bold text-[11px] flex items-center space-x-1.5 transition active:scale-95">
               <i class="fa-regular fa-comments text-xs"></i>
               <span>{{ t('btn_chat_master') || 'Чат з майстром' }}</span>
+              <span v-if="clientUnreadByApp[app.id]" class="bg-gradient-to-r from-rose-500 to-amber-500 text-white font-black text-[10px] px-1.5 py-0.5 rounded-full shadow-md animate-bounce flex items-center space-x-0.5 ring-1 ring-white/50 ml-1">
+                <i class="fa-solid fa-bell text-[8px]"></i>
+                <span>{{ clientUnreadByApp[app.id] }}</span>
+              </span>
             </button>
             <button v-if="app.status !== 'cancelled'" @click="cancelClientAppointment(app)" class="text-stone-400 hover:text-rose-400 text-[11px] font-semibold transition">
               <i class="fa-solid fa-xmark mr-1"></i>{{ t('btn_cancel_app') || 'Скасувати' }}
@@ -954,10 +969,14 @@
         <div v-if="modalChatMessages.length === 0" class="text-center py-6 text-stone-400 text-xs">
           Напишіть перше повідомлення майстру!
         </div>
-        <div v-for="m in modalChatMessages" :key="m.id" :class="m.sender === 'client' ? 'text-right' : 'text-left'">
-          <div :class="m.sender === 'client' ? 'bg-amber-400 text-stone-950 font-medium rounded-2xl rounded-tr-none ml-auto' : 'bg-white/10 text-white rounded-2xl rounded-tl-none mr-auto border border-white/10'" class="inline-block px-3 py-2 max-w-[85%] text-xs shadow-sm">
-            <p class="leading-relaxed">{{ m.text }}</p>
-            <span class="text-[9px] opacity-60 block mt-0.5">{{ formatMsgTime(m.created_at) }}</span>
+        <div v-for="m in modalChatMessages" :key="m.id || m.created_at" :class="m.sender === 'client' ? 'text-right' : 'text-left'">
+          <div :class="m.sender === 'client' ? 'bg-amber-400 text-stone-950 font-medium rounded-2xl rounded-tr-none ml-auto' : 'bg-stone-800 text-stone-100 rounded-2xl rounded-tl-none mr-auto border border-white/15'" class="inline-block px-3 py-2 max-w-[85%] text-xs shadow-sm">
+            <div v-if="m.sender === 'master'" class="text-[10px] font-bold text-amber-300 mb-0.5 flex items-center space-x-1">
+              <i class="fa-solid fa-crown text-[8px]"></i>
+              <span>Natali</span>
+            </div>
+            <p class="leading-relaxed whitespace-pre-wrap">{{ m.text }}</p>
+            <span class="text-[9px] opacity-60 block mt-0.5 text-right">{{ formatMsgTime(m.created_at) }}</span>
           </div>
         </div>
       </div>
@@ -1255,12 +1274,34 @@ createApp({
     const newModalMsg = ref('');
     let modalChatTimer = null;
 
+    const clientUnreadChatTotal = ref(0);
+    const clientUnreadByApp = ref({});
+    let clientUnreadTimer = null;
+
+    async function fetchClientUnreadCounts() {
+      const p = clientPhone.value || localStorage.getItem('vip_phone') || '';
+      if (!p || p.trim().length < 6) return;
+      try {
+        const res = await fetch(`/api/chat/unread-counts?viewer=client&phone=${encodeURIComponent(p.trim())}`);
+        if (res.ok) {
+          const data = await res.json();
+          clientUnreadChatTotal.value = data.total_unread || 0;
+          clientUnreadByApp.value = data.by_app || {};
+        }
+      } catch (e) {}
+    }
+
     async function fetchModalChatMessages() {
       if (!activeChatApp.value) return;
       try {
         const res = await fetch(`/api/chat/messages?appointment_id=${activeChatApp.value.id}&viewer=client`);
         if (res.ok) {
-          modalChatMessages.value = await res.json();
+          const data = await res.json();
+          modalChatMessages.value = Array.isArray(data) ? data : (data.messages || []);
+          setTimeout(() => {
+            const el = document.getElementById('modalChatScroll');
+            if (el) el.scrollTop = el.scrollHeight;
+          }, 50);
         }
       } catch (e) {}
     }
@@ -1270,6 +1311,10 @@ createApp({
       showClientChatModal.value = true;
       modalChatMessages.value = [];
       fetchModalChatMessages();
+      if (clientUnreadByApp.value && clientUnreadByApp.value[app.id]) {
+        clientUnreadChatTotal.value = Math.max(0, clientUnreadChatTotal.value - clientUnreadByApp.value[app.id]);
+        delete clientUnreadByApp.value[app.id];
+      }
       if (modalChatTimer) clearInterval(modalChatTimer);
       modalChatTimer = setInterval(fetchModalChatMessages, 3000);
     }
@@ -1277,6 +1322,7 @@ createApp({
     function closeClientChat() {
       showClientChatModal.value = false;
       if (modalChatTimer) clearInterval(modalChatTimer);
+      fetchClientUnreadCounts();
     }
 
     async function sendModalChatMessage() {
@@ -1324,7 +1370,12 @@ createApp({
           currentAppStatus.value = appData.status || 'pending';
         }
         if (chatRes.ok) {
-          step4ChatMessages.value = await chatRes.json();
+          const chatData = await chatRes.json();
+          step4ChatMessages.value = Array.isArray(chatData) ? chatData : (chatData.messages || []);
+          setTimeout(() => {
+            const el = document.getElementById('step4ChatScroll');
+            if (el) el.scrollTop = el.scrollHeight;
+          }, 50);
         }
       } catch (e) {}
     }
@@ -1473,6 +1524,8 @@ createApp({
       }
       await loadPublicData();
       await checkSavedLogin();
+      fetchClientUnreadCounts();
+      clientUnreadTimer = setInterval(fetchClientUnreadCounts, 4000);
     });
 
         const showLoginModal = ref(false);
@@ -1489,40 +1542,46 @@ createApp({
     function formatWorkSchedule(daysStr, start, end) {
       const raw = daysStr || '1,2,3,4,5,6';
       const arr = raw.split(',').map(s => s.trim()).filter(Boolean);
-      const dict = I18N[currentLang.value] || I18N['uk'];
       
       const s = start || '10:00';
       const e = end || '20:00';
+      const lang = currentLang.value || 'uk';
 
       let daysLabel = '';
       if (arr.length === 7) {
-        daysLabel = currentLang.value === 'es' ? 'Todos los días' : (currentLang.value === 'en' ? 'Every day' : 'Щодня (7/7)');
+        const allDays = { es: 'Todos los días', va: 'Tots els dies', en: 'Every day', de: 'Alle Tage', ru: 'Каждый день', uk: 'Щодня (7/7)' };
+        daysLabel = allDays[lang] || allDays['uk'];
       } else if (arr.includes('1') && arr.includes('2') && arr.includes('3') && arr.includes('4') && arr.includes('5') && arr.includes('6') && !arr.includes('0')) {
-        daysLabel = currentLang.value === 'es' ? 'Lun – Sáb' : (currentLang.value === 'en' ? 'Mon – Sat' : 'Пн – Сб');
+        const monSat = { es: 'Lun – Sáb', va: 'Dll – Dss', en: 'Mon – Sat', de: 'Mo – Sa', ru: 'Пн – Сб', uk: 'Пн – Сб' };
+        daysLabel = monSat[lang] || monSat['uk'];
       } else if (arr.includes('1') && arr.includes('2') && arr.includes('3') && arr.includes('4') && arr.includes('5') && !arr.includes('6') && !arr.includes('0')) {
-        daysLabel = currentLang.value === 'es' ? 'Lun – Vie' : (currentLang.value === 'en' ? 'Mon – Fri' : 'Пн – Пт');
+        const monFri = { es: 'Lun – Vie', va: 'Dll – Dvs', en: 'Mon – Fri', de: 'Mo – Fr', ru: 'Пн – Пт', uk: 'Пн – Пт' };
+        daysLabel = monFri[lang] || monFri['uk'];
       } else {
-        const names = { '1':'Пн', '2':'Вт', '3':'Ср', '4':'Чт', '5':'Пт', '6':'Сб', '0':'Нд' };
-        daysLabel = arr.map(id => names[id] || id).join(', ');
+        const dayMap = {
+          uk: { '1':'Пн', '2':'Вт', '3':'Ср', '4':'Чт', '5':'Пт', '6':'Сб', '0':'Нд' },
+          es: { '1':'Lun', '2':'Mar', '3':'Mié', '4':'Jue', '5':'Vie', '6':'Sáb', '0':'Dom' },
+          va: { '1':'Dll', '2':'Dmt', '3':'Dmc', '4':'Djs', '5':'Dvs', '6':'Dss', '0':'Dmg' },
+          en: { '1':'Mon', '2':'Tue', '3':'Wed', '4':'Thu', '5':'Fri', '6':'Sat', '0':'Sun' },
+          de: { '1':'Mo', '2':'Di', '3':'Mi', '4':'Do', '5':'Fr', '6':'Sa', '0':'So' },
+          ru: { '1':'Пн', '2':'Вт', '3':'Ср', '4':'Чт', '5':'Пт', '6':'Сб', '0':'Вс' }
+        };
+        const langNames = dayMap[lang] || dayMap['uk'];
+        daysLabel = arr.map(id => langNames[id] || id).join(', ');
       }
       return `${daysLabel}: ${s} – ${e}`;
     }
 
     async function checkSavedLogin() {
-      // Mandatory authentication check
       const savedPhone = localStorage.getItem('vip_phone') || localStorage.getItem('client_phone');
-      if (!savedPhone) {
-        // Online booking without registration is NOT allowed - redirect to login/register gate
-        window.location.href = '/';
-        return;
-      }
       const savedName = localStorage.getItem('client_name');
-      if (savedName && !clientName.value) {
+
+      if (savedPhone) {
+        clientPhone.value = savedPhone;
+      }
+      if (savedName) {
         clientName.value = savedName;
         clientRecognized.value = true;
-      }
-      if (savedPhone && !clientPhone.value) {
-        clientPhone.value = savedPhone;
       }
 
       if (savedPhone) {
@@ -1531,15 +1590,18 @@ createApp({
           if (res.ok) {
             const data = await res.json();
             loggedInClient.value = data.client || {};
-            if (loggedInClient.value.name) {
+            if (loggedInClient.value && loggedInClient.value.name) {
               clientName.value = loggedInClient.value.name;
-              clientPhone.value = loggedInClient.value.phone;
+              clientPhone.value = loggedInClient.value.phone || savedPhone;
               clientRecognized.value = true;
               localStorage.setItem('client_name', loggedInClient.value.name);
+              localStorage.setItem('vip_phone', loggedInClient.value.phone || savedPhone);
+              localStorage.setItem('client_phone', loggedInClient.value.phone || savedPhone);
             }
           }
         } catch (e) {}
       }
+      fetchClientUnreadCounts();
     }
 
     // Auto-lookup client name when phone is typed in Step 3
@@ -1817,7 +1879,7 @@ createApp({
       clientRecognized, formatWorkSchedule, isServiceSelected, toggleService, selectDate, goToStep2,
       formatSummaryDate, submitBooking, resetBooking, copyBizumPhone, copyCardEs, copyCardUa,
       appendNoteTag, calendarUrl, showInstallModal, triggerInstall,
-      clientAppointments, showMyAppointmentsModal, openMyAppointmentsModal, loadClientAppointments, cancelClientAppointment,
+      clientAppointments, clientUnreadChatTotal, clientUnreadByApp, fetchClientUnreadCounts, showMyAppointmentsModal, openMyAppointmentsModal, loadClientAppointments, cancelClientAppointment,
       showClientChatModal, activeChatApp, modalChatMessages, newModalMsg, openClientChat, closeClientChat,
       sendModalChatMessage, sendModalQuickChip, createdAppointmentId, currentAppStatus,
       step4ChatMessages, newStep4Msg, quickChips, sendStep4ChatMessage, sendStep4QuickChip,

@@ -172,7 +172,7 @@
               </span>
             </div>
             <h2 class="text-lg font-bold text-white font-serif-luxury mt-0.5 flex items-center space-x-1.5">
-              <span>{{ client.name }}</span>
+              <span>{{ (client.name && client.name !== 'Клієнтка') ? client.name : (t('client_label') || 'Клієнтка') }}</span>
               <span v-if="client.is_vip" class="text-amber-400 text-sm" title="VIP">👑</span>
             </h2>
             <div class="flex items-center space-x-1.5 mt-0.5 flex-wrap">
@@ -245,8 +245,8 @@
             <div class="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-400/30 flex items-center justify-center text-xl mb-2">
               {{ reward.icon }}
             </div>
-            <h4 class="font-bold text-xs text-white leading-snug">{{ reward.title }}</h4>
-            <p class="text-[10px] text-stone-400 mt-0.5 leading-tight">{{ reward.desc }}</p>
+            <h4 class="font-bold text-xs text-white leading-snug">{{ getRewardTitle(reward) }}</h4>
+            <p class="text-[10px] text-stone-400 mt-0.5 leading-tight">{{ getRewardDesc(reward) }}</p>
           </div>
           <div class="pt-2 border-t border-white/10 flex items-center justify-between">
             <span class="text-xs font-black text-amber-300">{{ reward.cost }} 💎</span>
@@ -862,6 +862,247 @@ createApp({
       }
     }
 
+    
+    const REWARD_I18N = {
+      '👑': {
+        uk: { title: 'Золота VIP-Корона', desc: 'Ексклюзивний смайлик корони для ваших відгуків' },
+        en: { title: 'Golden VIP Crown', desc: 'Exclusive crown emoji for your reviews' },
+        es: { title: 'Corona VIP Dorada', desc: 'Emoji exclusivo de corona para tus reseñas' },
+        va: { title: 'Corona VIP Daurada', desc: 'Emoji exclusiu de corona per a les teues ressenyes' },
+        de: { title: 'Goldene VIP-Krone', desc: 'Exklusives Kronen-Emoji für Ihre Bewertungen' },
+        ru: { title: 'Золотая VIP-Корона', desc: 'Эксклюзивный смайлик короны для ваших отзывов' }
+      },
+      '💎': {
+        uk: { title: 'Діамантове сяйво', desc: 'Смайлик діаманту поруч з вашим ім’ям' },
+        en: { title: 'Diamond Sparkle', desc: 'Diamond emoji shining next to your name' },
+        es: { title: 'Brillo de Diamante', desc: 'Emoji de diamante brillante junto a tu nombre' },
+        va: { title: 'Brillantor de Diamant', desc: 'Emoji de diamant brillant junt al teu nom' },
+        de: { title: 'Diamantglanz', desc: 'Diamant-Emoji neben Ihrem Namen' },
+        ru: { title: 'Бриллиантовое сияние', desc: 'Смайлик бриллианта рядом с вашим именем' }
+      },
+      '🔥': {
+        uk: { title: 'Вельветовий вогник', desc: 'Смайлик тренду Velvet Nails' },
+        en: { title: 'Velvet Flame', desc: 'Velvet Nails trend emoji' },
+        es: { title: 'Fuego de Terciopelo', desc: 'Emoji en tendencia Velvet Nails' },
+        va: { title: 'Foc de Vellut', desc: 'Emoji en tendència Velvet Nails' },
+        de: { title: 'Samtflamme', desc: 'Samtnägel-Trend-Emoji' },
+        ru: { title: 'Бархатный огонек', desc: 'Смайлик тренда Velvet Nails' }
+      },
+      '🦋': {
+        uk: { title: 'Метелик естетики', desc: 'Ніжний трендовий метелик для відгуків' },
+        en: { title: 'Aesthetic Butterfly', desc: 'Delicate trendy butterfly for your reviews' },
+        es: { title: 'Mariposa Estética', desc: 'Mariposa delicada y en tendencia para tus reseñas' },
+        va: { title: 'Papallona Estètica', desc: 'Papallona delicada i en tendència per a les teues ressenyes' },
+        de: { title: 'Ästhetischer Schmetterling', desc: 'Zarter Schmetterling für Ihre Bewertungen' },
+        ru: { title: 'Бабочка эстетики', desc: 'Нежная трендовая бабочка для ваших отзывов' }
+      },
+      '🍸': {
+        uk: { title: 'Prosecco & Коктейль', desc: 'Естетичний смайлик настрою у студії' },
+        en: { title: 'Prosecco & Cocktail', desc: 'Aesthetic studio lounge vibe emoji' },
+        es: { title: 'Prosecco & Cóctel', desc: 'Emoji de ambiente chic en el salón' },
+        va: { title: 'Prosecco & Còctel', desc: 'Emoji d\'ambient chic a l\'estudi' },
+        de: { title: 'Prosecco & Cocktail', desc: 'Chices Studio-Lounge-Emoji' },
+        ru: { title: 'Prosecco & Коктейль', desc: 'Эстетичный смайлик настроения в студии' }
+      },
+      '💄': {
+        uk: { title: 'Французький шик', desc: 'Смайлик для витонченого манікюру' },
+        en: { title: 'French Chic', desc: 'Emoji for elegant refined manicures' },
+        es: { title: 'Chic Francés', desc: 'Emoji para manicuras elegantes y refinadas' },
+        va: { title: 'Chic Francés', desc: 'Emoji per a manicures elegants i refinades' },
+        de: { title: 'Französischer Chic', desc: 'Emoji für elegante Maniküren' },
+        ru: { title: 'Французский шик', desc: 'Смайлик для изысканного маникюра' }
+      },
+      '🎀': {
+        uk: { title: 'Рожевий бантик', desc: 'Трендовий Coquette бантик для ваших відгуків' },
+        en: { title: 'Pink Coquette Bow', desc: 'Trendy Coquette ribbon for your reviews' },
+        es: { title: 'Lazo Rosa Coquette', desc: 'Lazo rosa en tendencia Coquette para tus reseñas' },
+        va: { title: 'Llaç Rosa Coquette', desc: 'Llaç rosa en tendència Coquette per a les teues ressenyes' },
+        de: { title: 'Rosa Coquette-Schleife', desc: 'Trendige Coquette-Schleife für Bewertungen' },
+        ru: { title: 'Розовый бантик', desc: 'Трендовый Coquette бантик для ваших отзывов' }
+      },
+      '💋': {
+        uk: { title: 'Полуничний поцілунок', desc: 'Яскравий смайлик краси' },
+        en: { title: 'Strawberry Kiss', desc: 'Bold and charming beauty emoji' },
+        es: { title: 'Beso de Fresa', desc: 'Emoji brillante de belleza y pasión' },
+        va: { title: 'Bes de Maduixa', desc: 'Emoji brillant de bellesa i passió' },
+        de: { title: 'Erdbeerkuss', desc: 'Charmantes Schönheits-Emoji' },
+        ru: { title: 'Клубничный поцелуй', desc: 'Яркий смайлик красоты' }
+      },
+      '🍓': {
+        uk: { title: 'Соковита полуниця', desc: 'Свіжий ягідний акцент' },
+        en: { title: 'Juicy Strawberry', desc: 'Fresh sweet berry accent' },
+        es: { title: 'Fresa Jugosa', desc: 'Acento fresco de frutos rojos' },
+        va: { title: 'Maduixa Sucosa', desc: 'Accent fresc de fruits vermells' },
+        de: { title: 'Saftige Erdbeere', desc: 'Frischer Beerenakzent' },
+        ru: { title: 'Сочная клубника', desc: 'Свежий ягодный акцент' }
+      },
+      '🌹': {
+        uk: { title: 'Оксамитова троянда', desc: 'Символ витонченості та ніжності' },
+        en: { title: 'Velvet Rose', desc: 'Symbol of elegance and delicacy' },
+        es: { title: 'Rosa Aterciopelada', desc: 'Símbolo de elegancia y delicadeza' },
+        va: { title: 'Rosa Vellutada', desc: 'Símbol d\'elegància i delicadesa' },
+        de: { title: 'Samtige Rose', desc: 'Symbol für Eleganz und Zartheit' },
+        ru: { title: 'Бархатная роза', desc: 'Символ изящества и нежности' }
+      },
+      '💫': {
+        uk: { title: 'Магічні зірочки', desc: 'Сяйво зірок на ваших нігтиках' },
+        en: { title: 'Magic Stars', desc: 'Starry sparkle on your nails' },
+        es: { title: 'Estrellas Mágicas', desc: 'Destello de estrellas en tus uñas' },
+        va: { title: 'Estrelles Màgiques', desc: 'Espurna d\'estrelles a les teues ungles' },
+        de: { title: 'Magische Sterne', desc: 'Sternenglanz auf Ihren Nägeln' },
+        ru: { title: 'Магические звездочки', desc: 'Сияние звезд на ваших ноготках' }
+      },
+      '🕊️': {
+        uk: { title: 'Pure Luxury', desc: 'Преміальний білий символ спокою' },
+        en: { title: 'Pure Luxury Dove', desc: 'Premium symbol of peace and pure style' },
+        es: { title: 'Puro Lujo', desc: 'Símbolo premium de calma y estilo puro' },
+        va: { title: 'Pur Luxe', desc: 'Símbol premium de calma i estil pur' },
+        de: { title: 'Purer Luxus', desc: 'Premium-Symbol für puren Stil' },
+        ru: { title: 'Pure Luxury', desc: 'Премиальный белый символ спокойствия' }
+      },
+      '🪄': {
+        uk: { title: 'Чарівний манікюр', desc: 'Магічний пензлик майстра' },
+        en: { title: 'Magic Wand', desc: 'Master’s magic precision brush' },
+        es: { title: 'Pincel Mágico', desc: 'La magia de la manicura profesional' },
+        va: { title: 'Pinzell Màgic', desc: 'La màgia de la manicura professional' },
+        de: { title: 'Zauberpinsel', desc: 'Magische Präzisionsmaniküre' },
+        ru: { title: 'Волшебная кисть', desc: 'Магическая кисть мастера' }
+      },
+      '🧁': {
+        uk: { title: 'Солодкий десерт', desc: 'Смайлик компліменту' },
+        en: { title: 'Sweet Cupcake', desc: 'Sweet compliment emoji' },
+        es: { title: 'Cupcake Dulce', desc: 'Emoji de dulce cumplido' },
+        va: { title: 'Cupcake Dolç', desc: 'Emoji de dolç compliment' },
+        de: { title: 'Süßer Cupcake', desc: 'Süßes Kompliment-Emoji' },
+        ru: { title: 'Сладкий десерт', desc: 'Смайлик комплимента' }
+      },
+      '🦄': {
+        uk: { title: 'Єдиноріг тренд', desc: 'Казковий смайлик сяйва' },
+        en: { title: 'Unicorn Dream', desc: 'Fairytale iridescent shimmer emoji' },
+        es: { title: 'Sueño Unicornio', desc: 'Brillo iridiscente de fantasía' },
+        va: { title: 'Somni Unicorn', desc: 'Brillantor iridescent de fantasia' },
+        de: { title: 'Einhorn-Traum', desc: 'Schimmerndes Märchen-Emoji' },
+        ru: { title: 'Единорог тренд', desc: 'Сказочный смайлик сияния' }
+      },
+      '🔮': {
+        uk: { title: 'Cat Eye кристал', desc: 'Загадковий перелив котячого ока' },
+        en: { title: 'Cat Eye Crystal', desc: 'Mystical Cat Eye magnetic effect' },
+        es: { title: 'Cristal Ojo de Gato', desc: 'Místico reflejo magnético Cat Eye' },
+        va: { title: 'Cristall Ull de Gat', desc: 'Místic reflex magnètic Ull de Gat' },
+        de: { title: 'Katzenaugen-Kristall', desc: 'Magischer Cat Eye Magneteffekt' },
+        ru: { title: 'Кристалл Cat Eye', desc: 'Загадочный перелив кошачьего глаза' }
+      },
+      '🌙': {
+        uk: { title: 'Місячне сяйво', desc: 'Місячний відблиск' },
+        en: { title: 'Moonlight Glow', desc: 'Night sky subtle moon glow' },
+        es: { title: 'Brillo Lunar', desc: 'Elegante reflejo de luna nocturna' },
+        va: { title: 'Brillantor Lunar', desc: 'Elegat reflex de lluna nocturna' },
+        de: { title: 'Mondscheinglanz', desc: 'Eleganter Mondglanz' },
+        ru: { title: 'Лунное сияние', desc: 'Мягкий лунный отблеск' }
+      },
+      '⭐': {
+        uk: { title: 'Зірка стилю', desc: 'Смайлик для топ-клієнток' },
+        en: { title: 'Style Star', desc: 'Emoji for our top clients' },
+        es: { title: 'Estrella de Estilo', desc: 'Emoji para clientas top' },
+        va: { title: 'Estrella d\'Estil', desc: 'Emoji per a clientes top' },
+        de: { title: 'Stilstern', desc: 'Emoji für Top-Kundinnen' },
+        ru: { title: 'Звезда стиля', desc: 'Смайлик для топ-клиенток' }
+      },
+      '🐆': {
+        uk: { title: 'Леопардовий тренд', desc: 'Дикий та стильний леопардовий принт' },
+        en: { title: 'Leopard Trend', desc: 'Fierce and fashionable animal print' },
+        es: { title: 'Leopardo de Moda', desc: 'Estampado animal salvaje y chic' },
+        va: { title: 'Lleopard de Moda', desc: 'Estampat animal salvatge i chic' },
+        de: { title: 'Leoparden-Trend', desc: 'Stylischer Animal-Print' },
+        ru: { title: 'Леопардовый тренд', desc: 'Стильный леопардовый принт' }
+      },
+      '🤍': {
+        uk: { title: 'Clean Girl золото', desc: 'Естетика чистоти та натурального сяйва' },
+        en: { title: 'Clean Girl White Gold', desc: 'Clean Girl aesthetic and natural glow' },
+        es: { title: 'Oro Blanco Clean Girl', desc: 'Estética Clean Girl y brillo natural' },
+        va: { title: 'Or Blanc Clean Girl', desc: 'Estètica Clean Girl i brillantor natural' },
+        de: { title: 'Clean Girl Weißgold', desc: 'Clean Girl Ästhetik und natürlicher Glanz' },
+        ru: { title: 'Clean Girl белое золото', desc: 'Эстетика чистоты и натурального сияния' }
+      },
+      '🖤': {
+        uk: { title: 'Чорний вельвет', desc: 'Глибокий стильний чорний оксамит' },
+        en: { title: 'Black Velvet', desc: 'Deep luxurious velvet black' },
+        es: { title: 'Terciopelo Negro', desc: 'Negro terciopelo profundo y sedoso' },
+        va: { title: 'Vellut Negre', desc: 'Negre vellut profund i sedós' },
+        de: { title: 'Schwarzer Samt', desc: 'Tiefer samtiger Schwarzton' },
+        ru: { title: 'Черный бархат', desc: 'Глубокий стильный черный бархат' }
+      },
+      '☕': {
+        uk: { title: 'Кава & Prosecco', desc: 'Улюблений напій у студії безкоштовно' },
+        en: { title: 'Coffee & Prosecco', desc: 'Complimentary drink at the studio' },
+        es: { title: 'Café & Prosecco', desc: 'Tu bebida favorita gratis en el salón' },
+        va: { title: 'Café & Prosecco', desc: 'La teua beguda favorita de bades a l\'estudi' },
+        de: { title: 'Kaffee & Prosecco', desc: 'Ihr Lieblingsgetränk gratis im Studio' },
+        ru: { title: 'Кофе & Prosecco', desc: 'Любимый напиток в студии бесплатно' }
+      },
+      '🏷️': {
+        uk: { title: 'Знижка на візит', desc: 'Приємна знижка на наступну процедуру' },
+        en: { title: 'Discount on Visit', desc: 'Special discount on your next visit' },
+        es: { title: 'Descuento en Visita', desc: 'Descuento especial en tu próxima visita' },
+        va: { title: 'Descompte en Cita', desc: 'Descompte especial en la teua propera cita' },
+        de: { title: 'Rabatt auf Besuch', desc: 'Besonderer Rabatt auf Ihren nächsten Besuch' },
+        ru: { title: 'Скидка на визит', desc: 'Приятная скидка на следующий визит' }
+      },
+      '🌸': {
+        uk: { title: 'SPA-догляд для рук', desc: 'Холодний парафін + скрабування в подарунок' },
+        en: { title: 'Hands SPA Treatment', desc: 'Cold paraffin wrap + scrub complimentary' },
+        es: { title: 'Cuidado SPA de manos', desc: 'Parafina fría + exfoliación de regalo' },
+        va: { title: 'Cura SPA de mans', desc: 'Parafina freda + exfoliació de regal' },
+        de: { title: 'SPA Handpflege', desc: 'Kaltparaffin + Peeling geschenkt' },
+        ru: { title: 'SPA-уход для рук', desc: 'Холодный парафин + скрабирование в подарок' }
+      }
+    };
+
+    function getRewardTitle(r) {
+      if (!r) return '';
+      const lang = currentLang.value || 'uk';
+      const icon = r.icon;
+      if (icon === '🏷️') {
+        if (r.cost === 100) {
+          const titles = {
+            es: 'Descuento 1.50€ en visita',
+            va: 'Descompte 1.50€ en cita',
+            en: '€1.50 Discount on Visit',
+            de: '1,50€ Rabatt auf Besuch',
+            ru: 'Скидка 1.50€ на визит',
+            uk: 'Знижка 1.50€ на візит'
+          };
+          return titles[lang] || titles['uk'];
+        } else {
+          const titles = {
+            es: 'Descuento 2.50€ en visita',
+            va: 'Descompte 2.50€ en cita',
+            en: '€2.50 Discount on Visit',
+            de: '2,50€ Rabatt auf Besuch',
+            ru: 'Скидка 2.50€ на визит',
+            uk: 'Знижка 2.50€ на візит'
+          };
+          return titles[lang] || titles['uk'];
+        }
+      }
+      const entry = REWARD_I18N[icon];
+      if (entry && entry[lang]) {
+        return entry[lang].title;
+      }
+      return r.title || '';
+    }
+
+    function getRewardDesc(r) {
+      if (!r) return '';
+      const lang = currentLang.value || 'uk';
+      const icon = r.icon;
+      const entry = REWARD_I18N[icon];
+      if (entry && entry[lang]) {
+        return entry[lang].desc;
+      }
+      return r.desc || r.description || '';
+    }
+
     onMounted(async () => {
       if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('/static/sw.js').catch(err => console.log('SW registration error', err));
@@ -876,6 +1117,7 @@ createApp({
     });
 
     return {
+      getRewardTitle, getRewardDesc,
       currentLang, availableLangs, setLang, t, allAvailableEmojis,
       isLoggedIn, loginPhone, activeTab, client, appointments, reviews,
       toast, rewardsCatalog, newReview, unlockedEmojisList, isRewardOwned,

@@ -4,6 +4,11 @@
 const I18N = {
   uk: {
     vip_club_sub: 'Закритий клуб клієнток',
+    vip_club_btn: 'VIP Клуб',
+    vip_promo_banner_desc: 'Накопичуйте кристали 💎 за візити та обмінюйте на знижки',
+    vip_promo_banner_btn: 'VIP Клуб',
+    client_label: 'Клієнтка',
+    my_bookings_short: 'Записи',
     vip_back_book: 'Запис',
     vip_login_title: 'Вхід для постійних клієнток',
     vip_login_desc: 'Накопичуйте бали за візити, обмінюйте їх на спеціальні VIP-смайлики в коментарях та отримуйте знижки на манікюр.',
@@ -252,6 +257,11 @@ const I18N = {
 
   en: {
     vip_club_sub: 'Exclusive Client Club',
+    vip_club_btn: 'VIP Club',
+    vip_promo_banner_desc: 'Collect crystals 💎 on visits & redeem for discounts',
+    vip_promo_banner_btn: 'VIP Club',
+    client_label: 'Client',
+    my_bookings_short: 'Bookings',
     vip_back_book: 'Booking',
     vip_login_title: 'VIP Client Lounge Sign In',
     vip_login_desc: 'Collect points with every visit, unlock exclusive VIP emojis for reviews, and enjoy beauty discounts.',
@@ -490,6 +500,11 @@ const I18N = {
 
   es: {
     vip_club_sub: 'Club Privado de Clientas',
+    vip_club_btn: 'Club VIP',
+    vip_promo_banner_desc: 'Acumula cristales 💎 en tus visitas y canjéalos por descuentos',
+    vip_promo_banner_btn: 'Club VIP',
+    client_label: 'Clienta',
+    my_bookings_short: 'Citas',
     vip_back_book: 'Reservas',
     vip_login_title: 'Acceso para Clientas VIP',
     vip_login_desc: 'Acumula puntos con cada visita, canjéalos por emojis VIP exclusivos en reseñas y disfruta de descuentos.',
@@ -728,6 +743,11 @@ const I18N = {
 
   va: {
     vip_club_sub: 'Club Privat de Clientes',
+    vip_club_btn: 'Club VIP',
+    vip_promo_banner_desc: 'Acumula cristalls 💎 en les teues visites i canvia\'ls per descomptes',
+    vip_promo_banner_btn: 'Club VIP',
+    client_label: 'Clienta',
+    my_bookings_short: 'Cites',
     vip_back_book: 'Reserves',
     vip_login_title: 'Accés per a Clientes VIP',
     vip_login_desc: 'Acumula punts en cada visita, canvia\'ls per emojis VIP exclusius en ressenyes i gaudeix de descomptes.',
@@ -966,6 +986,11 @@ const I18N = {
 
   de: {
     vip_club_sub: 'Exklusiver Kundenclub',
+    vip_club_btn: 'VIP Club',
+    vip_promo_banner_desc: 'Sammeln Sie Kristalle 💎 bei Besuchen und erhalten Sie Rabatte',
+    vip_promo_banner_btn: 'VIP Club',
+    client_label: 'Kundin',
+    my_bookings_short: 'Termine',
     vip_back_book: 'Buchung',
     vip_login_title: 'Login für VIP-Kundinnen',
     vip_login_desc: 'Sammeln Sie Punkte bei jedem Besuch, schalten Sie VIP-Emojis frei und erhalten Sie Rabatte auf Maniküre.',
@@ -1204,6 +1229,11 @@ const I18N = {
 
   ru: {
     vip_club_sub: 'Закрытый клуб клиенток',
+    vip_club_btn: 'VIP Клуб',
+    vip_promo_banner_desc: 'Копите кристаллы 💎 за визиты и обменивайте на скидки',
+    vip_promo_banner_btn: 'VIP Клуб',
+    client_label: 'Клиентка',
+    my_bookings_short: 'Записи',
     vip_back_book: 'Запись',
     vip_login_title: 'Вход для постоянных клиенток',
     vip_login_desc: 'Копите баллы за каждый визит, обменивайте их на VIP-смайлики в отзывах и получайте скидки на маникюр.',
