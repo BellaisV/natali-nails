@@ -1471,9 +1471,7 @@ createApp({
           clientAppointments.value = await res.json();
           try {
             const curIds = clientAppointments.value.map(a => a.id);
-            const stored = JSON.parse(localStorage.getItem('my_appointment_ids') || '[]');
-            const merged = Array.from(new Set([...stored, ...curIds]));
-            localStorage.setItem('my_appointment_ids', JSON.stringify(merged));
+            localStorage.setItem('my_appointment_ids', JSON.stringify(curIds));
           } catch (e) {}
         }
       } catch (e) {

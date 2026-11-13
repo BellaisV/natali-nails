@@ -1919,6 +1919,35 @@ def fetch_matching_appointments(cursor, phone: str = "", ids: str = "", client_i
     digits = re.sub(r'\D', '', safe_phone) if safe_phone else ""
     suffix = digits[-9:] if len(digits) >= 9 else digits
 
+    # 1. If client phone is provided, return ONLY appointments strictly belonging to this client's phone!
+    if safe_phone:
+        if suffix:
+            cursor.execute("""
+                SELECT id, client_id, client_name, client_phone, service_names, date, time, end_time, total_price, status, payment_method, notes, created_at
+                FROM appointments
+                WHERE (client_phone = ? OR client_phone LIKE ?)
+                ORDER BY date DESC, time DESC
+            """, (safe_phone, f"%{suffix}%"))
+        else:
+            cursor.execute("""
+                SELECT id, client_id, client_name, client_phone, service_names, date, time, end_time, total_price, status, payment_method, notes, created_at
+                FROM appointments
+                WHERE client_phone = ?
+                ORDER BY date DESC, time DESC
+            """, (safe_phone,))
+        return [dict(r) for r in cursor.fetchall()]
+
+    # 2. If client_id is provided
+    if client_id and client_id > 0:
+        cursor.execute("""
+            SELECT id, client_id, client_name, client_phone, service_names, date, time, end_time, total_price, status, payment_method, notes, created_at
+            FROM appointments
+            WHERE client_id = ?
+            ORDER BY date DESC, time DESC
+        """, (client_id,))
+        return [dict(r) for r in cursor.fetchall()]
+
+    # 3. Guest mode only: if neither phone nor client_id is provided, match by guest session ids
     id_list = []
     if ids:
         for part in ids.split(','):
@@ -1926,36 +1955,17 @@ def fetch_matching_appointments(cursor, phone: str = "", ids: str = "", client_i
             if part.isdigit():
                 id_list.append(int(part))
 
-    conditions = []
-    params = []
-
-    if safe_phone and suffix:
-        conditions.append("(client_phone = ? OR client_phone LIKE ?)")
-        params.extend([safe_phone, f"%{suffix}%"])
-    elif safe_phone:
-        conditions.append("client_phone = ?")
-        params.append(safe_phone)
-
-    if client_id and client_id > 0:
-        conditions.append("client_id = ?")
-        params.append(client_id)
-
     if id_list:
         placeholders = ",".join(["?"] * len(id_list))
-        conditions.append(f"id IN ({placeholders})")
-        params.extend(id_list)
+        cursor.execute(f"""
+        SELECT id, client_id, client_name, client_phone, service_names, date, time, end_time, total_price, status, payment_method, notes, created_at
+        FROM appointments
+        WHERE id IN ({placeholders})
+        ORDER BY date DESC, time DESC
+        """, tuple(id_list))
+        return [dict(r) for r in cursor.fetchall()]
 
-    if not conditions:
-        return []
-
-    where_clause = " OR ".join(conditions)
-    cursor.execute(f"""
-    SELECT id, client_id, client_name, client_phone, service_names, date, time, end_time, total_price, status, payment_method, notes, created_at
-    FROM appointments
-    WHERE {where_clause}
-    ORDER BY date DESC, time DESC
-    """, tuple(params))
-    return [dict(r) for r in cursor.fetchall()]
+    return []
 
 @app.get("/api/client/profile")
 def get_client_profile(phone: str = Query(""), ids: str = Query("")):
