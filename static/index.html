@@ -268,6 +268,10 @@
         <button @click="currentTab = 'services'" :class="currentTab === 'services' ? 'bg-rose-600 text-white shadow' : 'text-stone-300 hover:text-white'" class="px-3 py-1.5 rounded-lg transition">
           <i class="fa-solid fa-wand-magic-sparkles mr-1.5"></i>{{ t('tab_services') }}
         </button>
+        <button @click="currentTab = 'promo'" :class="currentTab === 'promo' ? 'bg-rose-600 text-white shadow' : 'text-stone-300 hover:text-white'" class="px-3 py-1.5 rounded-lg transition flex items-center space-x-1">
+          <span>🎉</span>
+          <span>{{ t('tab_promo_achieve') || 'Акції & Досягнення' }}</span>
+        </button>
         <button @click="currentTab = 'settings'" :class="currentTab === 'settings' ? 'bg-rose-600 text-white shadow' : 'text-stone-300 hover:text-white'" class="px-3 py-1.5 rounded-lg transition">
           <i class="fa-solid fa-gear mr-1.5"></i>{{ t('tab_settings') }}
         </button>
@@ -800,6 +804,182 @@
       </div>
     </main>
 
+    <!-- TAB 6: PROMO DAYS & CUSTOM ACHIEVEMENTS (Керування акціями та досягненнями) -->
+    <main v-if="currentTab === 'promo'" class="flex-1 p-4 space-y-6 max-w-5xl mx-auto text-left">
+      <!-- Header banner -->
+      <div class="bg-gradient-to-r from-stone-900 via-stone-800 to-black rounded-3xl p-5 text-white border border-stone-700 shadow-md flex items-center justify-between">
+        <div>
+          <h2 class="text-lg font-black flex items-center space-x-2 text-amber-300">
+            <span>🎉</span>
+            <span>Керування акціями та досягненнями клієнтів</span>
+          </h2>
+          <p class="text-xs text-stone-300 mt-1">
+            Створюйте святкові або акційні дні зі знижками, налаштовуйте персональні відсотки та додавайте нові досягнення для мотивації клієнток.
+          </p>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        <!-- 1. АКЦІЙНІ ДНІ МАЙСТРА (PROMO DAYS) -->
+        <div class="bg-white rounded-3xl p-5 border border-stone-200 shadow-sm space-y-4">
+          <div class="flex items-center justify-between border-b border-stone-100 pb-3">
+            <div>
+              <h3 class="font-extrabold text-sm text-stone-900 flex items-center space-x-2">
+                <span>🔥</span>
+                <span>Акційні дні (Promo Days)</span>
+              </h3>
+              <p class="text-[11px] text-stone-500">Знижки на конкретні дати або святкові періоди</p>
+            </div>
+            <span class="text-xs bg-rose-100 text-rose-700 font-bold px-2.5 py-0.5 rounded-full">
+              {{ promoDays.length }} активностей
+            </span>
+          </div>
+
+          <!-- Create Promo Day Form -->
+          <form @submit.prevent="createPromoDay" class="bg-stone-50 p-3.5 rounded-2xl border border-stone-200 space-y-3">
+            <div class="font-bold text-xs text-stone-800 flex items-center space-x-1">
+              <i class="fa-solid fa-plus text-rose-500"></i>
+              <span>Створити новий акційний день:</span>
+            </div>
+            <div class="space-y-2 text-xs">
+              <div>
+                <label class="block font-semibold text-stone-600 mb-1">Назва свята / акції:</label>
+                <input v-model="newPromo.title" required placeholder="Наприклад: Чорна П'ятниця, День краси, 1 Вересня..." class="w-full bg-white border border-stone-300 rounded-xl p-2 text-xs font-bold text-stone-900 focus:ring-2 focus:ring-rose-500 focus:outline-none">
+              </div>
+              <div class="grid grid-cols-3 gap-2">
+                <div>
+                  <label class="block font-semibold text-stone-600 mb-1">Знижка (%):</label>
+                  <input v-model.number="newPromo.percent" type="number" min="1" max="50" class="w-full bg-white border border-stone-300 rounded-xl p-2 text-xs font-black text-rose-600 text-center">
+                </div>
+                <div>
+                  <label class="block font-semibold text-stone-600 mb-1">Дата з:</label>
+                  <input v-model="newPromo.start_date" type="date" required class="w-full bg-white border border-stone-300 rounded-xl p-2 text-xs text-stone-800">
+                </div>
+                <div>
+                  <label class="block font-semibold text-stone-600 mb-1">Дата по:</label>
+                  <input v-model="newPromo.end_date" type="date" required class="w-full bg-white border border-stone-300 rounded-xl p-2 text-xs text-stone-800">
+                </div>
+              </div>
+            </div>
+            <button type="submit" :disabled="savingPromo" class="w-full bg-stone-900 hover:bg-black text-white font-bold py-2 rounded-xl text-xs transition shadow flex items-center justify-center space-x-1.5">
+              <i class="fa-solid fa-check"></i>
+              <span>{{ savingPromo ? 'Додавання...' : '+ Додати акційний день' }}</span>
+            </button>
+          </form>
+
+          <!-- List of Promo Days -->
+          <div class="space-y-2">
+            <div v-if="promoDays.length === 0" class="text-center py-6 text-stone-400 text-xs">
+              Поки що немає створених акційних днів
+            </div>
+            <div v-for="p in promoDays" :key="p.id" class="p-3 rounded-2xl border transition flex items-center justify-between" :class="p.is_active ? 'bg-amber-50/60 border-amber-200' : 'bg-stone-50 border-stone-200 opacity-60'">
+              <div class="space-y-0.5">
+                <div class="flex items-center space-x-2">
+                  <span class="font-extrabold text-xs text-stone-900">{{ p.title }}</span>
+                  <span class="text-[10px] font-black bg-rose-600 text-white px-2 py-0.2 rounded-md">-{{ p.percent }}%</span>
+                </div>
+                <div class="text-[11px] text-stone-500 flex items-center space-x-1">
+                  <i class="fa-regular fa-calendar text-[10px]"></i>
+                  <span>{{ p.start_date }} — {{ p.end_date }}</span>
+                </div>
+              </div>
+              <div class="flex items-center space-x-2">
+                <button @click="togglePromoDay(p.id)" type="button" class="px-2.5 py-1 rounded-lg text-[10px] font-bold border transition" :class="p.is_active ? 'bg-emerald-100 text-emerald-800 border-emerald-300' : 'bg-stone-200 text-stone-600 border-stone-300'">
+                  {{ p.is_active ? 'Активна' : 'Вимкнено' }}
+                </button>
+                <button @click="deletePromoDay(p.id)" type="button" class="text-stone-400 hover:text-rose-600 p-1 text-xs" title="Видалити">
+                  <i class="fa-solid fa-trash"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 2. ВЛАСНІ ДОСЯГНЕННЯ ДЛЯ КЛІЄНТОК (CUSTOM ACHIEVEMENTS) -->
+        <div class="bg-white rounded-3xl p-5 border border-stone-200 shadow-sm space-y-4">
+          <div class="flex items-center justify-between border-b border-stone-100 pb-3">
+            <div>
+              <h3 class="font-extrabold text-sm text-stone-900 flex items-center space-x-2">
+                <span>🏆</span>
+                <span>Власні досягнення клієнтів</span>
+              </h3>
+              <p class="text-[11px] text-stone-500">Додавайте кастомні б'юті-цілі, які клієнтки бачитимуть у клубі</p>
+            </div>
+            <span class="text-xs bg-amber-100 text-amber-800 font-bold px-2.5 py-0.5 rounded-full">
+              {{ customAchievements.length }} кастомних
+            </span>
+          </div>
+
+          <!-- Create Achievement Form -->
+          <form @submit.prevent="createCustomAchievement" class="bg-stone-50 p-3.5 rounded-2xl border border-stone-200 space-y-3">
+            <div class="font-bold text-xs text-stone-800 flex items-center space-x-1">
+              <i class="fa-solid fa-plus text-amber-500"></i>
+              <span>Створити нове досягнення:</span>
+            </div>
+            <div class="space-y-2 text-xs">
+              <div class="grid grid-cols-4 gap-2">
+                <div>
+                  <label class="block font-semibold text-stone-600 mb-1">Іконка:</label>
+                  <select v-model="newAchieve.icon" class="w-full bg-white border border-stone-300 rounded-xl p-2 text-sm text-center">
+                    <option>🏆</option>
+                    <option>🌟</option>
+                    <option>👑</option>
+                    <option>💎</option>
+                    <option>🌸</option>
+                    <option>🎂</option>
+                    <option>💅</option>
+                    <option>🔥</option>
+                    <option>✨</option>
+                    <option>💖</option>
+                    <option>🎁</option>
+                  </select>
+                </div>
+                <div class="col-span-3">
+                  <label class="block font-semibold text-stone-600 mb-1">Назва досягнення:</label>
+                  <input v-model="newAchieve.title" required placeholder="Наприклад: VIP Подруга Natali" class="w-full bg-white border border-stone-300 rounded-xl p-2 text-xs font-bold text-stone-900 focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                </div>
+              </div>
+              <div class="grid grid-cols-3 gap-2">
+                <div class="col-span-2">
+                  <label class="block font-semibold text-stone-600 mb-1">Опис умови:</label>
+                  <input v-model="newAchieve.desc" placeholder="Наприклад: За відданість та особливий статус" class="w-full bg-white border border-stone-300 rounded-xl p-2 text-xs text-stone-800">
+                </div>
+                <div>
+                  <label class="block font-semibold text-stone-600 mb-1">Візитів:</label>
+                  <input v-model.number="newAchieve.required_visits" type="number" min="1" max="100" class="w-full bg-white border border-stone-300 rounded-xl p-2 text-xs text-center font-bold">
+                </div>
+              </div>
+            </div>
+            <button type="submit" :disabled="savingAchieve" class="w-full bg-stone-900 hover:bg-black text-white font-bold py-2 rounded-xl text-xs transition shadow flex items-center justify-center space-x-1.5">
+              <i class="fa-solid fa-check"></i>
+              <span>{{ savingAchieve ? 'Створення...' : '+ Створити досягнення' }}</span>
+            </button>
+          </form>
+
+          <!-- List of Custom Achievements -->
+          <div class="space-y-2">
+            <div v-if="customAchievements.length === 0" class="text-center py-6 text-stone-400 text-xs">
+              Кастомні досягнення ще не створені. Стандартні 14 досягнень вже активні в системі!
+            </div>
+            <div v-for="a in customAchievements" :key="a.id" class="p-3 bg-stone-50 rounded-2xl border border-stone-200 flex items-center justify-between">
+              <div class="flex items-center space-x-2.5">
+                <div class="w-9 h-9 rounded-xl bg-amber-100 flex items-center justify-center text-lg border border-amber-300/50">
+                  {{ a.icon }}
+                </div>
+                <div>
+                  <div class="font-extrabold text-xs text-stone-900">{{ a.title }}</div>
+                  <div class="text-[10px] text-stone-500">{{ a.desc }} (вимагає {{ a.required_visits }} візитів)</div>
+                </div>
+              </div>
+              <button @click="deleteCustomAchievement(a.id)" type="button" class="text-stone-400 hover:text-rose-600 p-1 text-xs" title="Видалити">
+                <i class="fa-solid fa-trash"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+
     <!-- TAB 5: НАЛАШТУВАННЯ ТА БЕЗПЕКА -->
     <main v-if="currentTab === 'settings'" class="flex-1 p-4 space-y-4">
       <!-- Security / Change Password Box -->
@@ -1028,6 +1208,11 @@
         <button @click="currentTab = 'services'" :class="currentTab === 'services' ? 'text-rose-600 font-bold' : 'text-stone-400 hover:text-stone-600'" class="flex flex-col items-center flex-1 py-1 transition">
           <i class="fa-solid fa-wand-magic-sparkles text-lg"></i>
           <span class="text-[10px] mt-1">{{ t('tab_services') }}</span>
+        </button>
+
+        <button @click="currentTab = 'promo'" :class="currentTab === 'promo' ? 'text-rose-600 font-bold' : 'text-stone-400 hover:text-stone-600'" class="flex flex-col items-center flex-1 py-1 transition">
+          <span class="text-base leading-none">🎉</span>
+          <span class="text-[10px] mt-1">{{ t('tab_promo_achieve') || 'Акції' }}</span>
         </button>
 
         <button @click="currentTab = 'settings'" :class="currentTab === 'settings' ? 'text-rose-600 font-bold' : 'text-stone-400 hover:text-stone-600'" class="flex flex-col items-center flex-1 py-1 transition">
@@ -2863,8 +3048,102 @@ createApp({
       }
     }
 
+    // --- PROMO DAYS & CUSTOM ACHIEVEMENTS LOGIC ---
+    const promoDays = ref([]);
+    const customAchievements = ref([]);
+    const savingPromo = ref(false);
+    const savingAchieve = ref(false);
+
+    const newPromo = ref({
+      title: '',
+      percent: 1,
+      start_date: new Date().toISOString().split('T')[0],
+      end_date: new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0]
+    });
+
+    const newAchieve = ref({
+      icon: '🏆',
+      title: '',
+      desc: '',
+      required_visits: 1
+    });
+
+    async function loadPromoDays() {
+      try {
+        const res = await fetch('/api/admin/promo-days');
+        if (res.ok) promoDays.value = await res.json();
+      } catch (e) {}
+    }
+
+    async function createPromoDay() {
+      if (!newPromo.value.title.trim()) return;
+      savingPromo.value = true;
+      try {
+        const res = await fetch('/api/admin/promo-days', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(newPromo.value)
+        });
+        if (res.ok) {
+          newPromo.value.title = '';
+          await loadPromoDays();
+        }
+      } catch (e) {}
+      savingPromo.value = false;
+    }
+
+    async function deletePromoDay(id) {
+      if (!confirm('Видалити цей акційний день?')) return;
+      try {
+        await fetch(`/api/admin/promo-days/${id}`, { method: 'DELETE' });
+        await loadPromoDays();
+      } catch (e) {}
+    }
+
+    async function togglePromoDay(id) {
+      try {
+        await fetch(`/api/admin/promo-days/${id}/toggle`, { method: 'PUT' });
+        await loadPromoDays();
+      } catch (e) {}
+    }
+
+    async function loadCustomAchievements() {
+      try {
+        const res = await fetch('/api/admin/custom-achievements');
+        if (res.ok) customAchievements.value = await res.json();
+      } catch (e) {}
+    }
+
+    async function createCustomAchievement() {
+      if (!newAchieve.value.title.trim()) return;
+      savingAchieve.value = true;
+      try {
+        const res = await fetch('/api/admin/custom-achievements', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(newAchieve.value)
+        });
+        if (res.ok) {
+          newAchieve.value.title = '';
+          newAchieve.value.desc = '';
+          await loadCustomAchievements();
+        }
+      } catch (e) {}
+      savingAchieve.value = false;
+    }
+
+    async function deleteCustomAchievement(id) {
+      if (!confirm('Видалити це досягнення?')) return;
+      try {
+        await fetch(`/api/admin/custom-achievements/${id}`, { method: 'DELETE' });
+        await loadCustomAchievements();
+      } catch (e) {}
+    }
+
     onMounted(async () => {
       loadRewards();
+      loadPromoDays();
+      loadCustomAchievements();
       // Register PWA service worker
       if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('/static/sw.js').catch(err => console.log('SW registration error', err));
@@ -2886,7 +3165,7 @@ createApp({
       isUnlocked, pinInput, showPassword, pinChange, submitPin, lockApp, changePin, showInstallModal, showAndroidHelp, triggerAndroidInstall, handleIosClick,
       gateMode, directPhoneInput, submitDirectPhoneLogin, authTab, authLoading, showClientPassword, loginForm, regForm, handleClientLogin, handleClientRegister, weekDaysList, isDayActive, toggleWorkingDay, setDaysPreset, clientAuthModal, openSocialClientModal, submitClientSocialAuth,
       currentLang, availableLangs, setLang, t,
-      currentTab, settings, services, clients, appointments, transactions, financeSummary,
+      currentTab, promoDays, customAchievements, savingPromo, savingAchieve, newPromo, newAchieve, loadPromoDays, createPromoDay, deletePromoDay, togglePromoDay, loadCustomAchievements, createCustomAchievement, deleteCustomAchievement, settings, services, clients, appointments, transactions, financeSummary,
       todayStr, selectedDate, selectedMonth, clientSearch, daysList, dayAppointments,
       dayTotalSum, filteredClients, modals, formApp, formExpense, formService, formClient,
       selectedServiceId, toast, bookingUrl, payingApp,

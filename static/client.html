@@ -299,13 +299,16 @@
         </div>
 
         <div class="grid grid-cols-1 gap-2.5">
-          <div v-for="d in clientDiscounts" :key="d.id" :class="d.is_used ? 'bg-white/[0.03] border-white/5 opacity-60' : 'bg-gradient-to-r from-amber-950/40 via-stone-900 to-amber-950/40 border-amber-400/40 shadow-lg'" class="border rounded-2xl p-3.5 space-y-2 transition">
+          <div v-for="d in clientDiscounts" :key="d.id" :class="d.is_used ? 'bg-white/[0.03] border-white/5 opacity-60' : (d.can_apply ? 'bg-gradient-to-r from-amber-950/40 via-stone-900 to-amber-950/40 border-amber-400/50 shadow-lg' : 'bg-stone-900/60 border-white/10 opacity-80')" class="border rounded-2xl p-3.5 space-y-2 transition">
             <div class="flex items-center justify-between">
               <div class="flex items-center space-x-2.5">
-                <span class="text-2xl">{{ d.id === 'bday' ? '🎂' : (d.id === 'loyalty' ? '💎' : (d.id === 'march8' ? '🌸' : '✨')) }}</span>
+                <span class="text-2xl">{{ d.id === 'bday' ? '🎂' : (d.id === 'loyalty' ? '💎' : (d.id === 'valentine' ? '❤️' : (d.id === 'newyear' ? '❄️' : (d.id === 'march8' ? '🌸' : '🔥')))) }}</span>
                 <div>
-                  <h4 class="font-bold text-xs text-white">{{ t(d.title_key) || d.title || 'Святкова знижка' }}</h4>
-                  <p class="text-[10px] text-stone-400">{{ t(d.desc_key) || d.desc || '' }}</p>
+                  <div class="flex items-center space-x-2">
+                    <h4 class="font-bold text-xs text-white">{{ t(d.title_key) || d.title || 'Святкова знижка' }}</h4>
+                    <span v-if="d.can_apply" class="text-[9px] font-black bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-1.5 py-0.2 rounded">АКТИВНА</span>
+                  </div>
+                  <p class="text-[10px] text-stone-400 mt-0.5">{{ t(d.desc_key) || d.desc || '' }}</p>
                 </div>
               </div>
               <div class="text-right">
@@ -314,13 +317,46 @@
             </div>
 
             <div class="pt-2 border-t border-white/10 flex items-center justify-between">
-              <span :class="d.is_used ? 'bg-stone-800 text-stone-400 border-stone-700' : 'bg-emerald-950 text-emerald-300 border-emerald-500/40'" class="text-[10px] font-bold px-2.5 py-0.5 rounded-full border">
-                {{ d.is_used ? (t('disc_used') || 'Використано') : (t('disc_available') || 'Доступна для запису') }}
+              <!-- Used status -->
+              <span v-if="d.is_used" class="bg-stone-800 text-stone-400 border border-stone-700 text-[10px] font-bold px-2.5 py-0.5 rounded-full">
+                {{ t('disc_used') || 'Використано' }}
               </span>
-              <a v-if="!d.is_used" :href="'/book?discount=' + d.id" class="text-xs bg-amber-400 hover:bg-amber-300 text-stone-950 font-black px-3.5 py-1.5 rounded-xl transition active:scale-95 shadow flex items-center space-x-1">
-                <span>{{ t('btn_apply_discount') || 'Застосувати' }}</span>
-                <span>➔</span>
-              </a>
+
+              <!-- Need birthday status -->
+              <span v-else-if="d.status === 'need_birthday'" class="bg-amber-950/80 text-amber-300 border border-amber-500/40 text-[10px] font-bold px-2.5 py-0.5 rounded-full flex items-center space-x-1">
+                <span>🎂</span>
+                <span>{{ t('disc_need_birthday') || 'Вкажіть день народження' }}</span>
+              </span>
+
+              <!-- Waiting holiday date status -->
+              <span v-else-if="d.status === 'waiting_date'" class="bg-stone-800 text-stone-400 border border-stone-700 text-[10px] font-bold px-2.5 py-0.5 rounded-full flex items-center space-x-1">
+                <i class="fa-regular fa-clock text-[9px]"></i>
+                <span>{{ d.target_date ? (t('disc_bday_waiting') || 'Доступно:') + ' ' + d.target_date : (t(d.badge_key) || d.message) }}</span>
+              </span>
+
+              <!-- Active today & ready to apply -->
+              <span v-else class="bg-emerald-950 text-emerald-300 border border-emerald-500/40 text-[10px] font-bold px-2.5 py-0.5 rounded-full flex items-center space-x-1">
+                <span>✨</span>
+                <span>{{ t(d.badge_key) || 'Доступна для запису' }}</span>
+              </span>
+
+              <!-- Actions -->
+              <div class="flex items-center space-x-2">
+                <button v-if="!d.is_used && d.status === 'need_birthday'" @click="openProfileModal" type="button" class="text-xs bg-amber-400 hover:bg-amber-300 text-stone-950 font-black px-3.5 py-1.5 rounded-xl transition active:scale-95 shadow flex items-center space-x-1">
+                  <span>🎂</span>
+                  <span>{{ t('btn_set_birthday') || 'Вказати ДР' }}</span>
+                </button>
+
+                <button v-else-if="!d.is_used && d.status === 'waiting_date'" disabled type="button" class="text-xs bg-stone-800 text-stone-500 font-bold px-3 py-1.5 rounded-xl border border-stone-700/60 cursor-not-allowed flex items-center space-x-1">
+                  <i class="fa-solid fa-lock text-[10px]"></i>
+                  <span>{{ d.target_date || 'Очікує свята' }}</span>
+                </button>
+
+                <a v-else-if="!d.is_used && d.can_apply" :href="'/book?discount=' + d.id" class="text-xs bg-amber-400 hover:bg-amber-300 text-stone-950 font-black px-3.5 py-1.5 rounded-xl transition active:scale-95 shadow flex items-center space-x-1">
+                  <span>{{ t('btn_apply_discount') || 'Застосувати' }}</span>
+                  <span>➔</span>
+                </a>
+              </div>
             </div>
           </div>
         </div>
@@ -590,6 +626,93 @@
 
     
 
+
+  <!-- MODAL: МІЙ ПРОФІЛЬ & ДЕНЬ НАРОДЖЕННЯ -->
+  <div v-if="showProfileModal" @click.self="showProfileModal = false" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-end sm:items-center justify-center p-0 sm:p-4 text-left">
+    <div class="bg-[#1C1715] text-white w-full max-w-md max-h-[90vh] overflow-y-auto hide-scrollbar rounded-t-3xl sm:rounded-3xl p-5 sm:p-6 space-y-4 border border-white/15 shadow-2xl">
+      <div class="flex items-center justify-between pb-3 border-b border-white/10">
+        <div class="flex items-center space-x-2.5">
+          <div class="w-9 h-9 rounded-full bg-gradient-to-tr from-rose-500 to-amber-400 flex items-center justify-center text-white text-sm font-bold shadow">
+            <i class="fa-solid fa-crown text-xs"></i>
+          </div>
+          <div>
+            <h3 class="font-bold text-sm text-white">Мій профіль</h3>
+            <p class="text-[10px] text-amber-300">Natali Nails Client Club</p>
+          </div>
+        </div>
+        <button @click="showProfileModal = false" class="text-stone-400 hover:text-white p-1">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <div class="space-y-3 text-xs">
+        <!-- Main: Name & Phone -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+          <div>
+            <label class="block font-bold text-stone-300 mb-1">Ваше ім'я:</label>
+            <input v-model="profileForm.name" placeholder="Олена, Віктор..." class="w-full bg-white/5 border border-white/20 rounded-xl p-2.5 text-xs text-white font-bold focus:border-amber-400 focus:outline-none">
+          </div>
+          <div>
+            <label class="block font-bold text-stone-300 mb-1">Номер телефону:</label>
+            <input v-model="profileForm.phone" type="tel" disabled class="w-full bg-white/5 border border-white/10 rounded-xl p-2.5 text-xs text-stone-400 font-bold cursor-not-allowed">
+          </div>
+        </div>
+
+        <!-- Birthday field -->
+        <div class="bg-gradient-to-r from-amber-500/10 via-white/5 to-rose-500/10 p-3.5 rounded-2xl border border-amber-400/30 space-y-1.5">
+          <label class="block font-extrabold text-xs text-amber-300 flex items-center space-x-1.5">
+            <span>🎂</span>
+            <span>{{ t('lbl_birthday') || 'Дата народження:' }}</span>
+            <span class="text-[10px] text-amber-400/80 font-normal">({{ t('hint_bday_discount_note') || 'для персональної знижки' }})</span>
+          </label>
+          <input v-model="profileForm.birthday" type="date" class="w-full bg-black/40 border border-white/20 rounded-xl p-2.5 text-xs text-white font-bold focus:border-amber-400 focus:outline-none">
+          <p class="text-[10px] text-stone-400">{{ t('hint_birthday_desc') || 'Вкажіть свій день народження, щоб майстер Natali підготувала вам персональну святкову знижку!' }}</p>
+        </div>
+
+        <!-- Social Networks -->
+        <div class="pt-2 border-t border-white/10 space-y-2.5">
+          <span class="block font-bold text-[11px] text-amber-300 uppercase tracking-wider">Мої контакти та соцмережі:</span>
+          
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+            <div>
+              <label class="block text-[11px] text-stone-300 mb-1 flex items-center space-x-1">
+                <i class="fa-brands fa-instagram text-rose-400"></i>
+                <span>Instagram:</span>
+              </label>
+              <input v-model="profileForm.instagram" placeholder="@olenka_nails" class="w-full bg-white/5 border border-white/20 rounded-xl p-2.5 text-xs text-white focus:border-amber-400 focus:outline-none">
+            </div>
+            <div>
+              <label class="block text-[11px] text-stone-300 mb-1 flex items-center space-x-1">
+                <i class="fa-brands fa-telegram text-sky-400"></i>
+                <span>Telegram:</span>
+              </label>
+              <input v-model="profileForm.telegram" placeholder="@username" class="w-full bg-white/5 border border-white/20 rounded-xl p-2.5 text-xs text-white focus:border-amber-400 focus:outline-none">
+            </div>
+          </div>
+        </div>
+
+        <!-- Notes -->
+        <div class="pt-2 border-t border-white/10">
+          <label class="block font-bold text-stone-300 mb-1 flex items-center space-x-1">
+            <i class="fa-regular fa-comment-dots text-amber-400"></i>
+            <span>Побажання для майстра:</span>
+          </label>
+          <textarea v-model="profileForm.notes" rows="2" placeholder="Наприклад: квадратна форма, нюдові відтінки..." class="w-full bg-white/5 border border-white/20 rounded-xl p-2.5 text-xs text-white placeholder-stone-500 focus:border-amber-400 focus:outline-none"></textarea>
+        </div>
+
+        <!-- Save Button -->
+        <button @click="saveClientProfile" :disabled="savingProfile" class="w-full bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 text-stone-950 font-black py-3 rounded-xl shadow-lg transition active:scale-95 flex items-center justify-center space-x-1.5 mt-2">
+          <i v-if="!savingProfile" class="fa-solid fa-check"></i>
+          <i v-else class="fa-solid fa-circle-notch fa-spin"></i>
+          <span>{{ savingProfile ? 'Збереження...' : 'Зберегти зміни' }}</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>
+
 </div>
 
 <script>
@@ -829,6 +952,70 @@ createApp({
       await loginWithPhone();
     }
 
+
+    const showProfileModal = ref(false);
+    const savingProfile = ref(false);
+    const profileForm = ref({
+      name: '',
+      phone: '',
+      birthday: '',
+      instagram: '',
+      telegram: '',
+      whatsapp: '',
+      notes: '',
+      avatar_url: ''
+    });
+
+    function openProfileModal() {
+      const c = client.value || {};
+      profileForm.value = {
+        name: c.name || '',
+        phone: c.phone || '',
+        birthday: c.birthday || '',
+        instagram: c.instagram || '',
+        telegram: c.telegram || '',
+        whatsapp: c.whatsapp || '',
+        notes: c.notes || '',
+        avatar_url: c.avatar_url || ''
+      };
+      showProfileModal.value = true;
+    }
+
+    async function saveClientProfile() {
+      if (!profileForm.value.name) return;
+      savingProfile.value = true;
+      try {
+        const curPhone = client.value.phone || profileForm.value.phone || localStorage.getItem('vip_phone') || '';
+        const res = await fetch('/api/client/update-profile', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            current_phone: curPhone,
+            name: profileForm.value.name.trim(),
+            phone: profileForm.value.phone.trim(),
+            birthday: (profileForm.value.birthday || '').trim(),
+            instagram: (profileForm.value.instagram || '').trim(),
+            telegram: (profileForm.value.telegram || '').trim(),
+            whatsapp: (profileForm.value.whatsapp || '').trim(),
+            notes: (profileForm.value.notes || '').trim(),
+            avatar_url: profileForm.value.avatar_url || ''
+          })
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.client) {
+            client.value = data.client;
+          }
+          showProfileModal.value = false;
+          await loadDiscountsAndAchievements();
+          showToast("Профіль успішно оновлено! ✨");
+        }
+      } catch (e) {
+        showToast("Помилка збереження");
+      } finally {
+        savingProfile.value = false;
+      }
+    }
 
     const clientDiscounts = ref([]);
     const clientAchievements = ref([]);
@@ -1259,7 +1446,7 @@ createApp({
     return {
       getRewardTitle, getRewardDesc,
       showLangModal, currentLang, availableLangs, setLang, t, allAvailableEmojis,
-      isLoggedIn, loginPhone, activeTab, client, appointments, reviews, clientDiscounts, clientAchievements, loadDiscountsAndAchievements,
+      isLoggedIn, loginPhone, activeTab, client, appointments, reviews, showProfileModal, savingProfile, profileForm, openProfileModal, saveClientProfile, clientDiscounts, clientAchievements, loadDiscountsAndAchievements,
       toast, rewardsCatalog, newReview, unlockedEmojisList, isRewardOwned,
       loginWithPhone, loginWithSocial, redeem, showInstallModal, triggerInstall, authMode, regForm, socialModal, openSocialModal, submitSocialModal,
       showAvatarModal,
@@ -1271,5 +1458,3 @@ createApp({
   }
 }).mount('#vip-app');
 </script>
-</body>
-</html>

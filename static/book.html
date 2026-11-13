@@ -463,21 +463,41 @@
     </div>
 
     <!-- Available Discounts Selector -->
-    <div v-if="availableDiscounts.length > 0 && !appliedDiscount" class="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200/80 rounded-3xl p-4 space-y-2.5 shadow-sm">
+    <div v-if="(availableDiscounts.length > 0 || upcomingDiscounts.length > 0) && !appliedDiscount" class="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200/80 rounded-3xl p-4 space-y-3 shadow-sm">
       <div class="flex items-center justify-between">
         <div class="flex items-center space-x-1.5 text-xs font-bold text-amber-950">
           <span>🎁</span>
-          <span>{{ t('discounts_title') || 'Ваші персональні святкові знижки' }}:</span>
+          <span>{{ t('discounts_title') || 'Святкові та персональні знижки' }}:</span>
         </div>
-        <span class="text-[10px] text-stone-500">{{ availableDiscounts.length }} {{ t('disc_available') || 'доступно' }}</span>
+        <span class="text-[10px] text-amber-800 font-bold bg-amber-200/60 px-2 py-0.5 rounded-full">{{ availableDiscounts.length }} {{ t('disc_available') || 'активно' }}</span>
       </div>
-      <div class="flex flex-wrap gap-2">
+
+      <!-- Active right now -->
+      <div v-if="availableDiscounts.length > 0" class="flex flex-wrap gap-2">
         <button v-for="d in availableDiscounts" :key="d.id" @click="appliedDiscount = d" type="button" class="bg-amber-400 hover:bg-amber-300 text-stone-950 text-xs font-bold px-3 py-1.5 rounded-xl transition shadow-sm active:scale-95 flex items-center space-x-1.5">
-          <span>{{ d.id === 'bday' ? '🎂' : (d.id === 'loyalty' ? '💎' : '🌸') }}</span>
+          <span>{{ d.id === 'bday' ? '🎂' : (d.id === 'loyalty' ? '💎' : (d.id === 'valentine' ? '❤️' : (d.id === 'newyear' ? '❄️' : '🌸'))) }}</span>
           <span>{{ t(d.title_key) || d.title }}</span>
           <span class="bg-stone-950 text-amber-300 px-1.5 py-0.2 rounded text-[10px] ml-0.5">-{{ d.percent }}%</span>
           <span>➔</span>
         </button>
+      </div>
+
+      <!-- Upcoming / Need birthday -->
+      <div v-if="upcomingDiscounts.length > 0" class="space-y-1.5 pt-2 border-t border-amber-200/60">
+        <div class="text-[11px] font-bold text-stone-600 flex items-center space-x-1">
+          <i class="fa-regular fa-clock text-stone-400"></i>
+          <span>Очікують настання свята або заповнення профілю:</span>
+        </div>
+        <div class="flex flex-wrap gap-1.5">
+          <div v-for="d in upcomingDiscounts" :key="d.id" class="bg-white/80 border border-stone-200 text-stone-600 px-2.5 py-1 rounded-xl text-[10px] flex items-center space-x-1.5">
+            <span>{{ d.id === 'bday' ? '🎂' : (d.id === 'loyalty' ? '💎' : (d.id === 'valentine' ? '❤️' : (d.id === 'newyear' ? '❄️' : '🌸'))) }}</span>
+            <span class="font-semibold">{{ t(d.title_key) || d.title }}</span>
+            <span class="text-stone-400">({{ d.status === 'need_birthday' ? t('disc_need_birthday') : (d.target_date || t(d.badge_key) || d.message) }})</span>
+            <button v-if="d.status === 'need_birthday'" @click="openProfileModal" type="button" class="text-amber-600 hover:text-amber-700 font-bold underline ml-1">
+              {{ t('btn_set_birthday') || 'Вказати ДР' }}
+            </button>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -763,6 +783,17 @@
             <label class="block font-bold text-stone-300 mb-1">Номер телефону:</label>
             <input v-model="profileForm.phone" type="tel" placeholder="+380... або +34..." class="w-full bg-white/5 border border-white/20 rounded-xl p-2.5 text-xs text-white font-bold focus:border-amber-400 focus:outline-none">
           </div>
+        </div>
+
+        <!-- Birthday field -->
+        <div class="bg-gradient-to-r from-amber-500/10 via-white/5 to-rose-500/10 p-3 rounded-2xl border border-amber-400/30 space-y-1.5">
+          <label class="block font-extrabold text-xs text-amber-300 flex items-center space-x-1.5">
+            <span>🎂</span>
+            <span>{{ t('lbl_birthday') || 'Дата народження:' }}</span>
+            <span class="text-[10px] text-amber-400/80 font-normal">({{ t('hint_bday_discount_note') || 'для святкової знижки' }})</span>
+          </label>
+          <input v-model="profileForm.birthday" type="date" class="w-full bg-black/40 border border-white/20 rounded-xl p-2.5 text-xs text-white font-bold focus:border-amber-400 focus:outline-none">
+          <p class="text-[10px] text-stone-400">{{ t('hint_birthday_desc') || 'Вкажіть свій день народження, щоб майстер Natali підготувала вам персональну святкову знижку!' }}</p>
         </div>
 
         <!-- Social Networks (Instagram, Telegram, WhatsApp, Facebook) -->
@@ -1268,7 +1299,11 @@ createApp({
     const clientDiscountsList = ref([]);
 
     const availableDiscounts = computed(() => {
-      return (clientDiscountsList.value || []).filter(d => !d.is_used && d.active !== 0);
+      return (clientDiscountsList.value || []).filter(d => !d.is_used && d.active !== 0 && d.can_apply);
+    });
+
+    const upcomingDiscounts = computed(() => {
+      return (clientDiscountsList.value || []).filter(d => !d.is_used && d.active !== 0 && !d.can_apply);
     });
 
     const discountAmount = computed(() => {
@@ -2032,6 +2067,7 @@ createApp({
     const profileForm = ref({
       name: '',
       phone: '',
+      birthday: '',
       instagram: '',
       telegram: '',
       whatsapp: '',
@@ -2067,6 +2103,7 @@ createApp({
       profileForm.value = {
         name: c.name || clientName.value || localStorage.getItem('client_name') || '',
         phone: c.phone || clientPhone.value || localStorage.getItem('vip_phone') || '',
+        birthday: c.birthday || '',
         instagram: c.instagram || '',
         telegram: c.telegram || '',
         whatsapp: c.whatsapp || '',
@@ -2096,6 +2133,7 @@ createApp({
             current_phone: curPhone,
             name: profileForm.value.name.trim(),
             phone: profileForm.value.phone.trim(),
+            birthday: (profileForm.value.birthday || '').trim(),
             instagram: (profileForm.value.instagram || '').trim(),
             telegram: (profileForm.value.telegram || '').trim(),
             whatsapp: (profileForm.value.whatsapp || '').trim(),
@@ -2109,6 +2147,7 @@ createApp({
           loggedInClient.value = data.client;
           clientName.value = data.client.name;
           clientPhone.value = data.client.phone;
+          fetchClientDiscounts(data.client.phone);
           localStorage.setItem('vip_phone', data.client.phone);
           localStorage.setItem('client_phone', data.client.phone);
           localStorage.setItem('client_name', data.client.name);
@@ -2141,7 +2180,7 @@ createApp({
       getCategoryName,
       currentLang, availableLangs, setLang, t, toast,
       step, settings, services, categories, selectedCategory, filteredServices,
-      selectedServices, totalDuration, totalPrice, finalTotalPrice, appliedDiscount, availableDiscounts, discountAmount, selectedServiceNames,
+      selectedServices, totalDuration, totalPrice, finalTotalPrice, appliedDiscount, availableDiscounts, upcomingDiscounts, discountAmount, selectedServiceNames,
       days, bookingDate, bookingTime, availableSlots, loadingSlots,
       clientName, clientPhone, clientNotes, submitting,
       clientRecognized, formatWorkSchedule, isServiceSelected, toggleService, selectDate, goToStep2,
