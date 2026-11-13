@@ -612,10 +612,28 @@
           <h2 class="font-extrabold text-xl text-stone-900">{{ t('clients_title') }}</h2>
           <p class="text-xs text-stone-500">{{ t('total_clients') }}: {{ clients.length }}</p>
         </div>
-        <button @click="openNewClientModal" class="bg-stone-900 hover:bg-black text-white text-xs font-bold px-3.5 py-2 rounded-xl shadow-md flex items-center space-x-1.5">
-          <i class="fa-solid fa-plus text-xs"></i>
-          <span>{{ t('btn_add_client') }}</span>
-        </button>
+        <div class="flex items-center space-x-2">
+          <a href="/api/clients/backup/download" download="clients_backup.json" class="bg-stone-100 hover:bg-stone-200 text-stone-700 text-xs font-bold px-3 py-2 rounded-xl transition flex items-center space-x-1 border border-stone-200" title="Завантажити резервну копію бази клієнтів (JSON)">
+            <i class="fa-solid fa-cloud-arrow-down text-xs text-rose-500"></i>
+            <span>Бекап JSON</span>
+          </a>
+          <button @click="openNewClientModal" class="bg-stone-900 hover:bg-black text-white text-xs font-bold px-3.5 py-2 rounded-xl shadow-md flex items-center space-x-1.5">
+            <i class="fa-solid fa-plus text-xs"></i>
+            <span>{{ t('btn_add_client') }}</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Data Persistence Safety Badge -->
+      <div class="bg-emerald-50 border border-emerald-200 rounded-2xl p-3 flex items-center justify-between text-xs">
+        <div class="flex items-center space-x-2 text-emerald-900 font-semibold">
+          <i class="fa-solid fa-shield-halved text-emerald-600 text-sm"></i>
+          <span>База клієнтів захищена від видалення при оновленнях</span>
+        </div>
+        <span class="text-[10px] font-bold bg-emerald-600 text-white px-2.5 py-0.5 rounded-full flex items-center space-x-1">
+          <i class="fa-solid fa-check text-[9px]"></i>
+          <span>Автозбереження активне</span>
+        </span>
       </div>
 
       <div class="relative">
@@ -863,8 +881,8 @@
             <div class="pt-2 border-t border-stone-200/60 flex items-center justify-between">
               <span class="text-xs font-bold text-stone-700">Знижка:</span>
               <div class="flex items-center space-x-1.5">
-                <input v-model.number="h.percent" @change="saveHolidayDiscount(h)" type="number" min="1" max="50" class="w-14 bg-white border border-stone-300 rounded-lg p-1 text-xs font-black text-rose-600 text-center focus:ring-2 focus:ring-rose-500 focus:outline-none">
-                <span class="text-xs font-bold text-stone-800">%</span>
+                <input v-model.number="h.percent" @change="saveHolidayDiscount(h)" type="number" min="1" max="100" class="w-14 bg-white border border-stone-300 rounded-lg p-1 text-xs font-black text-rose-600 text-center focus:ring-2 focus:ring-rose-500 focus:outline-none">
+                <span class="text-xs font-bold text-stone-800">{{ h.discount_unit || '%' }}</span>
               </div>
             </div>
           </div>
@@ -2792,15 +2810,23 @@ createApp({
     }
 
     function openNewAppointmentModal() {
-      formApp.value.date = selectedDate.value;
-      if (services.value.length > 0) {
+      formApp.value.date = selectedDate.value || todayStr;
+      formApp.value.time = formApp.value.time || '12:00';
+      if (services.value && services.value.length > 0) {
+        if (!selectedServiceId.value || !services.value.find(s => s.id === selectedServiceId.value)) {
+          selectedServiceId.value = services.value[0].id;
+        }
         onServiceSelectChange();
+      } else {
+        formApp.value.service_names = 'Манікюр';
+        formApp.value.total_price = 35;
+        formApp.value.duration_minutes = 60;
       }
       modals.value.newAppointment = true;
     }
 
     function onServiceSelectChange() {
-      const s = services.value.find(item => item.id === selectedServiceId.value);
+      const s = (services.value || []).find(item => item.id === selectedServiceId.value) || (services.value && services.value[0]);
       if (s) {
         formApp.value.service_names = s.name;
         formApp.value.total_price = s.price;
@@ -2809,19 +2835,53 @@ createApp({
     }
 
     async function saveNewAppointment() {
-      if (!formApp.value.client_name || !formApp.value.client_phone) {
-        alert("Please enter client name and phone");
+      const name = (formApp.value.client_name || '').trim();
+      const phone = (formApp.value.client_phone || '').trim();
+      if (!name || !phone) {
+        alert("Будь ласка, введіть ім'я та номер телефону клієнта");
         return;
       }
-      await fetch('/api/appointments', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formApp.value)
-      });
-      modals.value.newAppointment = false;
-      await loadAppointments();
-      await loadClients();
-      showToast(t('status_confirmed'));
+
+      let sName = formApp.value.service_names;
+      if (!sName && services.value && services.value.length > 0) {
+        const s = services.value.find(item => item.id === selectedServiceId.value) || services.value[0];
+        sName = s.name;
+        if (!formApp.value.total_price) formApp.value.total_price = s.price;
+        if (!formApp.value.duration_minutes) formApp.value.duration_minutes = s.duration_minutes;
+      }
+      if (!sName) sName = 'Манікюр';
+
+      const payload = {
+        client_name: name,
+        client_phone: phone,
+        service_names: sName,
+        date: formApp.value.date || selectedDate.value || todayStr,
+        time: (formApp.value.time || '12:00').substring(0, 5),
+        duration_minutes: Number(formApp.value.duration_minutes) || 60,
+        total_price: Number(formApp.value.total_price) || 35.0,
+        payment_method: formApp.value.payment_method || 'cash',
+        notes: formApp.value.notes || '',
+        source: 'master'
+      };
+
+      try {
+        const res = await fetch('/api/appointments', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        if (res.ok) {
+          modals.value.newAppointment = false;
+          await loadAppointments();
+          await loadClients();
+          showToast(t('status_confirmed') || 'Запис успішно створено!');
+        } else {
+          const errData = await res.json().catch(() => ({ detail: 'Помилка збереження запису' }));
+          alert('Помилка: ' + (errData.detail || 'Не вдалося створити запис'));
+        }
+      } catch (err) {
+        alert("Помилка з'єднання: " + err.message);
+      }
     }
 
     const formIncome = ref({

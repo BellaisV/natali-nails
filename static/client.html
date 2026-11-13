@@ -336,7 +336,7 @@
           <div v-for="d in clientDiscounts" :key="d.id" :class="d.is_used ? 'bg-white/[0.03] border-white/5 opacity-60' : (d.can_apply ? 'bg-gradient-to-r from-amber-950/40 via-stone-900 to-amber-950/40 border-amber-400/50 shadow-lg' : 'bg-stone-900/60 border-white/10 opacity-80')" class="border rounded-2xl p-3.5 space-y-2 transition">
             <div class="flex items-center justify-between">
               <div class="flex items-center space-x-2.5">
-                <span class="text-2xl">{{ d.id === 'bday' ? '🎂' : (d.id === 'loyalty' ? '💎' : (d.id === 'valentine' ? '❤️' : (d.id === 'newyear' ? '❄️' : (d.id === 'march8' ? '🌸' : '🔥')))) }}</span>
+                <span class="text-2xl">{{ d.icon || (d.id === 'bday' ? '🎂' : (d.id === 'loyalty' ? '💎' : (d.id === 'valentine' ? '❤️' : (d.id === 'newyear' ? '❄️' : (d.id === 'march8' ? '🌸' : (d.id === 'manicure_5eur' ? '💅' : '🔥')))))) }}</span>
                 <div>
                   <div class="flex items-center space-x-2">
                     <h4 class="font-bold text-xs text-white">{{ t(d.title_key) || d.title || 'Святкова знижка' }}</h4>
@@ -346,7 +346,7 @@
                 </div>
               </div>
               <div class="text-right">
-                <span class="text-base font-black text-amber-400">-{{ d.percent }}%</span>
+                <span class="text-base font-black text-amber-400">-{{ d.percent }}{{ d.discount_unit || '%' }}</span>
               </div>
             </div>
 

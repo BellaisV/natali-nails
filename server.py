@@ -199,6 +199,137 @@ def auto_translate_service(name: str, description: str = "") -> dict:
         "description": res_descs
     }
 
+
+# --- Persistent Clients & Data Protection Engine ---
+BACKUP_FILE = "clients_backup.json"
+APPOINTMENTS_BACKUP_FILE = "appointments_backup.json"
+GITHUB_BACKUP_TOKEN = os.environ.get("GITHUB_TOKEN", "")
+GITHUB_BACKUP_REPO = os.environ.get("GITHUB_REPO", "BellaisV/natali-nails")
+
+def export_clients_backup():
+    """Exports all current clients to clients_backup.json to prevent data loss on updates."""
+    try:
+        conn = get_db()
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM clients")
+        rows = [dict(r) for r in cursor.fetchall()]
+        conn.close()
+        with open(BACKUP_FILE, "w", encoding="utf-8") as f:
+            json.dump(rows, f, ensure_ascii=False, indent=2)
+        return len(rows)
+    except Exception as e:
+        print(f"[BACKUP EXPORT ERROR] {e}")
+        return 0
+
+def export_appointments_backup():
+    """Exports appointments to appointments_backup.json."""
+    try:
+        conn = get_db()
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM appointments")
+        rows = [dict(r) for r in cursor.fetchall()]
+        conn.close()
+        with open(APPOINTMENTS_BACKUP_FILE, "w", encoding="utf-8") as f:
+            json.dump(rows, f, ensure_ascii=False, indent=2)
+        return len(rows)
+    except Exception as e:
+        return 0
+
+def restore_clients_from_backup():
+    """Restores any missing clients from clients_backup.json without overwriting existing clients."""
+    if not os.path.exists(BACKUP_FILE):
+        return 0
+    try:
+        with open(BACKUP_FILE, "r", encoding="utf-8") as f:
+            backup_clients = json.load(f)
+        if not isinstance(backup_clients, list):
+            return 0
+        conn = get_db()
+        cursor = conn.cursor()
+        restored = 0
+        for c in backup_clients:
+            phone = (c.get("phone") or "").strip()
+            name = (c.get("name") or "").strip()
+            if not phone and not name:
+                continue
+            if phone:
+                cursor.execute("SELECT id FROM clients WHERE phone = ?", (phone,))
+            else:
+                cursor.execute("SELECT id FROM clients WHERE name = ?", (name,))
+            existing = cursor.fetchone()
+            if not existing:
+                cursor.execute("""
+                    INSERT INTO clients (name, phone, points, vip_tier, unlocked_emojis, created_at, is_vip, birthday, discounts_json, redeemed_perks_json, achievements_json, password, telegram, whatsapp, facebook, notes, avatar_url, instagram)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, (
+                    name, phone, c.get("points", 50), c.get("vip_tier", "Gold VIP"),
+                    c.get("unlocked_emojis", "💅,✨,💖"), c.get("created_at", datetime.now().isoformat()),
+                    c.get("is_vip", 0), c.get("birthday", ""), c.get("discounts_json", "[]"),
+                    c.get("redeemed_perks_json", "[]"), c.get("achievements_json", "[]"),
+                    c.get("password", ""), c.get("telegram", ""), c.get("whatsapp", ""),
+                    c.get("facebook", ""), c.get("notes", ""), c.get("avatar_url", ""),
+                    c.get("instagram", "")
+                ))
+                restored += 1
+            else:
+                cid = existing[0]
+                if c.get("password"):
+                    cursor.execute("UPDATE clients SET password = ? WHERE id = ? AND (password IS NULL OR password = '')", (c.get("password"), cid))
+                if c.get("is_vip"):
+                    cursor.execute("UPDATE clients SET is_vip = 1 WHERE id = ?", (cid,))
+        conn.commit()
+        conn.close()
+        if restored > 0:
+            print(f"[DATA RESTORE] Restored {restored} clients from backup!")
+        return restored
+    except Exception as e:
+        print(f"[DATA RESTORE ERROR] {e}")
+        return 0
+
+def sync_backup_to_cloud_async():
+    """Asynchronously saves clients_backup.json and syncs to GitHub."""
+    def _worker():
+        try:
+            export_clients_backup()
+            export_appointments_backup()
+            if not GITHUB_BACKUP_TOKEN or not GITHUB_BACKUP_REPO:
+                return
+            if not os.path.exists(BACKUP_FILE):
+                return
+            with open(BACKUP_FILE, "r", encoding="utf-8") as f:
+                content_str = f.read()
+            b64 = base64.b64encode(content_str.encode("utf-8")).decode("utf-8")
+            url = f"https://api.github.com/repos/{GITHUB_BACKUP_REPO}/contents/{BACKUP_FILE}"
+            headers = {
+                "Authorization": f"Bearer {GITHUB_BACKUP_TOKEN}",
+                "Accept": "application/vnd.github+json",
+                "User-Agent": "Natali-Nails-AutoBackup"
+            }
+            sha = None
+            try:
+                check_req = urllib.request.Request(url, headers=headers)
+                with urllib.request.urlopen(check_req) as resp:
+                    cur_data = json.loads(resp.read().decode("utf-8"))
+                    sha = cur_data.get("sha")
+            except Exception:
+                pass
+            payload = {
+                "message": "Auto-persist clients database backup",
+                "content": b64
+            }
+            if sha:
+                payload["sha"] = sha
+            put_req = urllib.request.Request(url, data=json.dumps(payload).encode("utf-8"), headers=headers, method="PUT")
+            with urllib.request.urlopen(put_req) as resp:
+                pass
+        except Exception:
+            pass
+    threading.Thread(target=_worker, daemon=True).start()
+
+def on_client_data_changed():
+    export_clients_backup()
+    sync_backup_to_cloud_async()
+
 def init_db():
     conn = get_db()
     cursor = conn.cursor()
@@ -778,9 +909,21 @@ class ClientPaymentNotifyRequest(BaseModel):
 
 # --- Authentication Helpers ---
 def add_minutes(time_str: str, minutes: int) -> str:
-    t = datetime.strptime(time_str, "%H:%M")
-    new_t = t + timedelta(minutes=minutes)
-    return new_t.strftime("%H:%M")
+    if not time_str:
+        return "12:00"
+    time_clean = time_str.strip()[:5]
+    try:
+        t = datetime.strptime(time_clean, "%H:%M")
+        new_t = t + timedelta(minutes=int(minutes or 60))
+        return new_t.strftime("%H:%M")
+    except Exception:
+        try:
+            parts = time_clean.split(":")
+            h, m = int(parts[0]), int(parts[1])
+            tot = h * 60 + m + int(minutes or 60)
+            return f"{(tot // 60) % 24:02d}:{tot % 60:02d}"
+        except Exception:
+            return "12:00" 
 
 def time_to_minutes(t_str: str) -> int:
     h, m = map(int, t_str.split(":"))
@@ -974,7 +1117,23 @@ def delete_service(service_id: int):
     cursor.execute("DELETE FROM services WHERE id = ?", (service_id,))
     conn.commit()
     conn.close()
+    on_client_data_changed()
     return {"status": "deleted"}
+
+
+@app.get("/api/clients/backup/download")
+def download_clients_backup():
+    """Allows admin to download the full clients database as JSON backup."""
+    export_clients_backup()
+    if os.path.exists(BACKUP_FILE):
+        return FileResponse(BACKUP_FILE, media_type="application/json", filename="clients_backup.json")
+    return {"status": "error", "message": "No backup file found"}
+
+@app.post("/api/clients/backup/restore")
+def restore_clients_backup():
+    """Restores clients from clients_backup.json into database."""
+    count = restore_clients_from_backup()
+    return {"status": "ok", "restored": count, "message": f"Відновлено {count} клієнтів"}
 
 @app.get("/api/clients")
 def get_clients():
@@ -1005,6 +1164,7 @@ def create_client(data: ClientCreate):
     conn.commit()
     cid = cursor.lastrowid
     conn.close()
+    on_client_data_changed()
     return {"id": cid, "status": "created"}
 
 @app.put("/api/clients/{client_id}")
@@ -1130,6 +1290,8 @@ def create_appointment(data: AppointmentCreate):
     conn.commit()
     aid = cursor.lastrowid
     conn.close()
+    on_client_data_changed()
+    export_appointments_backup()
     return {"id": aid, "status": "created"}
 
 @app.patch("/api/appointments/{app_id}/status")
@@ -2602,7 +2764,8 @@ def get_default_discounts_for_client(client_row):
         {"id": "loyalty", "type": "loyalty", "percent": 1, "is_used": 0, "title_key": "disc_loyalty_title", "desc_key": "disc_loyalty_desc", "active": 1},
         {"id": "march8", "type": "march8", "percent": 1, "is_used": 0, "title_key": "disc_march8_title", "desc_key": "disc_march8_desc", "active": 1},
         {"id": "valentine", "type": "valentine", "percent": 1, "is_used": 0, "title_key": "disc_valentine_title", "desc_key": "disc_valentine_desc", "active": 1},
-        {"id": "newyear", "type": "newyear", "percent": 1, "is_used": 0, "title_key": "disc_newyear_title", "desc_key": "disc_newyear_desc", "active": 1}
+        {"id": "newyear", "type": "newyear", "percent": 1, "is_used": 0, "title_key": "disc_newyear_title", "desc_key": "disc_newyear_desc", "active": 1},
+        {"id": "manicure_5eur", "type": "manicure_discount", "percent": 5, "is_used": 0, "title_key": "disc_manicure_title", "desc_key": "disc_manicure_desc", "discount_unit": "€", "active": 1}
     ]
 
 def calculate_account_age_days(created_str: str) -> int:

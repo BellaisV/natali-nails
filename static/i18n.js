@@ -3,6 +3,9 @@
 
 const I18N = {
   uk: {
+    disc_manicure_title: 'Знижка на кожен манікюр',
+    disc_manicure_desc: 'Фіксована знижка на будь-яку послугу манікюру від майстра Natali',
+    disc_manicure_active: '💅 Знижка на манікюр активна',
     vip_beauty_club: 'VIP Beauty Club',
     vip_club_sub: 'Закритий клуб клієнток',
     vip_club_btn: 'VIP Клуб',
@@ -361,6 +364,9 @@ const I18N = {
   },
 
   en: {
+    disc_manicure_title: 'Discount on every manicure',
+    disc_manicure_desc: 'Fixed discount on any manicure service by master Natali',
+    disc_manicure_active: '💅 Manicure discount active',
     vip_beauty_club: 'VIP Beauty Club',
     vip_club_sub: 'Exclusive Client Club',
     vip_club_btn: 'VIP Club',
@@ -708,6 +714,9 @@ const I18N = {
   },
 
   es: {
+    disc_manicure_title: 'Descuento en cada manicura',
+    disc_manicure_desc: 'Descuento fijo en cualquier servicio de manicura por Natali',
+    disc_manicure_active: '💅 Descuento de manicura activo',
     vip_beauty_club: 'VIP Beauty Club',
     vip_club_sub: 'Club Privado de Clientas',
     vip_club_btn: 'Club VIP',
@@ -1055,6 +1064,9 @@ const I18N = {
   },
 
   de: {
+    disc_manicure_title: 'Rabatt auf jede Maniküre',
+    disc_manicure_desc: 'Fester Rabatt auf jede Maniküre bei Stylistin Natali',
+    disc_manicure_active: '💅 Maniküre-Rabatt aktiv',
     vip_beauty_club: 'VIP Beauty Club',
     vip_club_sub: 'Exklusiver Kundenclub',
     vip_club_btn: 'VIP Club',
@@ -1402,6 +1414,9 @@ const I18N = {
   },
 
   ru: {
+    disc_manicure_title: 'Скидка на каждый маникюр',
+    disc_manicure_desc: 'Фиксированная скидка на любую услугу маникюра от мастера Natali',
+    disc_manicure_active: '💅 Скидка на маникюр активна',
     vip_beauty_club: 'VIP Beauty Club',
     vip_club_sub: 'Закрытый клуб клиенток',
     vip_club_btn: 'VIP Клуб',

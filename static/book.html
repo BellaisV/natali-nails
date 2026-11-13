@@ -433,7 +433,7 @@
         <div v-if="appliedDiscount" class="flex justify-between text-xs text-amber-700 font-bold bg-amber-50 p-2.5 rounded-2xl border border-amber-200">
           <span class="flex items-center space-x-1">
             <span>🎁</span>
-            <span>{{ t(appliedDiscount.title_key) || appliedDiscount.title || 'Знижка' }} (-{{ appliedDiscount.percent }}%):</span>
+            <span>{{ t(appliedDiscount.title_key) || appliedDiscount.title || 'Знижка' }} (-{{ appliedDiscount.percent }}{{ appliedDiscount.discount_unit || '%' }}):</span>
           </span>
           <span>-{{ discountAmount }} {{ settings.currency || '€' }}</span>
         </div>
@@ -1357,7 +1357,12 @@ createApp({
     });
 
     const discountAmount = computed(() => {
-      if (!appliedDiscount.value || !appliedDiscount.value.percent) return 0;
+      if (!appliedDiscount.value) return 0;
+      if (appliedDiscount.value.discount_unit === '€' || appliedDiscount.value.type === 'manicure_discount' || appliedDiscount.value.id === 'manicure_5eur') {
+        const val = Number(appliedDiscount.value.percent || appliedDiscount.value.fixed_amount || 5);
+        return Math.min(totalPrice.value, val);
+      }
+      if (!appliedDiscount.value.percent) return 0;
       const amount = (totalPrice.value * (Number(appliedDiscount.value.percent) || 0)) / 100;
       return Math.round(amount * 100) / 100;
     });
