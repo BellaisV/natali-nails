@@ -44,8 +44,10 @@
         <i class="fa-solid fa-arrow-left text-[10px]"></i>
         <span>{{ t("vip_back_book") }}</span>
       </a>
-      <div class="w-7 h-7 rounded-full bg-gradient-to-tr from-amber-400 to-rose-500 flex items-center justify-center text-white text-xs shadow-md">
-        <i class="fa-solid fa-crown text-[10px]"></i>
+      <div class="w-8 h-8 rounded-full bg-gradient-to-br from-[#1C1715] via-stone-900 to-amber-950 border border-amber-400/60 ring-2 ring-amber-400/30 flex items-center justify-center text-amber-300 shadow-xl relative overflow-hidden flex-shrink-0">
+        <div class="absolute inset-0 bg-gradient-to-tr from-amber-400/15 via-transparent to-rose-400/20"></div>
+        <span class="font-serif-luxury font-black text-xs text-amber-300">N</span>
+        <span class="absolute -bottom-1 -right-0.5 text-[8px]">✨</span>
       </div>
       <div>
         <h1 class="font-bold text-xs tracking-wider text-amber-200 uppercase">VIP Beauty Club</h1>
@@ -173,9 +175,9 @@
       <div class="flex items-center justify-between">
         <div class="flex items-center space-x-3">
           <div class="relative cursor-pointer group" @click="showAvatarModal = true" title="Натисніть, щоб змінити фото">
-            <div class="w-14 h-14 rounded-full ring-2 ring-amber-400/50 p-0.5 bg-gradient-to-tr from-rose-500 to-amber-300 flex items-center justify-center text-white font-serif-luxury text-xl font-bold shadow-lg overflow-hidden">
+            <div class="w-14 h-14 rounded-full ring-2 ring-amber-400/80 p-0.5 bg-gradient-to-br from-[#1C1715] via-stone-900 to-amber-950 border border-amber-400/40 flex items-center justify-center text-amber-300 font-serif-luxury text-xl font-bold shadow-xl overflow-hidden relative">
               <img v-if="client.avatar_url" :src="client.avatar_url" class="w-full h-full object-cover rounded-full">
-              <span v-else>{{ client.name ? client.name.split(' ').map(n=>n[0]).join('') : 'VIP' }}</span>
+              <span v-else class="text-amber-300 font-serif-luxury font-black text-lg drop-shadow">{{ client.name ? client.name.split(' ').map(n=>n[0]).join('') : 'VIP' }}</span>
             </div>
             <div class="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-amber-400 text-stone-950 flex items-center justify-center text-[10px] font-bold shadow border border-stone-900 group-hover:scale-110 transition">
               <i class="fa-solid fa-camera"></i>
@@ -258,6 +260,38 @@
       <div class="flex items-center justify-between px-1">
         <h3 class="font-bold text-sm text-stone-200">{{ t('vip_exclusive_rewards') }}</h3>
         <span class="text-[11px] text-amber-300">{{ t('vip_balance_label') }} {{ client.points || 0 }} 💎</span>
+      </div>
+
+      <!-- My Redeemed Perks (Coffee, Discounts, Treats) Ready for Booking -->
+      <div v-if="clientRedeemedPerks.length > 0" class="bg-gradient-to-r from-amber-950/50 via-stone-900 to-amber-950/50 border border-amber-400/40 rounded-2xl p-3.5 space-y-2.5 shadow-lg text-left">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center space-x-2">
+            <span class="text-xl">🎁</span>
+            <div>
+              <h4 class="font-extrabold text-xs text-white">Мої придбані бонуси до візиту:</h4>
+              <p class="text-[10px] text-stone-400">Ви можете використати їх при наступному онлайн-записі</p>
+            </div>
+          </div>
+          <span class="text-xs font-black text-amber-300 bg-amber-400/10 border border-amber-400/30 px-2 py-0.5 rounded-full">
+            {{ clientRedeemedPerks.length }} в наявності
+          </span>
+        </div>
+
+        <div class="grid grid-cols-1 gap-2">
+          <div v-for="p in clientRedeemedPerks" :key="p.id" class="bg-white/5 border border-white/10 rounded-xl p-2.5 flex items-center justify-between">
+            <div class="flex items-center space-x-2.5">
+              <span class="text-xl">{{ p.icon || '🎁' }}</span>
+              <div>
+                <div class="font-extrabold text-xs text-white">{{ p.title }}</div>
+                <div class="text-[10px] text-emerald-400">✓ Можна застосувати під час запису</div>
+              </div>
+            </div>
+            <a :href="'/book?perk=' + p.id" class="text-xs bg-amber-400 hover:bg-amber-300 text-stone-950 font-black px-3 py-1.5 rounded-xl transition shadow active:scale-95 flex items-center space-x-1">
+              <span>Записатися</span>
+              <span>➔</span>
+            </a>
+          </div>
+        </div>
       </div>
 
       <div class="grid grid-cols-2 gap-2.5">
@@ -632,8 +666,10 @@
     <div class="bg-[#1C1715] text-white w-full max-w-md max-h-[90vh] overflow-y-auto hide-scrollbar rounded-t-3xl sm:rounded-3xl p-5 sm:p-6 space-y-4 border border-white/15 shadow-2xl">
       <div class="flex items-center justify-between pb-3 border-b border-white/10">
         <div class="flex items-center space-x-2.5">
-          <div class="w-9 h-9 rounded-full bg-gradient-to-tr from-rose-500 to-amber-400 flex items-center justify-center text-white text-sm font-bold shadow">
-            <i class="fa-solid fa-crown text-xs"></i>
+          <div class="w-10 h-10 rounded-full bg-gradient-to-br from-[#1C1715] via-stone-900 to-amber-950 border border-amber-400/60 ring-2 ring-amber-400/30 flex items-center justify-center text-amber-300 shadow-xl relative overflow-hidden flex-shrink-0">
+            <div class="absolute inset-0 bg-gradient-to-tr from-amber-400/15 via-transparent to-rose-400/20"></div>
+            <span class="font-serif-luxury font-black text-sm text-amber-300">N</span>
+            <span class="absolute -bottom-1 -right-0.5 text-[9px]">✨</span>
           </div>
           <div>
             <h3 class="font-bold text-sm text-white">Мій профіль</h3>
@@ -909,7 +945,11 @@ createApp({
     function isRewardOwned(item) {
       if (!item) return false;
       const str = String(item.icon || item.id || item);
-      if (str.includes('🏷️') || str.includes('1.5') || str.includes('2.5') || str.includes('знижк') || str.includes('Знижка') || item.reward_type === 'discount') return false;
+      const title = String(item.title || '').toLowerCase();
+      // Coffee, Prosecco, discounts, gifts, and spa treats are repeatable and NEVER locked!
+      if (item.reward_type !== 'emoji' || str.includes('☕') || str.includes('🏷️') || str.includes('🌸') || title.includes('кав') || title.includes('знижк') || title.includes('spa') || title.includes('prosecco')) {
+        return false;
+      }
       return unlockedEmojisList.value.includes(str);
     }
 
@@ -1019,6 +1059,7 @@ createApp({
 
     const clientDiscounts = ref([]);
     const clientAchievements = ref([]);
+    const clientRedeemedPerks = ref([]);
 
     async function loadDiscountsAndAchievements() {
       const p = client.value.phone || localStorage.getItem('vip_phone') || '';
@@ -1029,6 +1070,7 @@ createApp({
           const data = await res.json();
           clientDiscounts.value = data.discounts || [];
           clientAchievements.value = data.achievements || [];
+          clientRedeemedPerks.value = data.redeemed_perks || [];
         }
       } catch (e) {}
     }
@@ -1446,7 +1488,7 @@ createApp({
     return {
       getRewardTitle, getRewardDesc,
       showLangModal, currentLang, availableLangs, setLang, t, allAvailableEmojis,
-      isLoggedIn, loginPhone, activeTab, client, appointments, reviews, showProfileModal, savingProfile, profileForm, openProfileModal, saveClientProfile, clientDiscounts, clientAchievements, loadDiscountsAndAchievements,
+      isLoggedIn, loginPhone, activeTab, client, appointments, reviews, showProfileModal, savingProfile, profileForm, openProfileModal, saveClientProfile, clientDiscounts, clientAchievements, clientRedeemedPerks, loadDiscountsAndAchievements,
       toast, rewardsCatalog, newReview, unlockedEmojisList, isRewardOwned,
       loginWithPhone, loginWithSocial, redeem, showInstallModal, triggerInstall, authMode, regForm, socialModal, openSocialModal, submitSocialModal,
       showAvatarModal,

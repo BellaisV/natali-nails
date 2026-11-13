@@ -461,6 +461,10 @@ def init_db():
     except Exception:
         pass
     try:
+        cursor.execute("ALTER TABLE clients ADD COLUMN redeemed_perks_json TEXT DEFAULT '[]'")
+    except Exception:
+        pass
+    try:
         cursor.execute("ALTER TABLE clients ADD COLUMN achievements_json TEXT DEFAULT '[]'")
     except Exception:
         pass
@@ -734,6 +738,7 @@ class PublicBookingRequest(BaseModel):
     time: str
     notes: Optional[str] = ""
     applied_discount_id: Optional[str] = ""
+    applied_perk_id: Optional[str] = ""
 
 class InstagramLoginRequest(BaseModel):
     instagram: str
@@ -1056,6 +1061,32 @@ def add_client_points(client_id: int, data: AddPointsRequest):
     conn.close()
     return {"status": "ok", "client_id": client_id, "points": new_points}
 
+
+def cleanup_old_cancelled_appointments():
+    """
+    Automatically purges cancelled appointments that are older than 7 days.
+    Completed, confirmed, and pending appointments are strictly preserved forever.
+    """
+    try:
+        cutoff_date = (date.today() - timedelta(days=7)).isoformat()
+        cutoff_dt = (datetime.now() - timedelta(days=7)).isoformat()
+        conn = get_db()
+        cursor = conn.cursor()
+        cursor.execute("""
+            DELETE FROM appointments 
+            WHERE status = 'cancelled' 
+            AND (date <= ? OR created_at <= ?)
+        """, (cutoff_date, cutoff_dt))
+        deleted_count = cursor.rowcount
+        conn.commit()
+        conn.close()
+        if deleted_count > 0:
+            print(f"[CLEANUP] Purged {deleted_count} cancelled appointments older than 7 days")
+        return deleted_count
+    except Exception as e:
+        print(f"[CLEANUP ERROR] {e}")
+        return 0
+
 @app.get("/api/appointments")
 def get_appointments(date_str: Optional[str] = None, month_str: Optional[str] = None):
     conn = get_db()
@@ -1115,6 +1146,8 @@ def update_appointment_status(app_id: int, status: str = Query(...), payment_met
 
     old_status = app_row["status"]
     cursor.execute("UPDATE appointments SET status = ?, payment_method = ? WHERE id = ?", (status, payment_method, app_id))
+    if status == 'cancelled':
+        cleanup_old_cancelled_appointments()
 
     if status == "completed" and old_status != "completed":
         cursor.execute("SELECT id FROM transactions WHERE appointment_id = ?", (app_id,))
@@ -1851,7 +1884,7 @@ def redeem_reward(data: RedeemRequest):
     digits = re.sub(r'\D', '', safe_phone)
     suffix = digits[-9:] if len(digits) >= 9 else digits
 
-    cursor.execute("SELECT id, points, unlocked_emojis, notes FROM clients WHERE phone = ? OR phone LIKE ?", (safe_phone, f"%{suffix}%"))
+    cursor.execute("SELECT id, points, unlocked_emojis, notes, redeemed_perks_json FROM clients WHERE phone = ? OR phone LIKE ?", (safe_phone, f"%{suffix}%"))
     row = cursor.fetchone()
     if not row:
         conn.close()
@@ -1870,23 +1903,49 @@ def redeem_reward(data: RedeemRequest):
         conn.close()
         raise HTTPException(status_code=400, detail=f"Недостатньо балів. У вас {cur_points} 💎, а потрібно {cost} 💎")
 
-    emojis = [e.strip() for e in (row["unlocked_emojis"] or "").split(",") if e.strip()]
-    if reward_icon and reward_icon not in emojis and len(reward_icon) <= 4 and reward_icon != '🏷️':
-        emojis.append(reward_icon)
-    new_emojis_str = ",".join(emojis)
-
-    existing_notes = row["notes"] or ""
-    if 'знижк' in reward_title.lower() or reward_type == 'discount' or reward_icon == '🏷️':
-        discount_entry = f"[💎 {reward_title}]"
-        if discount_entry not in existing_notes:
-            new_notes = f"{existing_notes} {discount_entry}".strip()
-        else:
-            new_notes = existing_notes
-    else:
-        new_notes = existing_notes
+    # Distinguish between one-time permanent emojis vs repeatable consumable perks (coffee, discount, spa)
+    is_consumable = (reward_type in ['gift', 'discount', 'service'] or reward_icon in ['☕', '🏷️', '🌸'] or 'кав' in reward_title.lower() or 'знижк' in reward_title.lower() or 'spa' in reward_title.lower())
 
     new_points = cur_points - cost
-    cursor.execute("UPDATE clients SET points = ?, unlocked_emojis = ?, notes = ? WHERE id = ?", (new_points, new_emojis_str, new_notes, row["id"]))
+    emojis = [e.strip() for e in (row["unlocked_emojis"] or "").split(",") if e.strip()]
+    new_emojis_str = ",".join(emojis)
+
+    if is_consumable:
+        # Save into client's redeemed_perks_json
+        try:
+            perk_list = json.loads(row["redeemed_perks_json"] or "[]")
+        except Exception:
+            perk_list = []
+
+        # Parse euro discount if applicable
+        disc_val = 0.0
+        if '1.5' in reward_title:
+            disc_val = 1.50
+        elif '2.5' in reward_title:
+            disc_val = 2.50
+        elif '5' in reward_title and 'знижк' in reward_title.lower():
+            disc_val = 5.00
+
+        perk_entry = {
+            "id": f"perk_{int(time.time())}_{random.randint(100, 999)}",
+            "reward_id": reward_row["id"] if reward_row else data.item_id,
+            "title": reward_title,
+            "icon": reward_icon,
+            "type": reward_type,
+            "discount_amount": disc_val,
+            "is_used": 0,
+            "created_at": datetime.now().isoformat()
+        }
+        perk_list.append(perk_entry)
+
+        cursor.execute("UPDATE clients SET points = ?, redeemed_perks_json = ? WHERE id = ?", (new_points, json.dumps(perk_list, ensure_ascii=False), row["id"]))
+    else:
+        # It's an emoji unlock
+        if reward_icon and reward_icon not in emojis:
+            emojis.append(reward_icon)
+        new_emojis_str = ",".join(emojis)
+        cursor.execute("UPDATE clients SET points = ?, unlocked_emojis = ? WHERE id = ?", (new_points, new_emojis_str, row["id"]))
+
     conn.commit()
     conn.close()
     return {
@@ -2172,6 +2231,24 @@ def public_book(data: PublicBookingRequest, request: Request):
 
     digits = re.sub(r'\D', '', safe_phone)
     suffix = digits[-9:] if len(digits) >= 9 else digits
+    # If a redeemed shop perk (coffee, discount, spa) was applied, mark it as used in client record
+    if data.applied_perk_id:
+        try:
+            cursor.execute("SELECT id, redeemed_perks_json, notes FROM clients WHERE phone = ? OR phone LIKE ?", (safe_phone, f"%{suffix}%"))
+            c_row = cursor.fetchone()
+            if c_row and c_row["redeemed_perks_json"]:
+                try:
+                    p_list = json.loads(c_row["redeemed_perks_json"] or "[]")
+                except Exception:
+                    p_list = []
+                for p in p_list:
+                    if p.get("id") == data.applied_perk_id:
+                        p["is_used"] = 1
+                        safe_notes = (safe_notes + f" [🎁 Бонус клубу: {p.get('title')}]").strip()
+                cursor.execute("UPDATE clients SET redeemed_perks_json = ? WHERE id = ?", (json.dumps(p_list, ensure_ascii=False), c_row["id"]))
+        except Exception as e:
+            print("Error marking perk as used:", e)
+
     # If a personalized discount was applied, mark it as used in client record
     if data.applied_discount_id:
         try:
@@ -2441,30 +2518,37 @@ def check_discount_availability(d: dict, client_dict: dict, visits_count: int, f
                 "message": "Доступно на Новий Рік (20 грудня – 10 січня)"
             }
 
-    # 5. Loyalty / Anniversary (1 year of visits or 10 visits)
+    # 5. Loyalty / Anniversary based on REAL account registration time (відколи створений акаунт)
     elif dtype == "loyalty" or d.get("id") == "loyalty":
-        created_str = client_dict.get("created_at") or first_visit_date or ""
-        is_anniversary = False
+        created_str = client_dict.get("created_at") or ""
+        days_with_us = 0
         if created_str:
             try:
-                c_date = datetime.strptime(created_str[:10], "%Y-%m-%d").date()
-                if (today - c_date).days >= 365 or visits_count >= 10:
-                    is_anniversary = True
+                reg_date = datetime.fromisoformat(created_str[:19]).date()
+                days_with_us = max(0, (today - reg_date).days)
             except Exception:
-                pass
-        if is_anniversary:
+                try:
+                    reg_date = datetime.strptime(created_str[:10], "%Y-%m-%d").date()
+                    days_with_us = max(0, (today - reg_date).days)
+                except Exception:
+                    days_with_us = 0
+
+        if days_with_us >= 365:
             return {
                 "can_apply": True,
                 "status": "active_today",
                 "badge_key": "disc_loyalty_active",
-                "message": "💎 Вислуга років підтверджена! Знижка активна"
+                "target_date": f"1 рік+ ({days_with_us} дн.)",
+                "message": f"💎 Вислуга років! Ви з нами вже {days_with_us} дн. (1 рік+)"
             }
         else:
+            days_left = 365 - days_with_us
             return {
                 "can_apply": False,
                 "status": "waiting_date",
                 "badge_key": "disc_loyalty_waiting",
-                "message": "Доступно на річницю або від 10 візитів"
+                "target_date": f"через {days_left} дн.",
+                "message": f"З нами {days_with_us} дн. До річниці залишилось {days_left} дн."
             }
 
     # 6. Promo Day
@@ -2521,6 +2605,19 @@ def get_default_discounts_for_client(client_row):
         {"id": "newyear", "type": "newyear", "percent": 1, "is_used": 0, "title_key": "disc_newyear_title", "desc_key": "disc_newyear_desc", "active": 1}
     ]
 
+def calculate_account_age_days(created_str: str) -> int:
+    if not created_str:
+        return 0
+    try:
+        reg_date = datetime.fromisoformat(created_str[:19]).date()
+        return max(0, (date.today() - reg_date).days)
+    except Exception:
+        try:
+            reg_date = datetime.strptime(created_str[:10], "%Y-%m-%d").date()
+            return max(0, (date.today() - reg_date).days)
+        except Exception:
+            return 0
+
 def calculate_client_achievements(client_dict, visits_count: int, reviews_count: int = 0, app_rows: list = None, custom_list: list = None):
     app_rows = app_rows or []
     custom_list = custom_list or []
@@ -2565,8 +2662,8 @@ def calculate_client_achievements(client_dict, visits_count: int, reviews_count:
             "icon": "💎",
             "title_key": "achieve_loyalty",
             "desc_key": "achieve_loyalty_desc",
-            "unlocked": visits_count >= 10,
-            "progress": f"{min(visits_count, 10)}/10"
+            "unlocked": calculate_account_age_days(client_dict.get("created_at")) >= 365,
+            "progress": f"{calculate_account_age_days(client_dict.get('created_at'))}/365 дн." if calculate_account_age_days(client_dict.get('created_at')) < 365 else f"{calculate_account_age_days(client_dict.get('created_at'))} дн. (1 рік+)"
         },
         {
             "id": "legend",
@@ -2647,6 +2744,38 @@ def calculate_client_achievements(client_dict, visits_count: int, reviews_count:
             "desc_key": "achieve_collector_desc",
             "unlocked": unlocked_emojis_count >= 3,
             "progress": f"{min(unlocked_emojis_count, 3)}/3"
+        },
+        {
+            "id": "emojis_5",
+            "icon": "💖",
+            "title_key": "achieve_emojis_5",
+            "desc_key": "achieve_emojis_5_desc",
+            "unlocked": unlocked_emojis_count >= 5,
+            "progress": f"{min(unlocked_emojis_count, 5)}/5"
+        },
+        {
+            "id": "emojis_10",
+            "icon": "👑",
+            "title_key": "achieve_emojis_10",
+            "desc_key": "achieve_emojis_10_desc",
+            "unlocked": unlocked_emojis_count >= 10,
+            "progress": f"{min(unlocked_emojis_count, 10)}/10"
+        },
+        {
+            "id": "emojis_15",
+            "icon": "💎",
+            "title_key": "achieve_emojis_15",
+            "desc_key": "achieve_emojis_15_desc",
+            "unlocked": unlocked_emojis_count >= 15,
+            "progress": f"{min(unlocked_emojis_count, 15)}/15"
+        },
+        {
+            "id": "emojis_20",
+            "icon": "🌟",
+            "title_key": "achieve_emojis_20",
+            "desc_key": "achieve_emojis_20_desc",
+            "unlocked": unlocked_emojis_count >= 20,
+            "progress": f"{min(unlocked_emojis_count, 20)}/20"
         }
     ]
 
@@ -2908,10 +3037,18 @@ def client_get_discounts_and_achievements(phone: str = Query("")):
     achievements = calculate_client_achievements(client_dict, visits_count, reviews_count, app_rows, custom_achievements)
     conn.close()
 
+    # Fetch client redeemed perks
+    try:
+        all_perks = json.loads(client_dict.get("redeemed_perks_json") or "[]")
+    except Exception:
+        all_perks = []
+    unused_perks = [p for p in all_perks if not p.get("is_used")]
+
     return {
         "client": client_dict,
         "visits_count": visits_count,
         "reviews_count": reviews_count,
         "discounts": processed_discounts,
-        "achievements": achievements
+        "achievements": achievements,
+        "redeemed_perks": unused_perks
     }

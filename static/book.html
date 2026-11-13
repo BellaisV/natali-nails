@@ -437,10 +437,17 @@
           </span>
           <span>-{{ discountAmount }} {{ settings.currency || '€' }}</span>
         </div>
+        <div v-if="selectedPerk" class="flex justify-between text-xs text-emerald-700 font-bold bg-emerald-50 p-2.5 rounded-2xl border border-emerald-200">
+          <span class="flex items-center space-x-1">
+            <span>{{ selectedPerk.icon || '🎁' }}</span>
+            <span>{{ selectedPerk.title }}:</span>
+          </span>
+          <span>{{ selectedPerk.discount_amount ? `-${selectedPerk.discount_amount} €` : 'Безкоштовно ✓' }}</span>
+        </div>
         <div class="flex justify-between text-sm pt-2 border-t border-stone-100">
           <span class="font-bold text-stone-800">{{ t('to_pay') }}</span>
           <div class="text-right">
-            <span v-if="appliedDiscount" class="text-xs line-through text-stone-400 mr-1.5">{{ totalPrice }} {{ settings.currency || '€' }}</span>
+            <span v-if="appliedDiscount || (selectedPerk && selectedPerk.discount_amount)" class="text-xs line-through text-stone-400 mr-1.5">{{ totalPrice }} {{ settings.currency || '€' }}</span>
             <span class="font-extrabold text-rose-600 text-base">{{ finalTotalPrice }} {{ settings.currency || '€' }}</span>
           </div>
         </div>
@@ -497,6 +504,39 @@
               {{ t('btn_set_birthday') || 'Вказати ДР' }}
             </button>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Available Redeemed VIP Club Perks (Coffee, Discount Vouchers, Treats) -->
+    <div v-if="clientRedeemedPerks.length > 0" class="bg-gradient-to-r from-stone-900 via-stone-800 to-amber-950 border border-amber-400/50 rounded-3xl p-4 sm:p-5 space-y-3 text-white shadow-xl text-left">
+      <div class="flex items-center justify-between border-b border-white/10 pb-2.5">
+        <div class="flex items-center space-x-2.5">
+          <span class="text-2xl">🎁</span>
+          <div>
+            <div class="font-extrabold text-xs text-amber-300">Ваші придбані бонуси VIP-клубу:</div>
+            <div class="text-[10px] text-stone-300">Оберіть бонус, щоб використати під час цього візиту</div>
+          </div>
+        </div>
+        <span class="text-[10px] font-black text-amber-300 bg-amber-400/20 border border-amber-400/40 px-2.5 py-0.5 rounded-full">
+          {{ clientRedeemedPerks.length }} в наявності
+        </span>
+      </div>
+
+      <div class="space-y-2">
+        <div v-for="p in clientRedeemedPerks" :key="p.id" @click="selectedPerk = (selectedPerk && selectedPerk.id === p.id) ? null : p" :class="selectedPerk && selectedPerk.id === p.id ? 'bg-amber-400/20 border-amber-400 shadow-md ring-1 ring-amber-400' : 'bg-white/5 border-white/10 hover:border-white/20'" class="border rounded-2xl p-3 flex items-center justify-between transition cursor-pointer">
+          <div class="flex items-center space-x-3">
+            <span class="text-2xl">{{ p.icon || '🎁' }}</span>
+            <div>
+              <div class="font-extrabold text-xs text-white">{{ p.title }}</div>
+              <div class="text-[10px] text-emerald-400 font-semibold">
+                {{ p.discount_amount ? `Знижка -${p.discount_amount} € від загальної вартості` : 'Безкоштовно додається до вашого запису' }}
+              </div>
+            </div>
+          </div>
+          <button type="button" class="px-3.5 py-1.5 rounded-xl text-xs font-black transition" :class="selectedPerk && selectedPerk.id === p.id ? 'bg-emerald-400 text-stone-950 shadow' : 'bg-amber-400 text-stone-950 hover:bg-amber-300 shadow'">
+            {{ selectedPerk && selectedPerk.id === p.id ? '✓ Застосовано' : 'Вибрати' }}
+          </button>
         </div>
       </div>
     </div>
@@ -623,8 +663,9 @@
     <div class="bg-white rounded-3xl p-4 border border-stone-200 text-left shadow-sm space-y-3">
       <div class="flex items-center justify-between border-b border-stone-100 pb-2">
         <div class="flex items-center space-x-2">
-          <div class="w-8 h-8 rounded-full bg-stone-900 text-amber-300 font-bold flex items-center justify-center text-xs">
-            N
+          <div class="w-8 h-8 rounded-full bg-gradient-to-br from-[#1C1715] via-stone-900 to-amber-950 border border-amber-400/60 ring-1 ring-amber-400/30 flex items-center justify-center text-amber-300 shadow-md relative overflow-hidden flex-shrink-0">
+            <span class="font-serif-luxury font-black text-xs text-amber-300">N</span>
+            <span class="absolute -bottom-1 -right-0.5 text-[7px]">✨</span>
           </div>
           <div>
             <div class="font-extrabold text-xs text-stone-900 flex items-center">
@@ -671,7 +712,7 @@
       <div>
         <div class="flex items-center space-x-1.5 text-amber-300 font-extrabold text-xs">
           <i class="fa-solid fa-crown text-[11px]"></i>
-          <span>VIP Beauty Club</span>
+          <span>{{ t('vip_beauty_club') || 'VIP Beauty Club' }}</span>
         </div>
         <p class="text-[10px] text-stone-300 mt-0.5">{{ t('vip_banner_text') || 'Отримуйте бонуси 💎 за кожен візит та ексклюзивні смайлики' }}</p>
       </div>
@@ -1297,6 +1338,15 @@ createApp({
     // --- CLIENT PERSONAL DISCOUNTS SYSTEM ---
     const appliedDiscount = ref(null);
     const clientDiscountsList = ref([]);
+    const clientRedeemedPerks = ref([]);
+    const selectedPerk = ref(null);
+
+    const perkDiscountAmount = computed(() => {
+      if (selectedPerk.value && selectedPerk.value.discount_amount) {
+        return Number(selectedPerk.value.discount_amount) || 0;
+      }
+      return 0;
+    });
 
     const availableDiscounts = computed(() => {
       return (clientDiscountsList.value || []).filter(d => !d.is_used && d.active !== 0 && d.can_apply);
@@ -1313,8 +1363,7 @@ createApp({
     });
 
     const finalTotalPrice = computed(() => {
-      if (!appliedDiscount.value) return totalPrice.value;
-      const res = totalPrice.value - discountAmount.value;
+      let res = totalPrice.value - (discountAmount.value || 0) - (perkDiscountAmount.value || 0);
       return Math.max(0, Math.round(res * 100) / 100);
     });
 
@@ -1325,6 +1374,15 @@ createApp({
         if (res.ok) {
           const data = await res.json();
           clientDiscountsList.value = data.discounts || [];
+          clientRedeemedPerks.value = data.redeemed_perks || [];
+          try {
+            const urlParams = new URLSearchParams(window.location.search);
+            const perkP = urlParams.get('perk');
+            if (perkP) {
+              const matchedP = (clientRedeemedPerks.value || []).find(p => p.id === perkP);
+              if (matchedP) selectedPerk.value = matchedP;
+            }
+          } catch (e) {}
           if (appliedDiscount.value) {
             const match = clientDiscountsList.value.find(d => d.id === appliedDiscount.value.id);
             if (match) {
@@ -1742,6 +1800,11 @@ createApp({
       }
       submitting.value = true;
       try {
+        let bookingNotes = clientNotes.value.trim();
+        if (selectedPerk.value) {
+          bookingNotes = (bookingNotes + ` [🎁 Придбаний бонус: ${selectedPerk.value.title}]`).trim();
+        }
+
         const payload = {
           client_name: clientName.value.trim(),
           client_phone: clientPhone.value.trim(),
@@ -1749,9 +1812,10 @@ createApp({
           total_duration: totalDuration.value,
           total_price: finalTotalPrice.value,
           applied_discount_id: appliedDiscount.value ? appliedDiscount.value.id : "",
+          applied_perk_id: selectedPerk.value ? selectedPerk.value.id : "",
           date: bookingDate.value,
           time: bookingTime.value,
-          notes: clientNotes.value
+          notes: bookingNotes
         };
         const res = await fetch('/api/public/book', {
           method: 'POST',
@@ -2180,7 +2244,7 @@ createApp({
       getCategoryName,
       currentLang, availableLangs, setLang, t, toast,
       step, settings, services, categories, selectedCategory, filteredServices,
-      selectedServices, totalDuration, totalPrice, finalTotalPrice, appliedDiscount, availableDiscounts, upcomingDiscounts, discountAmount, selectedServiceNames,
+      selectedServices, totalDuration, totalPrice, finalTotalPrice, appliedDiscount, availableDiscounts, upcomingDiscounts, clientRedeemedPerks, selectedPerk, perkDiscountAmount, discountAmount, selectedServiceNames,
       days, bookingDate, bookingTime, availableSlots, loadingSlots,
       clientName, clientPhone, clientNotes, submitting,
       clientRecognized, formatWorkSchedule, isServiceSelected, toggleService, selectDate, goToStep2,
