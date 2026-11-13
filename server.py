@@ -340,6 +340,75 @@ def init_db():
     except Exception:
         pass
 
+    # Ensure schedule_json column exists in settings
+    try:
+        cursor.execute("ALTER TABLE settings ADD COLUMN schedule_json TEXT DEFAULT ''")
+    except Exception:
+        pass
+
+    # Ensure card_ua and card_es and session_token columns exist in settings
+    try:
+        cursor.execute("ALTER TABLE settings ADD COLUMN card_ua TEXT DEFAULT ''")
+    except Exception:
+        pass
+    try:
+        cursor.execute("ALTER TABLE settings ADD COLUMN card_es TEXT DEFAULT ''")
+    except Exception:
+        pass
+    try:
+        cursor.execute("ALTER TABLE settings ADD COLUMN session_token TEXT DEFAULT ''")
+    except Exception:
+        pass
+    try:
+        cursor.execute("ALTER TABLE settings ADD COLUMN bizum_phone TEXT DEFAULT '+34 612 345 678'")
+    except Exception:
+        pass
+    try:
+        cursor.execute("ALTER TABLE settings ADD COLUMN paypal_link TEXT DEFAULT 'paypal.me/nailstudio'")
+    except Exception:
+        pass
+    try:
+        cursor.execute("ALTER TABLE settings ADD COLUMN accept_bizum INTEGER DEFAULT 1")
+    except Exception:
+        pass
+    try:
+        cursor.execute("ALTER TABLE settings ADD COLUMN accept_card INTEGER DEFAULT 1")
+    except Exception:
+        pass
+    try:
+        cursor.execute("ALTER TABLE settings ADD COLUMN accept_paypal INTEGER DEFAULT 1")
+    except Exception:
+        pass
+    try:
+        cursor.execute("ALTER TABLE settings ADD COLUMN accept_cash INTEGER DEFAULT 1")
+    except Exception:
+        pass
+
+    # Ensure initial settings row 1 exists
+    try:
+        cursor.execute("SELECT id FROM settings WHERE id = 1")
+        if not cursor.fetchone():
+            cursor.execute("""
+            INSERT INTO settings (id, master_name, studio_name, phone, address, currency, work_start, work_end, working_days, slot_step, bizum_phone, paypal_link)
+            VALUES (1, 'Natali', 'Natali Nails', '+34612345678', 'м. Київ, вул. Хрещатик, 15 (каб. 24)', '€', '10:00', '20:00', '1,2,3,4,5,6', 30, '+34 612 345 678', 'paypal.me/natalinails')
+            """)
+    except Exception:
+        pass
+
+    # Create chat_messages table if not exists
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS chat_messages (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        appointment_id INTEGER,
+        client_phone TEXT NOT NULL,
+        sender TEXT NOT NULL,
+        sender_name TEXT NOT NULL,
+        text TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        is_read INTEGER DEFAULT 0
+    )
+    """)
+
     # Ensure client password column exists in clients
     try:
         cursor.execute("ALTER TABLE clients ADD COLUMN password TEXT DEFAULT ''")
@@ -379,6 +448,24 @@ def init_db():
     except Exception:
         pass
 
+    # Initialize schedule_json in settings if empty
+    try:
+        cursor.execute("SELECT schedule_json FROM settings WHERE id = 1")
+        s_row = cursor.fetchone()
+        if s_row and (not s_row["schedule_json"] or s_row["schedule_json"] == ""):
+            init_schedule = json.dumps({
+                "1": {"active": True, "start": "10:00", "end": "20:00"},
+                "2": {"active": True, "start": "10:00", "end": "20:00"},
+                "3": {"active": True, "start": "10:00", "end": "20:00"},
+                "4": {"active": True, "start": "10:00", "end": "20:00"},
+                "5": {"active": True, "start": "10:00", "end": "20:00"},
+                "6": {"active": True, "start": "10:00", "end": "18:00"},
+                "0": {"active": False, "start": "10:00", "end": "18:00"}
+            }, ensure_ascii=False)
+            cursor.execute("UPDATE settings SET schedule_json = ? WHERE id = 1", (init_schedule,))
+    except Exception:
+        pass
+
     # VIP Rewards table
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS vip_rewards (
@@ -392,20 +479,39 @@ def init_db():
     )
     """)
 
-    # Seed initial rewards if empty
+    # Seed initial rewards and extra emojis if missing
     try:
-        cursor.execute("SELECT COUNT(*) FROM vip_rewards")
-        if cursor.fetchone()[0] == 0:
-            default_rewards = [
-                ('👑', 'Золота VIP-Корона', 'Ексклюзивний смайлик корони для ваших відгуків', 30, 'emoji'),
-                ('💎', 'Діамантове сяйво', 'Смайлик діаманту поруч з вашим ім’ям', 25, 'emoji'),
-                ('🔥', 'Вельветовий вогник', 'Смайлик тренду Velvet Nails', 20, 'emoji'),
-                ('☕', 'Кава & Prosecco', 'Улюблений напій у студії безкоштовно', 15, 'gift'),
-                ('🏷️', 'Знижка 1.50€ на візит', 'Приємна знижка на наступну процедуру', 100, 'discount'),
-                ('🏷️', 'Знижка 2.50€ на візит', 'Супер-знижка на будь-який комплекс', 150, 'discount'),
-                ('🌸', 'SPA-догляд для рук', 'Холодний парафін + скрабування в подарунок', 80, 'service')
-            ]
-            cursor.executemany("INSERT INTO vip_rewards (icon, title, description, cost, reward_type) VALUES (?, ?, ?, ?, ?)", default_rewards)
+        extra_rewards = [
+            ('👑', 'Золота VIP-Корона', 'Ексклюзивний смайлик корони для ваших відгуків', 30, 'emoji'),
+            ('💎', 'Діамантове сяйво', 'Смайлик діаманту поруч з вашим ім’ям', 25, 'emoji'),
+            ('🔥', 'Вельветовий вогник', 'Смайлик тренду Velvet Nails', 20, 'emoji'),
+            ('🦋', 'Метелик естетики', 'Ніжний трендовий метелик для відгуків', 15, 'emoji'),
+            ('🍸', 'Prosecco & Коктейль', 'Естетичний смайлик настрою у студії', 20, 'emoji'),
+            ('💄', 'Французький шик', 'Смайлик для витонченого манікюру', 20, 'emoji'),
+            ('🎀', 'Рожевий бантик', 'Трендовий Coquette бантик для ваших відгуків', 15, 'emoji'),
+            ('💋', 'Полуничний поцілунок', 'Яскравий смайлик краси', 20, 'emoji'),
+            ('🍓', 'Соковита полуниця', 'Свіжий ягідний акцент', 15, 'emoji'),
+            ('🌹', 'Оксамитова троянда', 'Символ витонченості та ніжності', 20, 'emoji'),
+            ('💫', 'Магічні зірочки', 'Сяйво зірок на ваших нігтиках', 15, 'emoji'),
+            ('🕊️', 'Pure Luxury', 'Преміальний білий символ спокою', 25, 'emoji'),
+            ('🪄', 'Чарівний манікюр', 'Магічний пензлик майстра', 20, 'emoji'),
+            ('🧁', 'Солодкий десерт', 'Смайлик компліменту', 15, 'emoji'),
+            ('🦄', 'Єдиноріг тренд', 'Казковий смайлик сяйва', 25, 'emoji'),
+            ('🔮', 'Cat Eye кристал', 'Загадковий перелив котячого ока', 20, 'emoji'),
+            ('🌙', 'Місячне сяйво', 'Місячний відблиск', 15, 'emoji'),
+            ('⭐', 'Зірка стилю', 'Смайлик для топ-клієнток', 15, 'emoji'),
+            ('🐆', 'Леопардовий тренд', 'Дикий та стильний леопардовий принт', 25, 'emoji'),
+            ('🤍', 'Біле золото Clean Girl', 'Естетика чистоти та натурального сяйва', 20, 'emoji'),
+            ('🖤', 'Чорний вельвет', 'Глибокий стильний чорний оксамит', 20, 'emoji'),
+            ('☕', 'Кава & Prosecco', 'Улюблений напій у студії безкоштовно', 15, 'gift'),
+            ('🏷️', 'Знижка 1.50€ на візит', 'Приємна знижка на наступну процедуру', 100, 'discount'),
+            ('🏷️', 'Знижка 2.50€ на візит', 'Супер-знижка на будь-який комплекс', 150, 'discount'),
+            ('🌸', 'SPA-догляд для рук', 'Холодний парафін + скрабування в подарунок', 80, 'service')
+        ]
+        for r_icon, r_title, r_desc, r_cost, r_type in extra_rewards:
+            cursor.execute("SELECT id FROM vip_rewards WHERE title = ? OR icon = ?", (r_title, r_icon))
+            if not cursor.fetchone():
+                cursor.execute("INSERT INTO vip_rewards (icon, title, description, cost, reward_type) VALUES (?, ?, ?, ?, ?)", (r_icon, r_title, r_desc, r_cost, r_type))
     except Exception:
         pass
 
@@ -420,16 +526,32 @@ def init_db():
         services_seed = [{'id': 9, 'name': 'Clean Girl: Milky Nude (Комплекс)', 'category': 'Комплекс', 'price': 35.0, 'duration_minutes': 90, 'description': 'Зняття + комбі-манікюр + зміцнення + трендовий напівпрозорий молочний/нюд глянець', 'translations': {'name': {'uk': 'Clean Girl: Milky Nude (Комплекс)', 'en': 'Clean Girl: Milky Nude (Full Complex)', 'es': 'Clean Girl: Milky Nude (Completo)', 'va': 'Clean Girl: Milky Nude (Complet)', 'de': 'Clean Girl: Milky Nude (Komplex)', 'ru': 'Clean Girl: Milky Nude (Комплекс)'}, 'description': {'uk': 'Зняття + комбі-манікюр + зміцнення + трендовий напівпрозорий молочний/нюд глянець', 'en': 'Removal + Russian combi-manicure + strengthening + trending sheer milky/nude gloss', 'es': 'Retirada + manicura combinada + refuerzo + brillo lechoso/nude en tendencia', 'va': 'Retirada + manicura combinada + reforç + brillantor lletosa/nude en tendència', 'de': 'Entfernung + Combi-Maniküre + Verstärkung + trendiger milchiger/nude Glanz', 'ru': 'Снятие + комби-маникюр + укрепление + трендовый полупрозрачный молочный/нюд глянец'}}}, {'id': 10, 'name': 'Японський еко-манікюр (P.Shine / Masura)', 'category': 'Манікюр', 'price': 25.0, 'duration_minutes': 50, 'description': 'Оздоровлення нігтів без покриття. Втирання бджолиного воску, діамантовий натуральний блиск', 'translations': {'name': {'uk': 'Японський еко-манікюр (P.Shine / Masura)', 'en': 'Japanese Eco-Manicure (P.Shine / Masura)', 'es': 'Manicura ecológica japonesa (P.Shine / Masura)', 'va': 'Manicura ecològica japonesa (P.Shine / Masura)', 'de': 'Japanische Öko-Maniküre (P.Shine / Masura)', 'ru': 'Японский эко-маникюр (P.Shine / Masura)'}, 'description': {'uk': 'Оздоровлення нігтів без покриття. Втирання бджолиного воску, діамантовий натуральний блиск', 'en': 'Nail restoration without polish. Natural beeswax buffing, brilliant healthy shine', 'es': 'Recuperación natural sin esmalte. Pulido con cera de abeja y brillo diamante natural', 'va': "Recuperació natural sense esmalt. Polit amb cera d'abelles i brillantor diamant natural", 'de': 'Natürliche Nagelregeneration ohne Lack. Bienenwachs-Politur, natürlicher Diamantglanz', 'ru': 'Оздоровление ногтей без покрытия. Втирание пчелиного воска, бриллиантовый натуральный блеск'}}}, {'id': 11, 'name': 'Трендовий Micro-French / Оксамитовий френч', 'category': 'Дизайн', 'price': 38.0, 'duration_minutes': 100, 'description': 'Комплекс з найтоншим витонченим френчем або оксамитовим акцентом', 'translations': {'name': {'uk': 'Трендовий Micro-French / Оксамитовий френч', 'en': 'Trendy Micro-French / Velvet French', 'es': 'Micro-French de tendencia / Francesa terciopelo', 'va': 'Micro-French de tendència / Francesa vellut', 'de': 'Trendiger Micro-French / Samt French', 'ru': 'Трендовый Micro-French / Бархатный френч'}, 'description': {'uk': 'Комплекс з найтоншим витонченим френчем або оксамитовим акцентом', 'en': 'Full complex with ultra-thin micro-french or velvet texture accent', 'es': 'Completo con manicura francesa micro ultra fina o acento terciopelo', 'va': 'Complet amb manicura francesa micro ultra fina o accent de vellut', 'de': 'Komplex mit hauchdünnem Micro-French oder samtigem Samt-Akzent', 'ru': 'Комплекс с тончайшим изящным френчем или бархатным акцентом'}}}, {'id': 12, 'name': 'Velvet Cat Eye (Оксамитове котяче око)', 'category': 'Дизайн', 'price': 36.0, 'duration_minutes': 90, 'description': 'Багатошаровий магнітний відблиск з ефектом м’якого шовку/сатину', 'translations': {'name': {'uk': 'Velvet Cat Eye (Оксамитове котяче око)', 'en': 'Velvet Cat Eye Gel Polish', 'es': 'Esmaltado Ojo de Gato Terciopelo (Cat Eye)', 'va': 'Ull de Gat Vellut (Cat Eye)', 'de': 'Velvet Cat Eye Maniküre', 'ru': 'Бархатный кошачий глаз (Cat Eye)'}, 'description': {'uk': 'Багатошаровий магнітний відблиск з ефектом м’якого шовку/сатину', 'en': 'Multi-dimensional magnetic light reflection with soft silk/satin velvet effect', 'es': 'Reflejo magnético multidimensional con efecto terciopelo sedoso/satén', 'va': 'Reflex magnètic multidimensional amb efecte vellut sedós/satí', 'de': 'Mehrdimensionaler magnetischer Schimmer mit weichem Seiden-/Satin-Effekt', 'ru': 'Многослойный магнитный блик с эффектом мягкого шелка/сатина'}}}, {'id': 13, 'name': 'Гігієнічний апаратний манікюр + догляд', 'category': 'Манікюр', 'price': 20.0, 'duration_minutes': 45, 'description': 'Бездоганна чистка кутикули, форма, сироватка та доглядовий масаж', 'translations': {'name': {'uk': 'Гігієнічний апаратний манікюр + догляд', 'en': 'Hardware / Russian Manicure + Care', 'es': 'Manicura combinada / rusa con cuidado nutritivo', 'va': 'Manicura combinada / russa amb cura nutritiva', 'de': 'Kombinierte Apparat-Maniküre + Pflege', 'ru': 'Аппаратный / комбинированный маникюр + уход'}, 'description': {'uk': 'Бездоганна чистка кутикули, форма, сироватка та доглядовий масаж', 'en': 'Flawless cuticle clean, nail shaping, nourishing serum and caring mini-massage', 'es': 'Limpieza perfecta de cutícula, limado, sérum nutritivo y masaje suave', 'va': 'Neteja perfecta de cutícula, llimat, sèrum nutritiu i massatge suau', 'de': 'Makellose Nagelhautreinigung, Formgebung, Pflegeserum und Handmassage', 'ru': 'Безупречная чистка кутикулы, форма, сыворотка и уходовый массаж'}}}, {'id': 14, 'name': 'Нарощування та моделювання нігтів', 'category': 'Нарощування', 'price': 45.0, 'duration_minutes': 140, 'description': 'Правильна архітектура, довжина 1-3, манікюр та однотонний нюд', 'translations': {'name': {'uk': 'Нарощування та моделювання нігтів', 'en': 'Nail Extensions & Sculpting (Gel / Polygel)', 'es': 'Esculpido y extensiones de uñas (Gel)', 'va': "Esculpit i extensions d'ungles (Gel)", 'de': 'Nagelmodellage & Verlängerung (Gel / Polygel)', 'ru': 'Наращивание и моделирование ногтей'}, 'description': {'uk': 'Правильна архітектура, довжина 1-3, манікюр та однотонний нюд', 'en': 'Perfect nail architecture sculpting, length 1-3, manicure and solid nude gel', 'es': 'Esculpido y arquitectura perfecta, longitud 1-3, manicura y tono nude', 'va': 'Esculpit i arquitectura perfecta, longitud 1-3, manicura i to nude', 'de': 'Perfekte Nagelmodellage & Architektur, Länge 1-3, Maniküre und Nude-Gel', 'ru': 'Правильная архитектура, длина 1-3, маникюр и однотонный нюд'}}}, {'id': 15, 'name': 'Корекція нарощених нігтів', 'category': 'Нарощування', 'price': 35.0, 'duration_minutes': 110, 'description': 'Відновлення архітектури нігтів, підняття клюючих, зміцнення та колір', 'translations': {'name': {'uk': 'Корекція нарощених нігтів', 'en': 'Nail Extension Refill / Infill Correction', 'es': 'Relleno y corrección de extensiones de uñas', 'va': "Farciment i correcció d'extensions d'ungles", 'de': 'Nagelkorrektur / Auffüllen der Modellage', 'ru': 'Коррекция нарощенных ногтей'}, 'description': {'uk': 'Відновлення архітектури нігтів, підняття клюючих, зміцнення та колір', 'en': 'Arch restoration, lifting correction, strengthening and fresh solid color', 'es': 'Restauración de arquitectura, corrección, refuerzo y color uniforme', 'va': "Restauració d'arquitectura, correcció, reforç i color uniforme", 'de': 'Korrektur der Nagelarchitektur, Verstärkung und neue Farbe', 'ru': 'Восстановление архитектуры ногтей, поднятие клюющих, укрепление и цвет'}}}, {'id': 16, 'name': 'SPA-догляд для рук (холодний парафін)', 'category': 'Догляд', 'price': 12.0, 'duration_minutes': 25, 'description': 'Глибоке живлення та шовковистість шкіри ручок після манікюру', 'translations': {'name': {'uk': 'SPA-догляд для рук (холодний парафін)', 'en': 'Cold Paraffin Hand SPA Therapy', 'es': 'SPA de manos con parafina fría', 'va': 'SPA de mans amb parafina freda', 'de': 'Hand-SPA Kaltparaffin-Behandlung', 'ru': 'SPA-уход для рук (холодный парафин)'}, 'description': {'uk': 'Глибоке живлення та шовковистість шкіри ручок після манікюру', 'en': 'Deep skin nourishment and velvety smoothness with cold paraffin therapy', 'es': 'Nutrición profunda y piel aterciopelada con parafina fría tras la manicura', 'va': 'Nutrició profunda i pell vellutada amb parafina freda després de la manicura', 'de': 'Tiefenwirksame Pflege und samtweiche Haut mit Kaltparaffin-Therapie', 'ru': 'Глубокое питание и шелковистость кожи ручек после маникюра'}}}, {'id': 17, 'name': 'Ремонт 1 нігтя / нарощування кутика', 'category': 'Догляд', 'price': 4.0, 'duration_minutes': 15, 'description': 'Ремонт тріщини шовком або донарощування зламаного нігтика', 'translations': {'name': {'uk': 'Ремонт 1 нігтя / нарощування кутика', 'en': 'Nail Repair (1 nail) / Corner Sculpting', 'es': 'Reparación de 1 uña / reconstrucción de esquina', 'va': "Reparació d'1 ungla / reconstrucció de cantó", 'de': 'Reparatur von 1 Nagel / Kantennachbildung', 'ru': 'Ремонт 1 ногтя / наращивание уголка'}, 'description': {'uk': 'Ремонт тріщини шовком або донарощування зламаного нігтика', 'en': 'Silk wrap crack repair or broken nail tip sculpting extension', 'es': 'Reparación de fisura con seda o reconstrucción de uña rota', 'va': "Reparació de fissura amb seda o reconstrucció d'ungla trencada", 'de': 'Rissreparatur mit Seide oder Wiederaufbau einer abgebrochenen Nagelkante', 'ru': 'Ремонт трещины шелком или донаращивание сломанного ноготка'}}}]
         for s in services_seed:
             tr_str = json.dumps(s["translations"], ensure_ascii=False)
-            cursor.execute("""
-                UPDATE services
-                SET price = ?, translations = ?
-                WHERE id = ?
-            """, (s["price"], tr_str, s["id"]))
+            cursor.execute("SELECT id FROM services WHERE id = ? OR name = ?", (s["id"], s["name"]))
+            existing = cursor.fetchone()
+            if existing:
+                cursor.execute("""
+                    UPDATE services
+                    SET name = ?, category = ?, price = ?, duration_minutes = ?, description = ?, translations = ?, is_active = 1
+                    WHERE id = ?
+                """, (s["name"], s["category"], s["price"], s["duration_minutes"], s["description"], tr_str, existing[0]))
+            else:
+                cursor.execute("""
+                    INSERT INTO services (id, name, category, price, duration_minutes, description, is_active, translations)
+                    VALUES (?, ?, ?, ?, ?, ?, 1, ?)
+                """, (s["id"], s["name"], s["category"], s["price"], s["duration_minutes"], s["description"], tr_str))
+        # Remove any unwanted dummy/test services
+        cursor.execute("DELETE FROM services WHERE name LIKE '%побрити%'")
     except Exception:
         pass
     # Clean Privé branding from DB settings
     try:
         cursor.execute("UPDATE settings SET studio_name = 'Natali Nails' WHERE studio_name LIKE '%Privé%' OR studio_name LIKE '%Prive%'")
+    except Exception:
+        pass
+
+    # Reset old demo transactions that caused negative balance (-1700)
+    try:
+        cursor.execute("DELETE FROM transactions WHERE (category IN ('Матеріали', 'Дезінфекція') AND appointment_id IS NULL) OR id IN (1, 2)")
     except Exception:
         pass
     conn.commit()
@@ -460,6 +582,9 @@ class ClientCreate(BaseModel):
     instagram: Optional[str] = ""
     notes: Optional[str] = ""
 
+class AddPointsRequest(BaseModel):
+    points: int = Field(..., ge=-10000, le=10000)
+
 class AppointmentCreate(BaseModel):
     client_name: str
     client_phone: str
@@ -481,18 +606,18 @@ class TransactionCreate(BaseModel):
     description: Optional[str] = ""
 
 class SettingsUpdate(BaseModel):
-    master_name: str
-    studio_name: str
-    phone: str
+    master_name: Optional[str] = "Natali"
+    studio_name: Optional[str] = "Natali Nails"
+    phone: Optional[str] = "+34 600 000 000"
     instagram: Optional[str] = ""
     telegram: Optional[str] = ""
     whatsapp: Optional[str] = ""
     facebook: Optional[str] = ""
-    address: str
-    work_start: str
-    work_end: str
-    slot_step: int
-    currency: str
+    address: Optional[str] = ""
+    work_start: Optional[str] = "10:00"
+    work_end: Optional[str] = "20:00"
+    slot_step: Optional[int] = 30
+    currency: Optional[str] = "€"
     about: Optional[str] = ""
     bizum_phone: Optional[str] = ""
     paypal_link: Optional[str] = ""
@@ -503,6 +628,24 @@ class SettingsUpdate(BaseModel):
     accept_paypal: Optional[int] = 1
     accept_cash: Optional[int] = 1
     master_avatar: Optional[str] = ""
+    working_days: Optional[str] = "1,2,3,4,5,6"
+    schedule_json: Optional[str] = ""
+
+class EditAppointmentRequest(BaseModel):
+    date: str
+    time: str
+    duration_minutes: Optional[int] = 90
+    service_names: Optional[str] = None
+    total_price: Optional[float] = None
+    notes: Optional[str] = ""
+    status: Optional[str] = None
+
+class SendChatMessageRequest(BaseModel):
+    appointment_id: Optional[int] = None
+    client_phone: str
+    sender: str  # 'master' or 'client'
+    sender_name: Optional[str] = "Natali"
+    text: str
 
 class MasterAvatarUpdate(BaseModel):
     master_avatar: str
@@ -613,7 +756,7 @@ def change_pin(data: ChangePinRequest):
 def get_settings():
     conn = get_db()
     cursor = conn.cursor()
-    cursor.execute("SELECT master_name, studio_name, phone, instagram, telegram, whatsapp, facebook, address, work_start, work_end, working_days, slot_step, currency, about, bizum_phone, paypal_link, card_ua, card_es, accept_bizum, accept_card, accept_paypal, accept_cash, master_avatar FROM settings WHERE id = 1")
+    cursor.execute("SELECT master_name, studio_name, phone, instagram, telegram, whatsapp, facebook, address, work_start, work_end, working_days, schedule_json, slot_step, currency, about, bizum_phone, paypal_link, card_ua, card_es, accept_bizum, accept_card, accept_paypal, accept_cash, master_avatar FROM settings WHERE id = 1")
     row = cursor.fetchone()
     conn.close()
     return dict(row) if row else {}
@@ -622,24 +765,38 @@ def get_settings():
 def update_settings(data: SettingsUpdate):
     conn = get_db()
     cursor = conn.cursor()
-    cursor.execute("""
-    UPDATE settings SET
-        master_name = ?, studio_name = ?, phone = ?, instagram = ?,
-        telegram = ?, whatsapp = ?, facebook = ?, address = ?, work_start = ?, work_end = ?,
-        working_days = ?, slot_step = ?, currency = ?, about = ?,
-        bizum_phone = ?, paypal_link = ?, card_ua = ?, card_es = ?,
-        accept_bizum = ?, accept_card = ?, accept_paypal = ?, accept_cash = ?,
-        master_avatar = COALESCE(NULLIF(?, ''), master_avatar)
-    WHERE id = 1
-    """, (sanitize_text(data.master_name), sanitize_text(data.studio_name), sanitize_text(data.phone), sanitize_text(data.instagram),
-          sanitize_text(data.telegram), sanitize_text(data.whatsapp or ''), sanitize_text(data.facebook or ''), sanitize_text(data.address), data.work_start, data.work_end,
-          (data.working_days if data.working_days is not None else '1,2,3,4,5,6'),
-          data.slot_step, data.currency, sanitize_text(data.about),
-          sanitize_text(data.bizum_phone), sanitize_text(data.paypal_link),
-          sanitize_text(data.card_ua), sanitize_text(data.card_es),
-          data.accept_bizum, data.accept_card, data.accept_paypal, data.accept_cash,
-          data.master_avatar or ''))
-    conn.commit()
+    try:
+        # Check if settings row 1 exists
+        cursor.execute("SELECT id FROM settings WHERE id = 1")
+        if not cursor.fetchone():
+            cursor.execute("""
+            INSERT INTO settings (id, master_name, studio_name, phone, address, currency, work_start, work_end, working_days, slot_step, bizum_phone, paypal_link)
+            VALUES (1, 'Natali', 'Natali Nails', '+34612345678', 'м. Київ, вул. Хрещатик, 15 (каб. 24)', '€', '10:00', '20:00', '1,2,3,4,5,6', 30, '+34 612 345 678', 'paypal.me/natalinails')
+            """)
+
+        cursor.execute("""
+        UPDATE settings SET
+            master_name = ?, studio_name = ?, phone = ?, instagram = ?,
+            telegram = ?, whatsapp = ?, facebook = ?, address = ?, work_start = ?, work_end = ?,
+            working_days = ?, schedule_json = COALESCE(NULLIF(?, ''), schedule_json), slot_step = ?, currency = ?, about = ?,
+            bizum_phone = ?, paypal_link = ?, card_ua = ?, card_es = ?,
+            accept_bizum = ?, accept_card = ?, accept_paypal = ?, accept_cash = ?,
+            master_avatar = COALESCE(NULLIF(?, ''), master_avatar)
+        WHERE id = 1
+        """, (sanitize_text(data.master_name), sanitize_text(data.studio_name), sanitize_text(data.phone), sanitize_text(data.instagram),
+              sanitize_text(data.telegram), sanitize_text(data.whatsapp or ''), sanitize_text(data.facebook or ''), sanitize_text(data.address), data.work_start, data.work_end,
+              (data.working_days if data.working_days is not None else '1,2,3,4,5,6'),
+              data.schedule_json or '',
+              data.slot_step, data.currency, sanitize_text(data.about),
+              sanitize_text(data.bizum_phone), sanitize_text(data.paypal_link),
+              sanitize_text(data.card_ua), sanitize_text(data.card_es),
+              data.accept_bizum, data.accept_card, data.accept_paypal, data.accept_cash,
+              data.master_avatar or ''))
+        conn.commit()
+    except Exception as e:
+        conn.rollback()
+        conn.close()
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
     conn.close()
     return {"status": "ok"}
 
@@ -805,6 +962,22 @@ def toggle_client_vip(client_id: int):
     conn.close()
     return {"status": "ok", "is_vip": new_vip, "vip_tier": new_tier}
 
+@app.post("/api/clients/{client_id}/add-points")
+def add_client_points(client_id: int, data: AddPointsRequest):
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("SELECT id, points, name FROM clients WHERE id = ?", (client_id,))
+    row = cursor.fetchone()
+    if not row:
+        conn.close()
+        raise HTTPException(status_code=404, detail="Клієнта не знайдено")
+    cur_p = row["points"] if row["points"] is not None else 0
+    new_points = max(0, cur_p + data.points)
+    cursor.execute("UPDATE clients SET points = ? WHERE id = ?", (new_points, client_id))
+    conn.commit()
+    conn.close()
+    return {"status": "ok", "client_id": client_id, "points": new_points}
+
 @app.get("/api/appointments")
 def get_appointments(date_str: Optional[str] = None, month_str: Optional[str] = None):
     conn = get_db()
@@ -894,6 +1067,167 @@ def delete_appointment(app_id: int):
     conn.close()
     return {"status": "deleted"}
 
+@app.get("/api/appointments/{app_id}")
+def get_appointment(app_id: int):
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM appointments WHERE id = ?", (app_id,))
+    row = cursor.fetchone()
+    conn.close()
+    if not row:
+        raise HTTPException(status_code=404, detail="Appointment not found")
+    return {"status": "ok", "appointment": dict(row)}
+
+@app.patch("/api/appointments/{app_id}/confirm")
+def confirm_appointment(app_id: int):
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM appointments WHERE id = ?", (app_id,))
+    app_row = cursor.fetchone()
+    if not app_row:
+        conn.close()
+        raise HTTPException(status_code=404, detail="Appointment not found")
+
+    cursor.execute("UPDATE appointments SET status = 'confirmed' WHERE id = ?", (app_id,))
+    now_iso = datetime.now().isoformat()
+    cursor.execute("""
+    INSERT INTO chat_messages (appointment_id, client_phone, sender, sender_name, text, created_at, is_read)
+    VALUES (?, ?, 'master', 'Natali', ?, ?, 0)
+    """, (app_id, app_row["client_phone"], f"✅ Ваше замовлення на {app_row['date']} о {app_row['time']} підтверджено! Чекаю на вас у студії 💅", now_iso))
+    conn.commit()
+    conn.close()
+    return {"status": "ok"}
+
+@app.put("/api/appointments/{app_id}")
+def edit_appointment(app_id: int, data: EditAppointmentRequest):
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM appointments WHERE id = ?", (app_id,))
+    app_row = cursor.fetchone()
+    if not app_row:
+        conn.close()
+        raise HTTPException(status_code=404, detail="Appointment not found")
+
+    dur = data.duration_minutes or 90
+    end_time = add_minutes(data.time, dur)
+    service_names = sanitize_text(data.service_names or app_row["service_names"])
+    total_price = float(data.total_price) if data.total_price is not None else float(app_row["total_price"])
+    notes = sanitize_text(data.notes or "")
+    status = data.status or app_row["status"]
+
+    time_changed = (data.date != app_row["date"] or data.time != app_row["time"])
+
+    cursor.execute("""
+    UPDATE appointments
+    SET date = ?, time = ?, end_time = ?, service_names = ?, total_price = ?, notes = ?, status = ?
+    WHERE id = ?
+    """, (data.date, data.time, end_time, service_names, total_price, notes, status, app_id))
+
+    if time_changed:
+        now_iso = datetime.now().isoformat()
+        cursor.execute("""
+        INSERT INTO chat_messages (appointment_id, client_phone, sender, sender_name, text, created_at, is_read)
+        VALUES (?, ?, 'master', 'Natali', ?, ?, 0)
+        """, (app_id, app_row["client_phone"], f"📅 Майстер оновила час запису: {data.date} о {data.time} ({service_names}, {total_price:.0f} €)", now_iso))
+
+    conn.commit()
+    conn.close()
+    return {"status": "ok"}
+
+# --- Live Chat Endpoints (Between Master & Client) ---
+
+@app.get("/api/chat/messages")
+def get_chat_messages(appointment_id: Optional[int] = None, client_phone: Optional[str] = None, viewer: Optional[str] = "master"):
+    conn = get_db()
+    cursor = conn.cursor()
+    safe_phone = sanitize_text(client_phone or "").strip()
+    digits = re.sub(r'\D', '', safe_phone)
+    suffix = digits[-9:] if len(digits) >= 9 else digits
+
+    query = "SELECT * FROM chat_messages WHERE 1=1"
+    params = []
+
+    if appointment_id and suffix:
+        query += " AND (appointment_id = ? OR client_phone LIKE ?)"
+        params.extend([appointment_id, f"%{suffix}%"])
+    elif appointment_id:
+        query += " AND appointment_id = ?"
+        params.append(appointment_id)
+    elif suffix:
+        query += " AND client_phone LIKE ?"
+        params.append(f"%{suffix}%")
+
+    query += " ORDER BY id ASC"
+    cursor.execute(query, tuple(params))
+    messages = [dict(r) for r in cursor.fetchall()]
+
+    other_sender = 'client' if viewer == 'master' else 'master'
+    if appointment_id:
+        cursor.execute("UPDATE chat_messages SET is_read = 1 WHERE appointment_id = ? AND sender = ?", (appointment_id, other_sender))
+    if suffix:
+        cursor.execute("UPDATE chat_messages SET is_read = 1 WHERE client_phone LIKE ? AND sender = ?", (f"%{suffix}%", other_sender))
+
+    conn.commit()
+    conn.close()
+    return {"status": "ok", "messages": messages}
+
+@app.post("/api/chat/send")
+def send_chat_message(data: SendChatMessageRequest):
+    text = sanitize_text(data.text).strip()
+    if not text:
+        raise HTTPException(status_code=400, detail="Повідомлення не може бути порожнім")
+    safe_phone = sanitize_text(data.client_phone).strip()
+    sender = "client" if data.sender == "client" else "master"
+    sender_name = sanitize_text(data.sender_name or ("Natali" if sender == "master" else "Клієнт"))
+
+    conn = get_db()
+    cursor = conn.cursor()
+    now_iso = datetime.now().isoformat()
+    cursor.execute("""
+    INSERT INTO chat_messages (appointment_id, client_phone, sender, sender_name, text, created_at, is_read)
+    VALUES (?, ?, ?, ?, ?, ?, 0)
+    """, (data.appointment_id, safe_phone, sender, sender_name, text, now_iso))
+    mid = cursor.lastrowid
+    conn.commit()
+    conn.close()
+    return {
+        "status": "ok",
+        "message": {
+            "id": mid,
+            "appointment_id": data.appointment_id,
+            "client_phone": safe_phone,
+            "sender": sender,
+            "sender_name": sender_name,
+            "text": text,
+            "created_at": now_iso,
+            "is_read": 0
+        }
+    }
+
+@app.get("/api/chat/unread-counts")
+def get_unread_counts():
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("""
+    SELECT appointment_id, client_phone, COUNT(*) as unread
+    FROM chat_messages
+    WHERE sender = 'client' AND is_read = 0
+    GROUP BY appointment_id, client_phone
+    """)
+    rows = cursor.fetchall()
+    total_unread = 0
+    by_app = {}
+    by_phone = {}
+    for r in rows:
+        unread = r["unread"]
+        total_unread += unread
+        if r["appointment_id"]:
+            by_app[r["appointment_id"]] = unread
+        if r["client_phone"]:
+            by_phone[r["client_phone"]] = unread
+    conn.close()
+    return {"total_unread": total_unread, "by_app": by_app, "by_phone": by_phone}
+
 # --- Finance Endpoints ---
 @app.get("/api/finance/summary")
 def get_finance_summary(month: Optional[str] = None):
@@ -982,6 +1316,15 @@ def delete_transaction(t_id: int):
     conn.commit()
     conn.close()
     return {"status": "deleted"}
+
+@app.post("/api/finance/reset")
+def reset_finance():
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM transactions")
+    conn.commit()
+    conn.close()
+    return {"status": "ok", "message": "Касу успішно обнулено"}
 
 # --- VIP Client Club & Loyalty Endpoints ---
 
@@ -1333,6 +1676,45 @@ def get_client_profile(phone: str):
         "appointments": appointments
     }
 
+@app.get("/api/client/appointments")
+def get_client_appointments(phone: str = Query("")):
+    safe_phone = sanitize_text(phone).strip()
+    if not safe_phone:
+        return []
+    digits = re.sub(r'\D', '', safe_phone)
+    suffix = digits[-9:] if len(digits) >= 9 else digits
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("""
+    SELECT id, client_name, client_phone, service_names, date, time, end_time, total_price, status, payment_method, notes, created_at
+    FROM appointments
+    WHERE client_phone = ? OR client_phone LIKE ?
+    ORDER BY date DESC, time DESC
+    """, (safe_phone, f"%{suffix}%"))
+    rows = cursor.fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+@app.post("/api/client/appointments/{app_id}/cancel")
+def cancel_client_appointment(app_id: int, phone: str = Query("")):
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("SELECT id, status, client_phone, client_name FROM appointments WHERE id = ?", (app_id,))
+    app_row = cursor.fetchone()
+    if not app_row:
+        conn.close()
+        raise HTTPException(status_code=404, detail="Запис не знайдено")
+    
+    cursor.execute("UPDATE appointments SET status = 'cancelled' WHERE id = ?", (app_id,))
+    now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    cursor.execute("""
+    INSERT INTO chat_messages (appointment_id, client_phone, sender, sender_name, text, created_at, is_read)
+    VALUES (?, ?, 'client', ?, 'Клієнт скасував цей запис через додаток.', ?, 0)
+    """, (app_id, app_row["client_phone"], app_row["client_name"], now_str))
+    conn.commit()
+    conn.close()
+    return {"status": "ok"}
+
 @app.post("/api/client/redeem")
 def redeem_reward(data: RedeemRequest):
     conn = get_db()
@@ -1446,7 +1828,7 @@ def add_review(data: ReviewCreate):
 def get_public_info():
     conn = get_db()
     cursor = conn.cursor()
-    cursor.execute("SELECT master_name, studio_name, phone, instagram, telegram, address, currency, about, bizum_phone, paypal_link, card_ua, card_es, accept_bizum, accept_card, accept_paypal, accept_cash, master_avatar FROM settings WHERE id = 1")
+    cursor.execute("SELECT master_name, studio_name, phone, instagram, telegram, whatsapp, facebook, address, work_start, work_end, working_days, schedule_json, currency, about, bizum_phone, paypal_link, card_ua, card_es, accept_bizum, accept_card, accept_paypal, accept_cash, master_avatar FROM settings WHERE id = 1")
     settings = dict(cursor.fetchone() or {})
     cursor.execute("SELECT id, name, category, price, duration_minutes, description, translations FROM services WHERE is_active = 1 ORDER BY category, price")
     services = []
@@ -1464,7 +1846,7 @@ def get_public_info():
 def get_available_slots(date_str: str, duration: int):
     conn = get_db()
     cursor = conn.cursor()
-    cursor.execute("SELECT work_start, work_end, working_days, slot_step FROM settings WHERE id = 1")
+    cursor.execute("SELECT work_start, work_end, working_days, schedule_json, slot_step FROM settings WHERE id = 1")
     s = cursor.fetchone()
     if not s:
         conn.close()
@@ -1475,16 +1857,35 @@ def get_available_slots(date_str: str, duration: int):
         dt = datetime.strptime(date_str, "%Y-%m-%d")
         py_wd = dt.weekday()
         js_wd = (py_wd + 1) % 7
-        raw_wd = s["working_days"] if s["working_days"] else "1,2,3,4,5,6"
-        active_days = [w.strip() for w in str(raw_wd).split(",") if w.strip()]
-        if str(js_wd) not in active_days:
-            conn.close()
-            return []  # Day off / Non-working day!
-    except Exception as e:
-        pass
+        
+        day_schedule = None
+        if s["schedule_json"]:
+            try:
+                sch_dict = json.loads(s["schedule_json"])
+                day_schedule = sch_dict.get(str(js_wd))
+            except Exception:
+                day_schedule = None
 
-    work_start_m = time_to_minutes(s["work_start"])
-    work_end_m = time_to_minutes(s["work_end"])
+        if day_schedule:
+            if not day_schedule.get("active", True):
+                conn.close()
+                return []  # Day off / Non-working day!
+            work_start_str = day_schedule.get("start") or s["work_start"] or "10:00"
+            work_end_str = day_schedule.get("end") or s["work_end"] or "20:00"
+        else:
+            raw_wd = s["working_days"] if s["working_days"] else "1,2,3,4,5,6"
+            active_days = [w.strip() for w in str(raw_wd).split(",") if w.strip()]
+            if str(js_wd) not in active_days:
+                conn.close()
+                return []  # Day off / Non-working day!
+            work_start_str = s["work_start"] or "10:00"
+            work_end_str = s["work_end"] or "20:00"
+    except Exception as e:
+        work_start_str = s["work_start"] or "10:00"
+        work_end_str = s["work_end"] or "20:00"
+
+    work_start_m = time_to_minutes(work_start_str)
+    work_end_m = time_to_minutes(work_end_str)
     slot_step = s["slot_step"] or 30
 
     cursor.execute("SELECT time, end_time FROM appointments WHERE date = ? AND status != 'cancelled'", (date_str,))
@@ -1542,6 +1943,45 @@ def public_book(data: PublicBookingRequest, request: Request):
     req_start = time_to_minutes(data.time)
     req_end = time_to_minutes(end_time)
 
+    # Validate that the selected day is an active working day and time is within work hours
+    cursor.execute("SELECT work_start, work_end, working_days, schedule_json FROM settings WHERE id = 1")
+    s = cursor.fetchone()
+    if s:
+        try:
+            dt = datetime.strptime(data.date, "%Y-%m-%d")
+            py_wd = dt.weekday()
+            js_wd = (py_wd + 1) % 7
+            day_schedule = None
+            if s["schedule_json"]:
+                try:
+                    sch_dict = json.loads(s["schedule_json"])
+                    day_schedule = sch_dict.get(str(js_wd))
+                except Exception:
+                    day_schedule = None
+
+            if day_schedule:
+                if not day_schedule.get("active", True):
+                    conn.close()
+                    raise HTTPException(status_code=400, detail="На жаль, цей день є вихідним у майстра. Будь ласка, оберіть робочий день.")
+                day_start_m = time_to_minutes(day_schedule.get("start") or s["work_start"] or "10:00")
+                day_end_m = time_to_minutes(day_schedule.get("end") or s["work_end"] or "20:00")
+            else:
+                raw_wd = s["working_days"] if s["working_days"] else "1,2,3,4,5,6"
+                active_days = [w.strip() for w in str(raw_wd).split(",") if w.strip()]
+                if str(js_wd) not in active_days:
+                    conn.close()
+                    raise HTTPException(status_code=400, detail="На жаль, цей день є вихідним у майстра. Будь ласка, оберіть робочий день.")
+                day_start_m = time_to_minutes(s["work_start"] or "10:00")
+                day_end_m = time_to_minutes(s["work_end"] or "20:00")
+
+            if req_start < day_start_m or req_end > day_end_m:
+                conn.close()
+                raise HTTPException(status_code=400, detail="Обраний час виходить за межі робочого графіка майстра на цей день.")
+        except HTTPException:
+            raise
+        except Exception:
+            pass
+
     cursor.execute("SELECT time, end_time FROM appointments WHERE date = ? AND status != 'cancelled'", (data.date,))
     existing = cursor.fetchall()
     for b in existing:
@@ -1561,10 +2001,23 @@ def public_book(data: PublicBookingRequest, request: Request):
                        (safe_name, safe_phone, datetime.now().isoformat()))
         client_id = cursor.lastrowid
 
+    now_iso = datetime.now().isoformat()
     cursor.execute("""
     INSERT INTO appointments (client_id, client_name, client_phone, service_names, date, time, end_time, total_price, status, payment_method, notes, source, created_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'confirmed', 'cash', ?, 'client', ?)
-    """, (client_id, safe_name, safe_phone, data.service_names, data.date, data.time, end_time, data.total_price, safe_notes, datetime.now().isoformat()))
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', 'cash', ?, 'client', ?)
+    """, (client_id, safe_name, safe_phone, data.service_names, data.date, data.time, end_time, data.total_price, safe_notes, now_iso))
+    aid = cursor.lastrowid
+
+    # Create initial greeting/status message in chat
+    cursor.execute("""
+    INSERT INTO chat_messages (appointment_id, client_phone, sender, sender_name, text, created_at, is_read)
+    VALUES (?, ?, 'master', 'Natali', ?, ?, 0)
+    """, (aid, safe_phone, f"Привіт, {safe_name}! ✨ Ваше онлайн-бронювання на {data.date} о {data.time} ({data.service_names}) отримано та очікує підтвердження. Якщо треба скоригувати час або є запитання — пишіть тут!", now_iso))
+
+    conn.commit()
+    conn.close()
+
+    return {"status": "success", "appointment_id": aid}
 
     conn.commit()
     aid = cursor.lastrowid

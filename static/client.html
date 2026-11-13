@@ -37,24 +37,29 @@
 <div id="vip-app" class="max-w-md lg:max-w-4xl mx-auto min-h-screen bg-[#1F1917] flex flex-col shadow-2xl relative pb-20 lg:my-6 lg:rounded-3xl lg:border lg:border-white/10 lg:overflow-hidden">
 
   <!-- Top bar with Lang Switcher -->
-  <header class="px-5 py-3.5 flex items-center justify-between border-b border-white/10 bg-[#161210]/80 backdrop-blur-md sticky top-0 z-40">
+  <header class="px-4 py-3 flex items-center justify-between border-b border-white/10 bg-[#161210]/90 backdrop-blur-md sticky top-0 z-40">
     <div class="flex items-center space-x-2">
-      <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-amber-400 to-rose-500 flex items-center justify-center text-white text-xs shadow-md">
-        <i class="fa-solid fa-crown text-[11px]"></i>
+      <!-- Back to Book Button -->
+      <a href="/book" class="bg-white/10 hover:bg-white/20 text-stone-200 hover:text-white font-bold px-2.5 py-1 rounded-full text-[11px] flex items-center space-x-1 transition active:scale-95 border border-white/15" title="Повернутися до запису">
+        <i class="fa-solid fa-arrow-left text-[10px]"></i>
+        <span>{{ t("vip_back_book") }}</span>
+      </a>
+      <div class="w-7 h-7 rounded-full bg-gradient-to-tr from-amber-400 to-rose-500 flex items-center justify-center text-white text-xs shadow-md">
+        <i class="fa-solid fa-crown text-[10px]"></i>
       </div>
       <div>
         <h1 class="font-bold text-xs tracking-wider text-amber-200 uppercase">VIP Beauty Club</h1>
-        <p class="text-[10px] text-stone-400">Закритий клуб клієнток</p>
+        <p class="text-[9px] text-stone-400">{{ t('vip_club_sub') }}</p>
       </div>
     </div>
 
     <!-- Language selector -->
-    <div class="flex items-center space-x-1 overflow-x-auto hide-scrollbar">
+    <div class="flex items-center space-x-1 overflow-x-auto hide-scrollbar bg-black/40 p-1 rounded-full border border-white/10">
       <button v-for="(cfg, code) in availableLangs" :key="code"
         @click="setLang(code)"
-        :class="currentLang === code ? 'bg-amber-500/20 text-amber-300 border border-amber-400/40 font-bold' : 'text-stone-400 hover:text-white'"
-        class="text-[10px] px-2 py-0.5 rounded-full transition">
-        <span>{{ cfg.flag }}</span>
+        :class="currentLang === code ? 'bg-amber-400 text-stone-950 font-black shadow-md' : 'text-stone-300 hover:text-white'"
+        class="text-xs px-2 py-0.5 rounded-full transition flex items-center space-x-0.5">
+        <span class="text-xs">{{ cfg.flag }}</span>
       </button>
     </div>
   </header>
@@ -63,13 +68,13 @@
     <div class="flex items-center space-x-2.5">
       <img src="/static/icon-192.png" class="w-7 h-7 rounded-lg shadow-sm border border-amber-400/40">
       <div class="text-left">
-        <div class="font-bold text-[11px] text-amber-200">Додаток Natali Nails</div>
-        <div class="text-[9px] text-stone-300">Встановити на екран для швидкого входу</div>
+        <div class="font-bold text-[11px] text-amber-200">{{ t('vip_app_title') }}</div>
+        <div class="text-[9px] text-stone-300">{{ t('vip_app_desc') }}</div>
       </div>
     </div>
     <button @click="triggerInstall" class="bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 text-stone-950 text-[11px] font-black px-3 py-1.5 rounded-xl shadow transition active:scale-95 flex items-center space-x-1">
       <i class="fa-solid fa-download text-[10px]"></i>
-      <span>Встановити</span>
+      <span>{{ t('vip_btn_install') }}</span>
     </button>
   </div>
 
@@ -87,9 +92,9 @@
       </div>
       <div class="space-y-1">
         <span class="text-[10px] uppercase font-extrabold tracking-widest text-amber-400">VIP Lounge</span>
-        <h2 class="text-2xl font-bold font-serif-luxury text-white">Вхід для постійних клієнток</h2>
+        <h2 class="text-2xl font-bold font-serif-luxury text-white">{{ t("vip_login_title") }}</h2>
         <p class="text-xs text-stone-400 max-w-xs mx-auto leading-relaxed">
-          Накопичуйте бали за візити, обмінюйте їх на спеціальні VIP-смайлики в коментарях та отримуйте знижки на манікюр.
+          {{ t("vip_login_desc") }}
         </p>
       </div>
     </div>
@@ -99,13 +104,13 @@
       <!-- Instagram Login Button -->
       <button @click="loginWithSocial('Instagram')" class="w-full bg-gradient-to-r from-[#833ab4] via-[#fd1d1d] to-[#fcb045] hover:opacity-95 text-white font-bold py-3.5 rounded-2xl shadow-lg shadow-rose-900/20 flex items-center justify-center space-x-2.5 text-xs transition active:scale-95">
         <i class="fa-brands fa-instagram text-base"></i>
-        <span>Продовжити через Instagram</span>
+        <span>{{ t("vip_btn_instagram") }}</span>
       </button>
 
       <!-- Facebook Login Button -->
       <button @click="loginWithSocial('Facebook')" class="w-full bg-[#1877F2] hover:bg-[#166fe5] text-white font-bold py-3.5 rounded-2xl shadow-lg shadow-blue-900/20 flex items-center justify-center space-x-2.5 text-xs transition active:scale-95">
         <i class="fa-brands fa-facebook text-base"></i>
-        <span>Продовжити через Facebook</span>
+        <span>{{ t("vip_btn_facebook") }}</span>
       </button>
 
       <!-- Google Login Button -->
@@ -116,21 +121,21 @@
           <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
           <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
         </svg>
-        <span>Продовжити через Google</span>
+        <span>{{ t("vip_btn_google") }}</span>
       </button>
 
       <div class="flex items-center space-x-3 py-1">
         <div class="flex-1 h-px bg-white/10"></div>
-        <span class="text-[11px] text-stone-500 uppercase font-semibold">або за номером телефону</span>
+        <span class="text-[11px] text-stone-500 uppercase font-semibold">{{ t("vip_or_phone") }}</span>
         <div class="flex-1 h-px bg-white/10"></div>
       </div>
 
       <!-- Phone Login Form -->
       <div class="space-y-2.5">
-        <input v-model="loginPhone" type="tel" placeholder="+34... або +380..." class="w-full bg-white/5 border border-white/15 focus:border-amber-400 rounded-2xl p-3.5 text-xs text-white placeholder-stone-500 focus:outline-none">
+        <input v-model="loginPhone" type="tel" :placeholder="t('vip_phone_placeholder')" class="w-full bg-white/5 border border-white/15 focus:border-amber-400 rounded-2xl p-3.5 text-xs text-white placeholder-stone-500 focus:outline-none">
 
         <button @click="loginWithPhone" class="w-full bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-stone-950 font-black py-3.5 rounded-2xl shadow-xl shadow-amber-500/20 text-xs transition active:scale-95 flex items-center justify-center space-x-1.5">
-          <span>Увійти в кабінет</span>
+          <span>{{ t("vip_btn_login_cabinet") }}</span>
           <i class="fa-solid fa-arrow-right text-[11px]"></i>
         </button>
       </div>
@@ -166,8 +171,20 @@
                 <span>{{ client.vip_tier || 'Gold VIP' }}</span>
               </span>
             </div>
-            <h2 class="text-lg font-bold text-white font-serif-luxury mt-0.5">{{ client.name }}</h2>
-            <p class="text-[11px] text-stone-400">{{ client.phone }}</p>
+            <h2 class="text-lg font-bold text-white font-serif-luxury mt-0.5 flex items-center space-x-1.5">
+              <span>{{ client.name }}</span>
+              <span v-if="client.is_vip" class="text-amber-400 text-sm" title="VIP">👑</span>
+            </h2>
+            <div class="flex items-center space-x-1.5 mt-0.5 flex-wrap">
+              <p class="text-[11px] text-stone-400">{{ client.phone }}</p>
+              <span v-if="client.is_vip" class="text-[10px] bg-gradient-to-r from-amber-400 to-amber-500 text-stone-950 font-black px-2 py-0.5 rounded-full shadow-sm flex items-center space-x-1">
+                <i class="fa-solid fa-crown text-[9px]"></i>
+                <span>{{ t('vip_crown_active') }}</span>
+              </span>
+              <span v-else class="text-[10px] bg-white/10 text-stone-300 px-2 py-0.5 rounded-full flex items-center space-x-1">
+                <span>⏳ {{ t('vip_crown_waiting') }}</span>
+              </span>
+            </div>
           </div>
         </div>
 
@@ -179,22 +196,22 @@
       <!-- Points & Balance Box -->
       <div class="bg-white/5 border border-white/10 rounded-2xl p-3.5 flex items-center justify-between">
         <div>
-          <span class="text-[10px] uppercase tracking-wider text-stone-400 font-bold">Мій баланс балів</span>
+          <span class="text-[10px] uppercase tracking-wider text-stone-400 font-bold">{{ t('vip_my_balance') }}</span>
           <div class="text-2xl font-black text-amber-300 flex items-center space-x-1.5 mt-0.5">
             <i class="fa-solid fa-gem text-lg text-amber-400"></i>
             <span>{{ client.points || 0 }}</span>
-            <span class="text-xs text-stone-400 font-normal">Coins</span>
+            <span class="text-xs text-stone-400 font-normal">{{ t('vip_coins_label') }}</span>
           </div>
         </div>
         <button @click="activeTab = 'shop'" class="bg-amber-400 hover:bg-amber-300 text-stone-950 font-black text-xs px-3.5 py-2 rounded-xl shadow-md transition active:scale-95">
-          Витратити 🎁
+          {{ t('vip_btn_spend') }}
         </button>
       </div>
 
       <!-- Unlocked VIP Emojis Bar -->
       <div class="pt-1 border-t border-white/10 flex items-center justify-between text-xs">
-        <span class="text-[11px] text-stone-400">Мої VIP-смайлики:</span>
-        <div class="flex items-center space-x-1.5">
+        <span class="text-[11px] text-stone-400">{{ t('vip_my_emojis') }}</span>
+        <div class="flex items-center space-x-1.5 flex-wrap gap-1">
           <span v-for="em in unlockedEmojisList" :key="em" class="w-7 h-7 rounded-lg bg-white/10 flex items-center justify-center text-sm shadow-inner">
             {{ em }}
           </span>
@@ -205,37 +222,21 @@
     <!-- Navigation Tabs inside Club -->
     <div class="flex space-x-2 bg-white/5 p-1 rounded-2xl border border-white/10 text-xs font-bold">
       <button @click="activeTab = 'shop'" :class="activeTab === 'shop' ? 'bg-amber-400 text-stone-950 shadow' : 'text-stone-300 hover:text-white'" class="flex-1 py-2 rounded-xl transition text-center">
-        💎 Магазин балів
+        {{ t('vip_tab_shop') }}
       </button>
       <button @click="activeTab = 'reviews'" :class="activeTab === 'reviews' ? 'bg-amber-400 text-stone-950 shadow' : 'text-stone-300 hover:text-white'" class="flex-1 py-2 rounded-xl transition text-center">
-        💬 VIP-Відгуки
+        {{ t('vip_tab_reviews') }}
       </button>
       <button @click="activeTab = 'history'" :class="activeTab === 'history' ? 'bg-amber-400 text-stone-950 shadow' : 'text-stone-300 hover:text-white'" class="flex-1 py-2 rounded-xl transition text-center">
-        📅 Мої візити
+        {{ t('vip_tab_visits') }}
       </button>
     </div>
 
     <!-- TAB: LOYALTY REWARDS SHOP (Обмін балів на ексклюзивні смайлики та подарунки) -->
     <div v-if="activeTab === 'shop'" class="space-y-3">
-      <!-- VIP APPROVAL NOTICE -->
-      <div v-if="!client.is_vip" class="bg-gradient-to-r from-amber-950/70 via-stone-900 to-amber-950/70 border border-amber-500/40 rounded-2xl p-4 text-left space-y-2 shadow-xl">
-        <div class="flex items-center space-x-2 text-amber-300 font-bold text-xs">
-          <i class="fa-solid fa-crown text-amber-400"></i>
-          <span>VIP-Статус: Очікує підтвердження майстром Natali</span>
-        </div>
-        <p class="text-[11px] text-stone-300 leading-relaxed">
-          Майстер <b>Natali</b> активує ваші VIP-привілеї (поставить вам коронку 👑 у своїй системі) після візиту. Після цього всі алмази 💎 та знижки розблокуються для обміну!
-        </p>
-        <div class="pt-1">
-          <a href="/book" class="inline-flex items-center space-x-1.5 text-xs text-amber-300 font-bold hover:underline">
-            <i class="fa-solid fa-calendar-check text-[11px]"></i>
-            <span>Записатися на манікюр онлайн ➔</span>
-          </a>
-        </div>
-      </div>
       <div class="flex items-center justify-between px-1">
-        <h3 class="font-bold text-sm text-stone-200">Ексклюзивні винагороди</h3>
-        <span class="text-[11px] text-amber-300">Баланс: {{ client.points }} балів</span>
+        <h3 class="font-bold text-sm text-stone-200">{{ t('vip_exclusive_rewards') }}</h3>
+        <span class="text-[11px] text-amber-300">{{ t('vip_balance_label') }} {{ client.points || 0 }} 💎</span>
       </div>
 
       <div class="grid grid-cols-2 gap-2.5">
@@ -252,7 +253,7 @@
             <button @click="redeem(reward)" :disabled="(client.points || 0) < reward.cost || isRewardOwned(reward)"
               :class="isRewardOwned(reward) ? 'bg-white/10 text-stone-400' : ((client.points || 0) >= reward.cost ? 'bg-amber-400 text-stone-950 hover:bg-amber-300' : 'bg-white/5 text-stone-500')"
               class="text-[10px] font-black px-2.5 py-1.5 rounded-lg transition active:scale-95">
-              {{ isRewardOwned(reward) ? 'Є' : 'Отримати' }}
+              {{ isRewardOwned(reward) ? t('vip_already_owned') : t('vip_btn_claim') }}
             </button>
           </div>
         </div>
@@ -265,7 +266,7 @@
       <div class="bg-white/5 border border-white/10 rounded-2xl p-4 space-y-3">
         <h3 class="font-bold text-xs uppercase tracking-wider text-amber-300 flex items-center space-x-1.5">
           <i class="fa-solid fa-pen-nib"></i>
-          <span>Залишити відгук (+20 бонусних балів!)</span>
+          <span>{{ t('vip_leave_review') }}</span>
         </h3>
 
         <!-- Rating Stars -->
@@ -275,30 +276,34 @@
           </button>
         </div>
 
-        <!-- Custom Emojis Selector (Client inserts their unlocked exclusive emojis) -->
+        <!-- Custom Emojis Selector (Expanded collection of aesthetic beauty emojis!) -->
         <div>
-          <label class="block text-[10px] text-stone-400 mb-1">Додати ваші VIP-смайлики:</label>
-          <div class="flex items-center space-x-1.5">
-            <button v-for="em in unlockedEmojisList" :key="em" @click="insertEmoji(em)" class="w-8 h-8 rounded-xl bg-white/10 hover:bg-amber-400/20 border border-white/15 flex items-center justify-center text-sm transition active:scale-95">
+          <label class="block text-[10px] text-stone-400 mb-1.5">{{ t('vip_add_emojis') }}</label>
+          <div class="flex items-center space-x-1.5 overflow-x-auto hide-scrollbar py-1">
+            <button v-for="em in allAvailableEmojis" :key="em" @click="insertEmoji(em)" class="w-8 h-8 rounded-xl bg-white/10 hover:bg-amber-400/30 border border-white/15 flex items-center justify-center text-sm transition active:scale-95 flex-shrink-0">
               {{ em }}
             </button>
           </div>
         </div>
 
-        <textarea v-model="newReview.comment" rows="2" placeholder="Напишіть ваші враження про манікюр..." class="w-full bg-white/5 border border-white/15 focus:border-amber-400 rounded-xl p-2.5 text-xs text-white placeholder-stone-500 focus:outline-none"></textarea>
+        <textarea v-model="newReview.comment" rows="2" :placeholder="t('vip_review_placeholder')" class="w-full bg-white/5 border border-white/15 focus:border-amber-400 rounded-xl p-2.5 text-xs text-white placeholder-stone-500 focus:outline-none"></textarea>
 
         <button @click="submitReview" class="w-full bg-gradient-to-r from-amber-400 to-amber-500 text-stone-950 font-bold py-2.5 rounded-xl text-xs transition active:scale-95 shadow-md">
-          Опублікувати та отримати +20 балів
+          {{ t('vip_btn_publish') }}
         </button>
       </div>
 
       <!-- Reviews Feed -->
       <div class="space-y-3">
+        <h3 class="font-bold text-xs uppercase tracking-wider text-stone-400 px-1">{{ t('vip_reviews_title') }}</h3>
+        <div v-if="reviews.length === 0" class="text-center py-6 text-stone-400 text-xs">
+          {{ t('vip_no_reviews') }}
+        </div>
         <div v-for="r in reviews" :key="r.id" class="bg-white/5 border border-white/10 rounded-2xl p-3.5 space-y-2">
           <div class="flex items-center justify-between">
             <div class="flex items-center space-x-2">
               <span class="w-7 h-7 rounded-full bg-amber-500/20 text-amber-300 font-bold flex items-center justify-center text-xs">
-                {{ r.client_name.slice(0, 1) }}
+                {{ r.client_name ? r.client_name.slice(0, 1) : 'V' }}
               </span>
               <div>
                 <span class="font-bold text-xs text-white">{{ r.client_name }}</span>
@@ -319,10 +324,11 @@
 
     <!-- TAB: MY VISITS HISTORY -->
     <div v-if="activeTab === 'history'" class="space-y-3">
-      <div v-if="appointments.length === 0" class="text-center py-8 text-stone-400 text-xs">
-        Історія візитів порожня
+      <div v-if="appointments.length === 0" class="text-center py-8 text-stone-400 text-xs space-y-2">
+        <p>{{ t('vip_no_visits') }}</p>
+        <a href="/book" class="inline-block text-amber-300 font-bold hover:underline text-xs">{{ t('btn_book_online') }}</a>
       </div>
-      <div v-for="app in appointments" :key="app.id" class="bg-white/5 border border-white/10 rounded-2xl p-3.5 space-y-1.5">
+      <div v-for="app in appointments" :key="app.id" class="bg-white/5 border border-white/10 rounded-2xl p-3.5 space-y-2">
         <div class="flex items-center justify-between">
           <span class="font-bold text-xs text-white">{{ app.date }} о {{ app.time }}</span>
           <span class="text-xs font-extrabold text-amber-300">{{ app.total_price }} €</span>
@@ -330,7 +336,9 @@
         <p class="text-[11px] text-stone-300"><i class="fa-solid fa-sparkles text-amber-400 mr-1"></i>{{ app.service_names }}</p>
         <div class="pt-1 flex items-center justify-between text-[10px] text-stone-400">
           <span>Оплата: {{ app.payment_method ? app.payment_method.toUpperCase() : 'CASH' }}</span>
-          <span class="text-emerald-400 font-bold flex items-center"><i class="fa-solid fa-check text-[9px] mr-1"></i>Виконано</span>
+          <span :class="app.status === 'confirmed' ? 'text-emerald-400' : 'text-amber-400'" class="font-bold flex items-center">
+            {{ app.status === 'confirmed' ? '✅ ' + (t('status_confirmed') || 'Підтверджено') : (t('status_pending') || '⏳ Очікує') }}
+          </span>
         </div>
       </div>
     </div>
@@ -339,7 +347,7 @@
     <div class="pt-4">
       <a href="/book" class="w-full bg-gradient-to-r from-stone-800 to-stone-900 border border-amber-400/40 text-amber-300 hover:text-white font-bold py-3.5 rounded-2xl shadow-xl flex items-center justify-center space-x-2 text-xs transition active:scale-95">
         <i class="fa-solid fa-calendar-plus text-xs"></i>
-        <span>Записатися на наступний манікюр</span>
+        <span>{{ t('btn_book_online') }}</span>
       </a>
     </div>
   </div>
@@ -362,7 +370,7 @@
             </svg>
           </div>
           <div>
-            <h3 class="font-extrabold text-sm text-white">Вхід через {{ socialModal.provider }}</h3>
+            <h3 class="font-extrabold text-sm text-white">{{ t("vip_social_auth_title") }} {{ socialModal.provider }}</h3>
             <p class="text-[10px] text-amber-300">Natali Nails VIP</p>
           </div>
         </div>
@@ -374,10 +382,10 @@
       <div class="p-3 bg-white/5 rounded-2xl border border-white/10 text-[11px] text-stone-300 space-y-1">
         <div class="flex items-center space-x-1.5 text-amber-300 font-bold">
           <i class="fa-solid fa-shield-halved"></i>
-          <span>Офіційна авторизація профілю</span>
+          <span>{{ t("vip_social_auth_badge") }}</span>
         </div>
         <p>
-          Додаток запитує дозвіл на отримання вашого імені та нікнейму для закріплення бонусних балів (+50 💎).
+          {{ t("vip_social_auth_sub") }}
         </p>
       </div>
 
@@ -392,19 +400,19 @@
         </div>
 
         <div>
-          <label class="block font-semibold text-stone-300 mb-1">Ваше реальне ім'я:</label>
+          <label class="block font-semibold text-stone-300 mb-1">{{ t('lbl_client_name') }}</label>
           <input v-model="socialModal.name" placeholder="Олена" class="w-full bg-white/5 border border-white/15 focus:border-amber-400 rounded-xl p-3 text-white placeholder-stone-500 font-medium">
         </div>
 
         <div>
-          <label class="block font-semibold text-stone-300 mb-1">Номер телефону для зв'язку:</label>
-          <input v-model="socialModal.phone" type="tel" placeholder="+380... або +34..." class="w-full bg-white/5 border border-white/15 focus:border-amber-400 rounded-xl p-3 text-white placeholder-stone-500 font-medium">
+          <label class="block font-semibold text-stone-300 mb-1">{{ t('lbl_client_phone') }}</label>
+          <input v-model="socialModal.phone" type="tel" :placeholder="t('vip_phone_placeholder')" class="w-full bg-white/5 border border-white/15 focus:border-amber-400 rounded-xl p-3 text-white placeholder-stone-500 font-medium">
         </div>
 
         <button @click="submitSocialModal"
           :class="socialModal.provider === 'Instagram' ? 'bg-gradient-to-r from-[#833ab4] via-[#fd1d1d] to-[#fcb045] text-white' : (socialModal.provider === 'Facebook' ? 'bg-[#1877F2] text-white' : 'bg-gradient-to-r from-amber-400 to-amber-500 text-stone-950 font-black')"
           class="w-full font-bold py-3.5 rounded-xl shadow-xl text-xs transition active:scale-95 flex items-center justify-center space-x-2 mt-2">
-          <span>Підтвердити та отримати 50 💎</span>
+          <span>{{ t("vip_social_btn_confirm") }}</span>
           <i class="fa-solid fa-arrow-right text-[11px]"></i>
         </button>
       </div>
@@ -420,7 +428,7 @@
             <i class="fa-solid fa-camera"></i>
           </div>
           <div>
-            <h3 class="font-extrabold text-sm text-white">Фото вашого профілю</h3>
+            <h3 class="font-extrabold text-sm text-white">{{ t("vip_photo_modal_title") }}</h3>
             <p class="text-[10px] text-amber-300">VIP Beauty Club</p>
           </div>
         </div>
@@ -437,7 +445,7 @@
         </div>
         <div>
           <div class="font-bold text-xs text-white">{{ client.name }}</div>
-          <p class="text-[11px] text-stone-400">Оберіть фото з галереї або ексклюзивний VIP-образ</p>
+          <p class="text-[11px] text-stone-400">{{ t("vip_photo_modal_desc") }}</p>
         </div>
       </div>
 
@@ -445,14 +453,14 @@
       <div>
         <label class="w-full cursor-pointer bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 text-stone-950 font-black py-3 rounded-xl shadow-lg flex items-center justify-center space-x-2 text-xs transition active:scale-95">
           <i class="fa-solid fa-cloud-arrow-up text-sm"></i>
-          <span>Завантажити фото з телефону</span>
+          <span>{{ t("vip_btn_upload_photo") }}</span>
           <input type="file" accept="image/*" class="hidden" @change="onClientPhotoUpload">
         </label>
       </div>
 
       <!-- Option 2: Choose Preset Beauty Avatar -->
       <div class="space-y-2 pt-1">
-        <label class="block font-semibold text-[11px] text-stone-400 uppercase tracking-wider">Або оберіть VIP-образ:</label>
+        <label class="block font-semibold text-[11px] text-stone-400 uppercase tracking-wider">{{ t("vip_or_choose_avatar") }}</label>
         <div class="grid grid-cols-4 gap-2">
           <button v-for="preset in avatarPresets" :key="preset.id"
             @click="setClientPresetAvatar(preset)"
@@ -464,7 +472,7 @@
       </div>
 
       <button v-if="client.avatar_url" @click="removeClientAvatar" class="w-full text-center text-xs text-rose-400 hover:text-rose-300 py-1 font-medium">
-        Видалити поточне фото
+        {{ t("vip_btn_delete_photo") }}
       </button>
     </div>
   </div>
@@ -492,6 +500,17 @@ createApp({
       currentLang.value = code;
       localStorage.setItem('nail_lang', code);
     }
+
+    function t(key) {
+      if (typeof I18N === 'undefined') return key;
+      const dict = I18N[currentLang.value] || I18N['uk'] || {};
+      return dict[key] || (I18N['uk'] && I18N['uk'][key]) || key;
+    }
+
+    const allAvailableEmojis = [
+      '💅', '✨', '💖', '👑', '💎', '🔥', '🌸', '🦋', '🍸', '💄', '💋', '🎀',
+      '🥂', '🍓', '🌹', '💫', '🕊️', '🪄', '🧁', '🦄', '🔮', '🌙', '⭐', '🐆', '🤍', '🖤'
+    ];
 
         const showInstallModal = ref(false);
     let deferredPrompt = null;
@@ -717,10 +736,6 @@ createApp({
     }
 
     async function redeem(reward) {
-      if (!client.value.is_vip) {
-        alert("Майстер Natali ще не підтвердила ваш VIP-статус (коронку 👑). Після першого візиту майстер активує ваші привілеї!");
-        return;
-      }
       try {
         const res = await fetch('/api/client/redeem', {
           method: 'POST',
@@ -861,7 +876,7 @@ createApp({
     });
 
     return {
-      currentLang, availableLangs, setLang,
+      currentLang, availableLangs, setLang, t, allAvailableEmojis,
       isLoggedIn, loginPhone, activeTab, client, appointments, reviews,
       toast, rewardsCatalog, newReview, unlockedEmojisList, isRewardOwned,
       loginWithPhone, loginWithSocial, redeem, showInstallModal, triggerInstall, authMode, regForm, socialModal, openSocialModal, submitSocialModal,

@@ -367,7 +367,11 @@
               <span v-if="app.status === 'completed'" class="text-[10px] font-bold px-2 py-0.5 rounded-md" :class="getPaymentMethodBadgeClass(app.payment_method)">
                 {{ formatPaymentMethodName(app.payment_method) }}
               </span>
-              <span v-if="app.status === 'confirmed'" class="text-xs font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-full">
+              <span v-if="app.status === 'pending'" class="text-xs font-bold text-amber-900 bg-amber-100 border border-amber-300 px-2.5 py-1 rounded-full animate-pulse flex items-center space-x-1">
+                <i class="fa-solid fa-clock"></i>
+                <span>Очікує</span>
+              </span>
+              <span v-else-if="app.status === 'confirmed'" class="text-xs font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-full">
                 {{ t('status_confirmed') }}
               </span>
               <span v-else-if="app.status === 'completed'" class="text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-full flex items-center space-x-1">
@@ -377,6 +381,29 @@
               <span v-else-if="app.status === 'cancelled'" class="text-xs font-bold text-rose-700 bg-rose-50 border border-rose-200 px-2.5 py-1 rounded-full">
                 {{ t('status_cancelled') }}
               </span>
+            </div>
+          </div>
+
+          <!-- Quick Pending Approval Actions Banner -->
+          <div v-if="app.status === 'pending'" class="bg-gradient-to-r from-amber-500/15 via-rose-500/10 to-amber-500/15 border border-amber-400/50 rounded-2xl p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2 shadow-sm">
+            <div class="flex items-center space-x-2">
+              <div class="w-8 h-8 rounded-full bg-amber-400/20 text-amber-600 flex items-center justify-center font-bold text-xs flex-shrink-0 animate-bounce">
+                <i class="fa-solid fa-bell"></i>
+              </div>
+              <div>
+                <span class="block text-xs font-black text-amber-950">Нова онлайн-бронь!</span>
+                <span class="block text-[11px] text-stone-600">Підтвердіть замовлення або змініть час:</span>
+              </div>
+            </div>
+            <div class="flex items-center space-x-2 flex-shrink-0 pt-1 sm:pt-0">
+              <button type="button" @click="confirmAppointment(app)" class="flex-1 sm:flex-none bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs px-3.5 py-2 rounded-xl shadow-md transition active:scale-95 flex items-center justify-center space-x-1.5">
+                <i class="fa-solid fa-check text-xs"></i>
+                <span>Прийняти</span>
+              </button>
+              <button type="button" @click="openEditAppModal(app)" class="flex-1 sm:flex-none bg-stone-900 hover:bg-black text-white font-bold text-xs px-3 py-2 rounded-xl shadow-md transition active:scale-95 flex items-center justify-center space-x-1">
+                <i class="fa-solid fa-pen text-[10px]"></i>
+                <span>Змінити час</span>
+              </button>
             </div>
           </div>
 
@@ -426,7 +453,16 @@
               </a>
             </div>
 
-            <div class="flex items-center space-x-1.5">
+            <div class="flex items-center space-x-1.5 flex-wrap gap-y-1 justify-end">
+              <button type="button" @click="openChatModal(app)" class="bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 text-xs font-bold px-2.5 py-1.5 rounded-lg transition active:scale-95 shadow-sm flex items-center space-x-1 relative" title="Відкрити чат з клієнтом">
+                <i class="fa-regular fa-comment-dots text-amber-700"></i>
+                <span>Чат</span>
+                <span v-if="appChatUnread[app.id]" class="w-2.5 h-2.5 rounded-full bg-rose-500 border border-white absolute -top-1 -right-1 animate-pulse"></span>
+              </button>
+              <button type="button" @click="openEditAppModal(app)" class="bg-stone-100 hover:bg-stone-200 text-stone-700 text-xs font-bold px-2.5 py-1.5 rounded-lg transition active:scale-95 flex items-center space-x-1" title="Змінити час, дату, послуги або ціну">
+                <i class="fa-solid fa-pen text-[10px]"></i>
+                <span>Змінити</span>
+              </button>
               <button v-if="app.status !== 'completed'" @click="openPaymentModal(app)" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition active:scale-95 shadow-sm flex items-center space-x-1">
                 <i class="fa-solid fa-credit-card text-[11px]"></i>
                 <span>{{ t('btn_paid') }}</span>
@@ -450,10 +486,16 @@
           <h2 class="font-extrabold text-xl text-stone-900">{{ t('finance_title') }}</h2>
           <p class="text-xs text-stone-500">{{ t('finance_sub') }}</p>
         </div>
-        <button @click="openExpenseModal" class="bg-rose-500 hover:bg-rose-600 text-white text-xs font-bold px-3.5 py-2 rounded-xl shadow-md shadow-rose-200 flex items-center space-x-1.5">
-          <i class="fa-solid fa-minus text-xs"></i>
-          <span>{{ t('btn_add_expense') }}</span>
-        </button>
+        <div class="flex items-center space-x-2">
+          <button @click="resetFinanceCash" class="bg-stone-100 hover:bg-stone-200 text-stone-700 text-xs font-bold px-3 py-2 rounded-xl transition flex items-center space-x-1" title="Обнулити касу / видалити демо-витрати">
+            <i class="fa-solid fa-arrows-rotate text-xs"></i>
+            <span>Обнулити касу</span>
+          </button>
+          <button @click="openExpenseModal" class="bg-rose-500 hover:bg-rose-600 text-white text-xs font-bold px-3.5 py-2 rounded-xl shadow-md shadow-rose-200 flex items-center space-x-1.5">
+            <i class="fa-solid fa-minus text-xs"></i>
+            <span>{{ t('btn_add_expense') }}</span>
+          </button>
+        </div>
       </div>
 
       <div class="grid grid-cols-2 gap-3">
@@ -580,11 +622,24 @@
                 </div>
               </div>
               <div>
-                <div class="flex items-center space-x-1.5">
+                <div class="flex items-center space-x-1.5 flex-wrap">
                   <h3 class="font-bold text-stone-900 text-sm">{{ c.name }}</h3>
-                  <span v-if="c.is_vip" class="text-amber-500 text-xs" title="VIP Схвалено"><i class="fa-solid fa-crown"></i></span>
+                  <span class="bg-amber-100 text-amber-900 text-[10px] font-black px-1.5 py-0.5 rounded-full flex items-center">
+                    💎 {{ c.points || 0 }}
+                  </span>
                 </div>
-                <p class="text-xs text-stone-500">{{ c.phone }}</p>
+                <!-- Crown VIP toggle under nickname to activate VIP -->
+                <div class="mt-1 flex items-center space-x-1.5 flex-wrap">
+                  <button @click="toggleClientVip(c)" :class="c.is_vip ? 'bg-gradient-to-r from-amber-400 to-amber-500 text-stone-950 font-black shadow-sm ring-1 ring-amber-300' : 'bg-stone-100 hover:bg-amber-50 text-stone-500 hover:text-amber-700 font-semibold border border-stone-200'" class="px-2 py-0.5 rounded-lg text-[10px] flex items-center space-x-1 transition active:scale-95" :title="c.is_vip ? 'VIP активовано! Натисніть щоб деактивувати' : 'Надати клієнту VIP статус'">
+                    <i class="fa-solid fa-crown text-[9px]" :class="c.is_vip ? 'text-stone-950' : 'text-amber-500'"></i>
+                    <span>{{ c.is_vip ? 'VIP Активовано 👑' : '+ Надати VIP 👑' }}</span>
+                  </button>
+                  <button @click="openPointsModal(c)" class="bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 px-2 py-0.5 rounded-lg text-[10px] font-bold flex items-center space-x-1 transition active:scale-95">
+                    <i class="fa-solid fa-gem text-amber-500 text-[9px]"></i>
+                    <span>+💎 Бали</span>
+                  </button>
+                </div>
+                <p class="text-xs text-stone-500 mt-1">{{ c.phone }}</p>
               </div>
             </div>
             <div class="text-right">
@@ -606,7 +661,13 @@
                 <i class="fa-brands fa-viber mr-1"></i>Viber
               </a>
             </div>
-            <div class="flex items-center space-x-1.5">
+            <div class="flex items-center space-x-1.5 flex-wrap gap-1">
+              <!-- ADD CRYSTALS (POINTS) BUTTON -->
+              <button @click="openPointsModal(c)" class="px-2 py-1 rounded-lg text-xs font-bold bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 flex items-center space-x-1 transition active:scale-95 shadow-sm" title="Нарахувати кристали (бали)">
+                <i class="fa-solid fa-gem text-amber-500 text-[10px]"></i>
+                <span class="text-[10px]">+💎</span>
+              </button>
+
               <!-- VIP CROWN TOGGLE -->
               <button @click="toggleClientVip(c)" :class="c.is_vip ? 'bg-amber-400 text-stone-950 shadow-md font-bold' : 'bg-stone-100 text-stone-400 hover:text-amber-500'" class="px-2 py-1 rounded-lg text-xs flex items-center space-x-1 transition active:scale-95" :title="c.is_vip ? 'VIP статус активний (натисніть щоб зняти)' : 'Надати VIP статус'">
                 <i class="fa-solid fa-crown text-[10px]"></i>
@@ -877,50 +938,56 @@
             <label class="block font-semibold text-stone-700 mb-1">Адреса кабінету</label>
             <input v-model="settings.address" class="w-full bg-stone-50 border border-stone-200 rounded-xl p-2.5 font-medium">
           </div>
-          <!-- Interactive Working Days & Hours Card -->
+          <!-- Interactive Working Days & Hours Card (Custom hours for EACH day) -->
           <div class="bg-stone-50 rounded-2xl p-4 border border-stone-200/80 space-y-3">
             <div class="flex items-center justify-between">
               <div>
-                <label class="block font-bold text-stone-900 text-sm">📅 Графік та робочі дні</label>
-                <p class="text-[11px] text-stone-500">Оберіть дні та години, коли ви приймаєте клієнтів (клієнти бачитимуть цей графік)</p>
+                <label class="block font-bold text-stone-900 text-sm">📅 Індивідуальний графік по днях тижня</label>
+                <p class="text-[11px] text-stone-500">Встановіть для кожного дня свої години роботи або зробіть вихідним</p>
               </div>
             </div>
 
-            <!-- Working Days Selector (Click to toggle) -->
-            <div>
-              <span class="block text-xs font-semibold text-stone-700 mb-1.5">Робочі дні тижня:</span>
-              <div class="grid grid-cols-7 gap-1 sm:gap-1.5">
-                <button v-for="day in weekDaysList" :key="day.id" type="button"
-                  @click="toggleWorkingDay(day.id)"
-                  :class="isDayActive(day.id) ? 'bg-stone-900 text-amber-300 font-bold border-stone-900 shadow-sm' : 'bg-white text-stone-400 border-stone-200 hover:border-stone-300'"
-                  class="flex flex-col items-center justify-center py-2 px-1 rounded-xl border text-center transition active:scale-95">
-                  <span class="text-xs font-bold leading-none">{{ day.short }}</span>
-                  <span class="text-[9px] mt-1 uppercase tracking-tighter" :class="isDayActive(day.id) ? 'text-amber-400' : 'text-stone-400'">
-                    {{ isDayActive(day.id) ? 'роб' : 'вих' }}
-                  </span>
-                </button>
-              </div>
-
-              <!-- Quick Presets -->
-              <div class="flex items-center space-x-2 pt-2 text-[11px]">
-                <span class="text-stone-400 font-medium">Швидко:</span>
-                <button type="button" @click="setDaysPreset('mon_sat')" class="text-rose-600 hover:underline font-semibold">Пн–Сб</button>
-                <span class="text-stone-300">•</span>
-                <button type="button" @click="setDaysPreset('mon_fri')" class="text-rose-600 hover:underline font-semibold">Пн–Пт</button>
-                <span class="text-stone-300">•</span>
-                <button type="button" @click="setDaysPreset('all_7')" class="text-rose-600 hover:underline font-semibold">Без вихідних (7/7)</button>
-              </div>
+            <!-- Quick Presets -->
+            <div class="flex items-center space-x-2 pt-1 text-[11px] flex-wrap gap-y-1">
+              <span class="text-stone-400 font-medium">Швидко:</span>
+              <button type="button" @click="setDaysPreset('mon_sat')" class="text-amber-800 bg-amber-100 hover:bg-amber-200 px-2 py-0.5 rounded-md font-bold transition">Пн–Сб 10:00–20:00</button>
+              <button type="button" @click="setDaysPreset('mon_fri')" class="text-amber-800 bg-amber-100 hover:bg-amber-200 px-2 py-0.5 rounded-md font-bold transition">Пн–Пт 09:00–18:00</button>
+              <button type="button" @click="setDaysPreset('all_7')" class="text-amber-800 bg-amber-100 hover:bg-amber-200 px-2 py-0.5 rounded-md font-bold transition">7/7 без вихідних</button>
             </div>
 
-            <!-- Working Hours -->
-            <div class="grid grid-cols-2 gap-3 pt-1">
-              <div>
-                <label class="block text-xs font-semibold text-stone-700 mb-1">Початок роботи</label>
-                <input v-model="settings.work_start" type="time" class="w-full bg-white border border-stone-300 rounded-xl p-2.5 text-xs font-bold focus:ring-2 focus:ring-rose-500 focus:outline-none">
-              </div>
-              <div>
-                <label class="block text-xs font-semibold text-stone-700 mb-1">Кінець роботи</label>
-                <input v-model="settings.work_end" type="time" class="w-full bg-white border border-stone-300 rounded-xl p-2.5 text-xs font-bold focus:ring-2 focus:ring-rose-500 focus:outline-none">
+            <!-- List of 7 Days with Individual Hours -->
+            <div class="space-y-2 pt-1">
+              <div v-for="day in weekDaysList" :key="day.id"
+                class="flex items-center justify-between p-2.5 rounded-2xl border transition shadow-sm"
+                :class="isDayActive(day.id) ? 'bg-white border-stone-200' : 'bg-stone-100/70 border-stone-200/60 opacity-60'">
+                
+                <!-- Toggle Button + Day Name -->
+                <div class="flex items-center space-x-2.5">
+                  <button type="button" @click="toggleWorkingDay(day.id)"
+                    :class="isDayActive(day.id) ? 'bg-stone-900 text-amber-300 shadow' : 'bg-stone-200 text-stone-500'"
+                    class="w-10 h-10 rounded-xl font-black text-xs flex flex-col items-center justify-center transition active:scale-95 flex-shrink-0">
+                    <span>{{ day.short }}</span>
+                    <span class="text-[8px] uppercase tracking-tighter">{{ isDayActive(day.id) ? 'роб' : 'вих' }}</span>
+                  </button>
+                  <div>
+                    <span class="text-xs font-bold text-stone-900 block leading-tight">{{ day.name }}</span>
+                    <span class="text-[10px] block" :class="isDayActive(day.id) ? 'text-emerald-600 font-semibold' : 'text-stone-400'">
+                      {{ isDayActive(day.id) ? 'Робочий день' : 'Вихідний' }}
+                    </span>
+                  </div>
+                </div>
+
+                <!-- Custom Working Hours Input -->
+                <div v-if="isDayActive(day.id)" class="flex items-center space-x-1.5 text-xs font-bold">
+                  <input type="time" v-model="getDaySchedule(day.id).start" @change="syncWorkingDaysString"
+                    class="bg-stone-50 border border-stone-300 focus:border-amber-500 focus:bg-white rounded-xl px-2 py-1.5 text-xs font-black text-stone-800 shadow-inner focus:outline-none w-20 text-center">
+                  <span class="text-stone-400 font-normal">—</span>
+                  <input type="time" v-model="getDaySchedule(day.id).end" @change="syncWorkingDaysString"
+                    class="bg-stone-50 border border-stone-300 focus:border-amber-500 focus:bg-white rounded-xl px-2 py-1.5 text-xs font-black text-stone-800 shadow-inner focus:outline-none w-20 text-center">
+                </div>
+                <div v-else class="text-xs font-bold text-stone-400 pr-2">
+                  <span>💤 Вихідний</span>
+                </div>
               </div>
             </div>
           </div>
@@ -1266,6 +1333,47 @@
     </div>
   </div>
 
+  <!-- MODAL: НАРАХУВАННЯ КРИСТАЛІВ КЛІЄНТУ -->
+  <div v-if="modals.points" @click.self="modals.points = false" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white w-full max-w-sm rounded-3xl p-5 border border-stone-200 shadow-2xl space-y-4">
+      <div class="flex items-center justify-between pb-2 border-b border-stone-100">
+        <div class="flex items-center space-x-2">
+          <div class="w-8 h-8 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center text-sm font-bold">
+            <i class="fa-solid fa-gem"></i>
+          </div>
+          <div>
+            <h3 class="font-bold text-stone-900 text-sm">Нарахувати кристали 💎</h3>
+            <p class="text-[11px] text-stone-500">{{ pointsClient ? pointsClient.name : '' }} (зараз: {{ pointsClient ? (pointsClient.points || 0) : 0 }} 💎)</p>
+          </div>
+        </div>
+        <button @click="modals.points = false" class="text-stone-400 hover:text-stone-700 p-1">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <!-- Quick Chips -->
+      <div class="grid grid-cols-4 gap-2">
+        <button v-for="amt in [10, 25, 50, 100]" :key="amt" @click="pointsAmount = amt" :class="pointsAmount === amt ? 'bg-amber-400 text-stone-950 font-black' : 'bg-stone-100 text-stone-700 font-bold'" class="py-2 rounded-xl text-xs transition active:scale-95 border border-stone-200">
+          +{{ amt }} 💎
+        </button>
+      </div>
+
+      <div>
+        <label class="block text-xs font-semibold text-stone-700 mb-1">Або введіть іншу кількість:</label>
+        <input v-model.number="pointsAmount" type="number" class="w-full bg-stone-50 border border-stone-300 rounded-xl p-2.5 text-sm font-bold focus:ring-2 focus:ring-amber-400 focus:outline-none">
+      </div>
+
+      <div class="flex space-x-2 pt-2">
+        <button @click="modals.points = false" class="flex-1 py-2.5 rounded-xl border border-stone-200 text-xs font-semibold text-stone-600 hover:bg-stone-50">
+          Скасувати
+        </button>
+        <button @click="savePoints" :disabled="!pointsAmount" class="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 text-stone-950 text-xs font-black shadow transition active:scale-95">
+          Нарахувати 💎
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- MODAL: КЛІЄНТСЬКА РЕЄСТРАЦІЯ / ВХІД ЧЕРЕЗ СОЦМЕРЕЖІ -->
   <div v-if="clientAuthModal.open" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4">
     <div class="bg-[#1C1715] text-white w-full max-w-sm rounded-t-3xl sm:rounded-3xl p-5 space-y-4 border border-white/10 shadow-2xl">
@@ -1303,6 +1411,170 @@
           <i class="fa-solid fa-arrow-right text-[10px]"></i>
         </button>
       </div>
+    </div>
+  </div>
+
+  <!-- MODAL: РЕДАГУВАННЯ ЗАПИСУ (Дата, Час, Тривалість, Послуги, Ціна, Нотатки, Статус) -->
+  <div v-if="modals.editApp" @click.self="modals.editApp = false" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-md w-full p-5 space-y-4 shadow-2xl border border-stone-200 max-h-[90vh] overflow-y-auto hide-scrollbar text-left">
+      <div class="flex items-center justify-between pb-3 border-b border-stone-100">
+        <div class="flex items-center space-x-2">
+          <div class="w-8 h-8 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center font-bold text-xs">
+            <i class="fa-solid fa-pen"></i>
+          </div>
+          <div>
+            <h3 class="font-extrabold text-stone-900 text-sm">Редагування запису</h3>
+            <p class="text-[11px] text-stone-500">{{ editAppForm.client_name }} ({{ editAppForm.client_phone }})</p>
+          </div>
+        </div>
+        <button @click="modals.editApp = false" class="text-stone-400 hover:text-stone-600 p-1">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <div class="space-y-3 text-xs">
+        <!-- Date & Start Time -->
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-bold text-stone-700 mb-1">Дата візиту:</label>
+            <input type="date" v-model="editAppForm.date" class="w-full bg-stone-50 border border-stone-300 rounded-xl p-2.5 text-xs font-bold text-stone-900 focus:ring-2 focus:ring-amber-500 focus:outline-none">
+          </div>
+          <div>
+            <label class="block font-bold text-stone-700 mb-1">Час початку:</label>
+            <input type="time" v-model="editAppForm.time" class="w-full bg-stone-50 border border-stone-300 rounded-xl p-2.5 text-xs font-bold text-stone-900 focus:ring-2 focus:ring-amber-500 focus:outline-none">
+          </div>
+        </div>
+
+        <!-- Duration & Total Price -->
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-bold text-stone-700 mb-1">Тривалість (хв):</label>
+            <input type="number" step="5" min="15" max="360" v-model.number="editAppForm.duration_minutes" class="w-full bg-stone-50 border border-stone-300 rounded-xl p-2.5 text-xs font-bold text-stone-900 focus:ring-2 focus:ring-amber-500 focus:outline-none">
+          </div>
+          <div>
+            <label class="block font-bold text-stone-700 mb-1">Вартість ({{ settings.currency || '€' }}):</label>
+            <input type="number" step="1" min="0" v-model.number="editAppForm.total_price" class="w-full bg-stone-50 border border-stone-300 rounded-xl p-2.5 text-xs font-bold text-stone-900 focus:ring-2 focus:ring-amber-500 focus:outline-none">
+          </div>
+        </div>
+
+        <!-- Service Names -->
+        <div>
+          <label class="block font-bold text-stone-700 mb-1">Обрані послуги:</label>
+          <input type="text" v-model="editAppForm.service_names" placeholder="Манікюр + Гель-лак..." class="w-full bg-stone-50 border border-stone-300 rounded-xl p-2.5 text-xs font-bold text-stone-900 focus:ring-2 focus:ring-amber-500 focus:outline-none">
+        </div>
+
+        <!-- Status -->
+        <div>
+          <label class="block font-bold text-stone-700 mb-1">Статус бронювання:</label>
+          <select v-model="editAppForm.status" class="w-full bg-stone-50 border border-stone-300 rounded-xl p-2.5 text-xs font-bold text-stone-900 focus:ring-2 focus:ring-amber-500 focus:outline-none">
+            <option value="pending">⏳ Очікує підтвердження</option>
+            <option value="confirmed">✅ Заплановано / Підтверджено</option>
+            <option value="completed">💳 Оплачено / Виконано</option>
+            <option value="cancelled">❌ Скасовано</option>
+          </select>
+        </div>
+
+        <!-- Notes -->
+        <div>
+          <label class="block font-bold text-stone-700 mb-1">Нотатки / побажання клієнта:</label>
+          <textarea v-model="editAppForm.notes" rows="2" placeholder="Додаткові побажання..." class="w-full bg-stone-50 border border-stone-300 rounded-xl p-2.5 text-xs font-medium text-stone-800 focus:ring-2 focus:ring-amber-500 focus:outline-none"></textarea>
+        </div>
+
+        <!-- Buttons -->
+        <div class="flex items-center space-x-2 pt-2">
+          <button type="button" @click="saveEditApp" :disabled="savingAppEdit" class="flex-1 bg-stone-900 hover:bg-black text-white font-bold py-3 rounded-xl shadow-md transition active:scale-95 flex items-center justify-center space-x-1.5">
+            <i v-if="!savingAppEdit" class="fa-solid fa-check"></i>
+            <i v-else class="fa-solid fa-circle-notch fa-spin"></i>
+            <span>{{ savingAppEdit ? 'Збереження...' : 'Зберегти зміни' }}</span>
+          </button>
+          <button type="button" @click="modals.editApp = false" class="bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold py-3 px-4 rounded-xl transition">
+            Скасувати
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: ЧАТ З КЛІЄНТОМ (Вбудований онлайн-діалог) -->
+  <div v-if="chatModal.open" @click.self="closeChatModal" class="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4">
+    <div class="bg-white rounded-t-3xl sm:rounded-3xl max-w-md w-full h-[85vh] sm:h-[600px] flex flex-col shadow-2xl border border-stone-200 overflow-hidden text-left">
+      <!-- Chat Header -->
+      <div class="bg-gradient-to-r from-[#2E2421] to-[#1C1715] text-white p-3.5 px-4 flex items-center justify-between flex-shrink-0 shadow-md">
+        <div class="flex items-center space-x-3">
+          <div class="w-10 h-10 rounded-full bg-gradient-to-tr from-amber-400 to-rose-500 flex items-center justify-center text-white font-bold text-sm shadow">
+            <span>{{ (chatModal.client_name || 'К')[0] }}</span>
+          </div>
+          <div>
+            <div class="flex items-center space-x-2">
+              <h3 class="font-bold text-sm text-white">{{ chatModal.client_name }}</h3>
+              <span class="text-[9px] bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 px-1.5 py-0.5 rounded-full font-bold">Онлайн</span>
+            </div>
+            <p class="text-[11px] text-amber-200/90">{{ chatModal.date }} о {{ chatModal.time }} • {{ chatModal.client_phone }}</p>
+          </div>
+        </div>
+        <div class="flex items-center space-x-2">
+          <a :href="'tel:' + chatModal.client_phone" class="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center text-xs transition" title="Зателефонувати">
+            <i class="fa-solid fa-phone"></i>
+          </a>
+          <button @click="closeChatModal" class="text-stone-300 hover:text-white p-1">
+            <i class="fa-solid fa-xmark text-lg"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Quick Booking Info Strip -->
+      <div class="bg-amber-50 px-4 py-2 border-b border-amber-200/60 flex items-center justify-between text-xs">
+        <span class="text-amber-900 font-semibold truncate">{{ chatModal.service_names || 'Послуга' }}</span>
+        <button @click="openEditAppFromChat" class="text-rose-600 hover:underline font-bold text-[11px] flex-shrink-0 ml-2">
+          ✏️ Змінити час
+        </button>
+      </div>
+
+      <!-- Messages Thread Container -->
+      <div id="masterChatContainer" class="flex-1 p-4 overflow-y-auto space-y-3 bg-[#FAF7F5]">
+        <div v-if="chatMessages.length === 0" class="text-center py-10 space-y-2 text-stone-400">
+          <i class="fa-regular fa-comments text-3xl text-stone-300"></i>
+          <p class="text-xs">Повідомлень поки що немає.<br>Напишіть клієнту перше повідомлення або оберіть шаблон нижче!</p>
+        </div>
+
+        <div v-for="msg in chatMessages" :key="msg.id" class="flex flex-col" :class="msg.sender === 'master' ? 'items-end' : 'items-start'">
+          <div class="max-w-[80%] rounded-2xl px-3.5 py-2.5 text-xs shadow-sm"
+            :class="msg.sender === 'master' ? 'bg-[#2E2421] text-amber-100 rounded-br-none' : 'bg-white text-stone-800 border border-stone-200 rounded-bl-none'">
+            <div class="font-bold text-[10px] mb-0.5 opacity-70" :class="msg.sender === 'master' ? 'text-amber-300' : 'text-stone-500'">
+              {{ msg.sender === 'master' ? 'Natali Nails (Ви)' : msg.sender_name }}
+            </div>
+            <div class="leading-relaxed whitespace-pre-wrap">{{ msg.text }}</div>
+            <div class="text-[9px] text-right mt-1 opacity-60" :class="msg.sender === 'master' ? 'text-stone-400' : 'text-stone-400'">
+              {{ formatChatTime(msg.created_at) }}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick Template Chips -->
+      <div class="bg-white px-3 py-1.5 border-t border-stone-100 flex items-center space-x-1.5 overflow-x-auto hide-scrollbar flex-shrink-0">
+        <button type="button" @click="sendTemplateMsg('✅ Ваше замовлення прийнято! Чекаю на вас у студії 💅')" class="bg-stone-100 hover:bg-stone-200 text-stone-700 text-[11px] font-medium px-2.5 py-1 rounded-full whitespace-nowrap transition">
+          ✅ Прийнято!
+        </button>
+        <button type="button" @click="sendTemplateMsg('📅 Чи зручно буде перенести візит на 30 хвилин пізніше?')" class="bg-stone-100 hover:bg-stone-200 text-stone-700 text-[11px] font-medium px-2.5 py-1 rounded-full whitespace-nowrap transition">
+          📅 На 30 хв пізніше?
+        </button>
+        <button type="button" @click="sendTemplateMsg('💅 Підкажіть, будь ласка, потрібне попереднє зняття старого покриття?')" class="bg-stone-100 hover:bg-stone-200 text-stone-700 text-[11px] font-medium px-2.5 py-1 rounded-full whitespace-nowrap transition">
+          💅 Потрібне зняття?
+        </button>
+        <button type="button" @click="sendTemplateMsg('📍 Нагадую адресу студії: вул. Хрещатик, 15 (каб. 24). До зустрічі!')" class="bg-stone-100 hover:bg-stone-200 text-stone-700 text-[11px] font-medium px-2.5 py-1 rounded-full whitespace-nowrap transition">
+          📍 Адреса
+        </button>
+      </div>
+
+      <!-- Input Bar -->
+      <form @submit.prevent="sendMasterChatMessage" class="p-2.5 bg-white border-t border-stone-200 flex items-center space-x-2 flex-shrink-0">
+        <input v-model="newMasterMsg" type="text" placeholder="Напишіть повідомлення клієнту..." class="flex-1 bg-stone-100 border border-stone-300 rounded-xl px-3.5 py-2.5 text-xs text-stone-900 font-medium focus:bg-white focus:border-amber-500 focus:outline-none">
+        <button type="submit" :disabled="!newMasterMsg.trim() || sendingMasterMsg" class="bg-[#2E2421] hover:bg-black text-amber-300 font-bold px-4 py-2.5 rounded-xl text-xs transition active:scale-95 disabled:opacity-40 flex items-center space-x-1 shadow-sm">
+          <i v-if="!sendingMasterMsg" class="fa-solid fa-paper-plane"></i>
+          <i v-else class="fa-solid fa-circle-notch fa-spin"></i>
+        </button>
+      </form>
     </div>
   </div>
 
@@ -1426,32 +1698,90 @@ createApp({
       { id: '0', short: 'Нд', name: 'Неділя' }
     ];
 
+    const defaultSchedule = {
+      '1': { active: true, start: '10:00', end: '20:00' },
+      '2': { active: true, start: '10:00', end: '20:00' },
+      '3': { active: true, start: '10:00', end: '20:00' },
+      '4': { active: true, start: '10:00', end: '20:00' },
+      '5': { active: true, start: '10:00', end: '20:00' },
+      '6': { active: true, start: '10:00', end: '18:00' },
+      '0': { active: false, start: '10:00', end: '18:00' }
+    };
+    const daySchedules = ref({ ...defaultSchedule });
+
+    function initDaySchedulesFromSettings() {
+      if (settings.value.schedule_json) {
+        try {
+          const parsed = JSON.parse(settings.value.schedule_json);
+          weekDaysList.forEach(day => {
+            if (parsed[day.id]) {
+              daySchedules.value[day.id] = {
+                active: parsed[day.id].active !== undefined ? Boolean(parsed[day.id].active) : true,
+                start: parsed[day.id].start || '10:00',
+                end: parsed[day.id].end || '20:00'
+              };
+            }
+          });
+          return;
+        } catch (e) {}
+      }
+      if (settings.value.working_days) {
+        const arr = settings.value.working_days.split(',').map(s => s.trim());
+        weekDaysList.forEach(day => {
+          daySchedules.value[day.id] = {
+            active: arr.includes(String(day.id)),
+            start: settings.value.work_start || '10:00',
+            end: settings.value.work_end || '20:00'
+          };
+        });
+      }
+    }
+
+    function getDaySchedule(id) {
+      if (!daySchedules.value[id]) {
+        daySchedules.value[id] = { active: true, start: '10:00', end: '20:00' };
+      }
+      return daySchedules.value[id];
+    }
+
     function isDayActive(id) {
-      const raw = settings.value.working_days || '1,2,3,4,5,6';
-      const arr = raw.split(',').map(s => s.trim());
-      return arr.includes(String(id));
+      return getDaySchedule(id).active;
     }
 
     function toggleWorkingDay(id) {
-      const raw = settings.value.working_days || '1,2,3,4,5,6';
-      let arr = raw.split(',').map(s => s.trim()).filter(Boolean);
-      const strId = String(id);
-      if (arr.includes(strId)) {
-        if (arr.length <= 1) {
-          alert('Має бути хоча б один робочий день!');
-          return;
-        }
-        arr = arr.filter(x => x !== strId);
-      } else {
-        arr.push(strId);
-      }
-      settings.value.working_days = arr.join(',');
+      const sch = getDaySchedule(id);
+      sch.active = !sch.active;
+      syncWorkingDaysString();
+    }
+
+    function syncWorkingDaysString() {
+      const activeArr = weekDaysList.filter(d => daySchedules.value[d.id]?.active).map(d => d.id);
+      settings.value.working_days = activeArr.join(',');
+      settings.value.schedule_json = JSON.stringify(daySchedules.value);
     }
 
     function setDaysPreset(preset) {
-      if (preset === 'mon_sat') settings.value.working_days = '1,2,3,4,5,6';
-      else if (preset === 'mon_fri') settings.value.working_days = '1,2,3,4,5';
-      else if (preset === 'all_7') settings.value.working_days = '1,2,3,4,5,6,0';
+      if (preset === 'mon_sat') {
+        weekDaysList.forEach(d => {
+          daySchedules.value[d.id].active = (d.id !== '0');
+          daySchedules.value[d.id].start = '10:00';
+          daySchedules.value[d.id].end = (d.id === '6' ? '18:00' : '20:00');
+        });
+      } else if (preset === 'mon_fri') {
+        weekDaysList.forEach(d => {
+          daySchedules.value[d.id].active = (d.id >= '1' && d.id <= '5');
+          daySchedules.value[d.id].start = '09:00';
+          daySchedules.value[d.id].end = '18:00';
+        });
+      } else if (preset === 'all_7') {
+        weekDaysList.forEach(d => {
+          daySchedules.value[d.id].active = true;
+          daySchedules.value[d.id].start = '10:00';
+          daySchedules.value[d.id].end = '20:00';
+        });
+      }
+      syncWorkingDaysString();
+      showToast('Графік оновлено за шаблоном!');
     }
 
     async function submitDirectPhoneLogin() {
@@ -1653,7 +1983,8 @@ createApp({
       newService: false,
       newClient: false,
       payment: false,
-      reward: false
+      reward: false,
+      editApp: false
     });
 
     const payingApp = ref(null);
@@ -1786,6 +2117,7 @@ createApp({
     async function loadSettings() {
       const res = await fetch('/api/settings');
       settings.value = await res.json();
+      initDaySchedulesFromSettings();
     }
 
     async function loadServices() {
@@ -1799,6 +2131,207 @@ createApp({
     async function loadAppointments() {
       const res = await fetch('/api/appointments');
       appointments.value = await res.json();
+      loadUnreadCounts();
+    }
+
+    async function confirmAppointment(app) {
+      try {
+        const res = await fetch(`/api/appointments/${app.id}/confirm`, { method: 'PATCH' });
+        if (res.ok) {
+          await loadAppointments();
+          showToast(`Замовлення клієнта ${app.client_name} прийнято! ✅`);
+        } else {
+          showToast("Помилка підтвердження");
+        }
+      } catch (e) {
+        showToast("Помилка зв'язку з сервером");
+      }
+    }
+
+    const editAppForm = ref({
+      id: null,
+      client_name: '',
+      client_phone: '',
+      date: '',
+      time: '',
+      duration_minutes: 90,
+      service_names: '',
+      total_price: 35,
+      status: 'confirmed',
+      notes: ''
+    });
+    const savingAppEdit = ref(false);
+
+    function openEditAppModal(app) {
+      let dur = 90;
+      if (app.time && app.end_time) {
+        const [sh, sm] = app.time.split(':').map(Number);
+        const [eh, em] = app.end_time.split(':').map(Number);
+        dur = (eh * 60 + em) - (sh * 60 + sm);
+        if (dur <= 0) dur = 90;
+      }
+      editAppForm.value = {
+        id: app.id,
+        client_name: app.client_name,
+        client_phone: app.client_phone,
+        date: app.date,
+        time: app.time,
+        duration_minutes: dur,
+        service_names: app.service_names,
+        total_price: app.total_price,
+        status: app.status || 'confirmed',
+        notes: app.notes || ''
+      };
+      modals.value.editApp = true;
+    }
+
+    async function saveEditApp() {
+      if (!editAppForm.value.date || !editAppForm.value.time) {
+        alert("Вкажіть дату та час візиту");
+        return;
+      }
+      savingAppEdit.value = true;
+      try {
+        const res = await fetch(`/api/appointments/${editAppForm.value.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            date: editAppForm.value.date,
+            time: editAppForm.value.time,
+            duration_minutes: editAppForm.value.duration_minutes,
+            service_names: editAppForm.value.service_names,
+            total_price: editAppForm.value.total_price,
+            notes: editAppForm.value.notes,
+            status: editAppForm.value.status
+          })
+        });
+        if (res.ok) {
+          modals.value.editApp = false;
+          await loadAppointments();
+          showToast("Запис успішно оновлено ✨");
+        } else {
+          showToast("Помилка оновлення запису");
+        }
+      } catch (e) {
+        showToast("Помилка зв'язку з сервером");
+      } finally {
+        savingAppEdit.value = false;
+      }
+    }
+
+    const chatModal = ref({
+      open: false,
+      appointment_id: null,
+      client_name: '',
+      client_phone: '',
+      date: '',
+      time: '',
+      service_names: '',
+      raw_app: null
+    });
+    const chatMessages = ref([]);
+    const newMasterMsg = ref('');
+    const sendingMasterMsg = ref(false);
+    const appChatUnread = ref({});
+    let chatPollTimer = null;
+
+    async function loadUnreadCounts() {
+      try {
+        const res = await fetch('/api/chat/unread-counts');
+        if (res.ok) {
+          const data = await res.json();
+          appChatUnread.value = data.by_app || {};
+        }
+      } catch (e) {}
+    }
+
+    async function fetchChatMessages() {
+      if (!chatModal.value.open) return;
+      try {
+        const url = `/api/chat/messages?appointment_id=${chatModal.value.appointment_id}&client_phone=${encodeURIComponent(chatModal.value.client_phone)}&viewer=master`;
+        const res = await fetch(url);
+        if (res.ok) {
+          const data = await res.json();
+          chatMessages.value = data.messages || [];
+          setTimeout(() => {
+            const el = document.getElementById('masterChatContainer');
+            if (el) el.scrollTop = el.scrollHeight;
+          }, 50);
+        }
+      } catch (e) {}
+    }
+
+    function openChatModal(app) {
+      chatModal.value = {
+        open: true,
+        appointment_id: app.id,
+        client_name: app.client_name,
+        client_phone: app.client_phone,
+        date: app.date,
+        time: app.time,
+        service_names: app.service_names,
+        raw_app: app
+      };
+      chatMessages.value = [];
+      newMasterMsg.value = '';
+      fetchChatMessages();
+      clearInterval(chatPollTimer);
+      chatPollTimer = setInterval(fetchChatMessages, 3000);
+      loadUnreadCounts();
+    }
+
+    function closeChatModal() {
+      chatModal.value.open = false;
+      clearInterval(chatPollTimer);
+      loadUnreadCounts();
+    }
+
+    function openEditAppFromChat() {
+      if (chatModal.value.raw_app) {
+        openEditAppModal(chatModal.value.raw_app);
+      }
+    }
+
+    async function sendMasterChatMessage() {
+      const text = newMasterMsg.value.trim();
+      if (!text) return;
+      sendingMasterMsg.value = true;
+      try {
+        const res = await fetch('/api/chat/send', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            appointment_id: chatModal.value.appointment_id,
+            client_phone: chatModal.value.client_phone,
+            sender: 'master',
+            sender_name: settings.value.master_name || 'Natali',
+            text: text
+          })
+        });
+        if (res.ok) {
+          newMasterMsg.value = '';
+          await fetchChatMessages();
+        }
+      } catch (e) {
+        showToast("Помилка відправки");
+      } finally {
+        sendingMasterMsg.value = false;
+      }
+    }
+
+    function sendTemplateMsg(text) {
+      newMasterMsg.value = text;
+      sendMasterChatMessage();
+    }
+
+    function formatChatTime(iso) {
+      if (!iso) return '';
+      try {
+        const d = new Date(iso);
+        return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      } catch (e) {
+        return '';
+      }
     }
 
     async function loadClients() {
@@ -1929,6 +2462,21 @@ createApp({
       showToast(t('delete_label'));
     }
 
+    async function resetFinanceCash() {
+      if (!confirm('Ви дійсно бажаєте обнулити баланс каси та очистити старі демо-транзакції?')) return;
+      try {
+        const res = await fetch('/api/finance/reset', { method: 'POST' });
+        if (res.ok) {
+          showToast('Касу успішно обнулено! Баланс: 0 € ✅');
+          await loadFinance();
+        } else {
+          showToast('Помилка обнулення');
+        }
+      } catch (e) {
+        showToast('Помилка зв\'язку з сервером');
+      }
+    }
+
     function openNewClientModal() {
       formClient.value = { id: null, name: '', phone: '', instagram: '', notes: '' };
       modals.value.newClient = true;
@@ -1992,6 +2540,37 @@ createApp({
       }
     }
 
+    const pointsClient = ref(null);
+    const pointsAmount = ref(50);
+
+    function openPointsModal(c) {
+      pointsClient.value = c;
+      pointsAmount.value = 50;
+      modals.value.points = true;
+    }
+
+    async function savePoints() {
+      if (!pointsClient.value || !pointsAmount.value) return;
+      try {
+        const res = await fetch(`/api/clients/${pointsClient.value.id}/add-points`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ points: Number(pointsAmount.value) })
+        });
+        if (res.ok) {
+          const data = await res.json();
+          pointsClient.value.points = data.points;
+          showToast(`Клієнту ${pointsClient.value.name} нараховано ${pointsAmount.value} 💎! Баланс: ${data.points}`);
+          modals.value.points = false;
+          await loadClients();
+        } else {
+          showToast('Помилка нарахування кристалів');
+        }
+      } catch (e) {
+        showToast('Помилка зв\'язку з сервером');
+      }
+    }
+
     function quickBookClient(c) {
       formApp.value.client_name = c.name;
       formApp.value.client_phone = c.phone;
@@ -2039,12 +2618,22 @@ createApp({
     }
 
     async function saveSettings() {
-      await fetch('/api/settings', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(settings.value)
-      });
-      showToast(t('btn_save_settings'));
+      syncWorkingDaysString();
+      try {
+        const res = await fetch('/api/settings', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(settings.value)
+        });
+        if (res.ok) {
+          showToast(t('btn_save_settings') || 'Зміни успішно збережено! ✅');
+        } else {
+          const err = await res.json().catch(() => ({}));
+          showToast('Помилка збереження: ' + (err.detail || res.statusText));
+        }
+      } catch (e) {
+        showToast('Помилка зв\'язку з сервером');
+      }
     }
 
     
@@ -2196,15 +2785,35 @@ createApp({
       selectedServiceId, toast, bookingUrl, payingApp,
       selectDate, formatDateHeader, setAppStatus, deleteApp, copyBookingLink,
       openNewAppointmentModal, onServiceSelectChange, saveNewAppointment,
-      openExpenseModal, saveExpense, deleteTransaction,
+      openExpenseModal, saveExpense, deleteTransaction, resetFinanceCash,
       openNewClientModal, saveClient, editClient, deleteClient, toggleClientVip, quickBookClient,
+      pointsClient, pointsAmount, openPointsModal, savePoints,
       openNewServiceModal, editService, saveService, deleteService,
       saveSettings,
       onMasterAvatarUpload,
       removeMasterAvatar, loadFinance, toggleCurrency, getMethodTotal,
       formatPaymentMethodName, getPaymentMethodBadgeClass,
       openPaymentModal, confirmPayment,
-      getReminderSmsLink, getWhatsAppReminderLink
+      getReminderSmsLink, getWhatsAppReminderLink,
+      confirmAppointment,
+      editAppForm,
+      savingAppEdit,
+      openEditAppModal,
+      saveEditApp,
+      chatModal,
+      chatMessages,
+      newMasterMsg,
+      sendingMasterMsg,
+      appChatUnread,
+      openChatModal,
+      closeChatModal,
+      openEditAppFromChat,
+      sendMasterChatMessage,
+      sendTemplateMsg,
+      formatChatTime,
+      daySchedules,
+      getDaySchedule,
+      syncWorkingDaysString
     };
   }
 }).mount('#app');
