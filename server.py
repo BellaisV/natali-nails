@@ -2034,6 +2034,7 @@ def serve_index():
 def serve_book():
     return FileResponse("static/book.html")
 
+@app.get("/vip")
 @app.get("/club")
 @app.get("/client")
 def serve_client_club():
