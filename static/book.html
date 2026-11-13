@@ -11,7 +11,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
-  <script src="/static/i18n.js?v=2.6"></script>
+  <script src="/static/i18n.js?v=2.7"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -101,15 +101,45 @@
       </a>
     </div>
 
-    <!-- PROMINENT LANGUAGE SELECTOR RIGHT AT TOP OF LINK -->
-    <div class="flex items-center space-x-1 bg-black/40 p-1 rounded-full border border-white/10 overflow-x-auto hide-scrollbar">
-      <button v-for="(cfg, code) in availableLangs" :key="code"
-        @click="setLang(code)"
-        :class="currentLang === code ? 'bg-amber-400 text-stone-950 font-black shadow-md' : 'text-stone-300 hover:text-white'"
-        class="text-xs px-2.5 py-1 rounded-full transition flex items-center space-x-1 flex-shrink-0">
-        <span class="text-sm">{{ cfg.flag }}</span>
-        <span class="text-[10px] font-bold uppercase">{{ code }}</span>
+        <!-- GLOBE LANGUAGE PICKER BUTTON -->
+    <div class="relative flex-shrink-0">
+      <button @click="showLangModal = true" class="flex items-center space-x-1.5 bg-black/40 hover:bg-black/60 text-stone-200 hover:text-white px-2.5 py-1.5 rounded-full border border-white/20 transition active:scale-95 shadow-sm text-xs" title="Вибрати мову / Choose language">
+        <span class="text-base leading-none">🌐</span>
+        <span class="text-sm leading-none">{{ availableLangs[currentLang]?.flag }}</span>
+        <span class="text-[11px] font-bold uppercase tracking-wider text-amber-300">{{ currentLang }}</span>
+        <i class="fa-solid fa-chevron-down text-[9px] opacity-70 ml-0.5"></i>
       </button>
+
+      <!-- GLOBE LANGUAGE SELECTION MODAL -->
+      <div v-if="showLangModal" @click.self="showLangModal = false" class="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-[#1C1715] text-white w-full max-w-xs rounded-3xl p-5 border border-amber-400/30 shadow-2xl space-y-3.5 text-left animate-in fade-in zoom-in-95 duration-150">
+          <div class="flex items-center justify-between pb-2 border-b border-white/10">
+            <div class="flex items-center space-x-2">
+              <span class="text-lg">🌐</span>
+              <h3 class="font-bold text-sm text-white">{{ t('choose_language') || 'Оберіть мову' }}</h3>
+            </div>
+            <button @click="showLangModal = false" class="text-stone-400 hover:text-white p-1">
+              <i class="fa-solid fa-xmark text-base"></i>
+            </button>
+          </div>
+
+          <div class="space-y-1.5">
+            <button v-for="(cfg, code) in availableLangs" :key="code"
+              @click="setLang(code); showLangModal = false;"
+              :class="currentLang === code ? 'bg-amber-400 text-stone-950 font-bold border-amber-300 shadow-md ring-1 ring-amber-300' : 'bg-white/5 hover:bg-white/15 text-stone-200 border-white/10'"
+              class="w-full flex items-center justify-between px-3.5 py-2.5 rounded-2xl border transition active:scale-98 text-xs">
+              <div class="flex items-center space-x-2.5">
+                <span class="text-lg leading-none">{{ cfg.flag }}</span>
+                <span class="font-medium text-xs">{{ cfg.name }}</span>
+              </div>
+              <div class="flex items-center space-x-1.5">
+                <span class="text-[10px] uppercase font-bold tracking-wider opacity-60">{{ code }}</span>
+                <i v-if="currentLang === code" class="fa-solid fa-check text-xs ml-1"></i>
+              </div>
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -400,10 +430,54 @@
           <span>{{ t('total_time') }}:</span>
           <span class="font-bold text-stone-800">{{ totalDuration }} {{ t('min_suffix') }}</span>
         </div>
+        <div v-if="appliedDiscount" class="flex justify-between text-xs text-amber-700 font-bold bg-amber-50 p-2.5 rounded-2xl border border-amber-200">
+          <span class="flex items-center space-x-1">
+            <span>🎁</span>
+            <span>{{ t(appliedDiscount.title_key) || appliedDiscount.title || 'Знижка' }} (-{{ appliedDiscount.percent }}%):</span>
+          </span>
+          <span>-{{ discountAmount }} {{ settings.currency || '€' }}</span>
+        </div>
         <div class="flex justify-between text-sm pt-2 border-t border-stone-100">
           <span class="font-bold text-stone-800">{{ t('to_pay') }}</span>
-          <span class="font-extrabold text-rose-600 text-base">{{ totalPrice }} {{ settings.currency || '€' }}</span>
+          <div class="text-right">
+            <span v-if="appliedDiscount" class="text-xs line-through text-stone-400 mr-1.5">{{ totalPrice }} {{ settings.currency || '€' }}</span>
+            <span class="font-extrabold text-rose-600 text-base">{{ finalTotalPrice }} {{ settings.currency || '€' }}</span>
+          </div>
         </div>
+      </div>
+    </div>
+
+    <!-- Active Discount Banner -->
+    <div v-if="appliedDiscount" class="bg-gradient-to-r from-amber-100/90 via-amber-50 to-orange-50 border border-amber-300 rounded-3xl p-4 flex items-center justify-between shadow-sm">
+      <div class="flex items-center space-x-3">
+        <span class="text-2xl">{{ appliedDiscount.id === 'bday' ? '🎂' : (appliedDiscount.id === 'loyalty' ? '💎' : '🌸') }}</span>
+        <div>
+          <div class="font-bold text-xs text-stone-900 flex items-center space-x-1.5">
+            <span>{{ t(appliedDiscount.title_key) || appliedDiscount.title || 'Святкова знижка' }}</span>
+            <span class="bg-amber-500 text-stone-950 font-black px-1.5 py-0.5 rounded text-[10px]">-{{ appliedDiscount.percent }}%</span>
+          </div>
+          <div class="text-[11px] text-amber-800 font-medium">{{ t('disc_applied_success') || 'Знижку успішно враховано до фінальної вартості' }}</div>
+        </div>
+      </div>
+      <button @click="appliedDiscount = null" type="button" class="w-7 h-7 flex items-center justify-center rounded-full bg-stone-200/60 hover:bg-stone-300 text-stone-600 text-xs font-bold transition">✕</button>
+    </div>
+
+    <!-- Available Discounts Selector -->
+    <div v-if="availableDiscounts.length > 0 && !appliedDiscount" class="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200/80 rounded-3xl p-4 space-y-2.5 shadow-sm">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center space-x-1.5 text-xs font-bold text-amber-950">
+          <span>🎁</span>
+          <span>{{ t('discounts_title') || 'Ваші персональні святкові знижки' }}:</span>
+        </div>
+        <span class="text-[10px] text-stone-500">{{ availableDiscounts.length }} {{ t('disc_available') || 'доступно' }}</span>
+      </div>
+      <div class="flex flex-wrap gap-2">
+        <button v-for="d in availableDiscounts" :key="d.id" @click="appliedDiscount = d" type="button" class="bg-amber-400 hover:bg-amber-300 text-stone-950 text-xs font-bold px-3 py-1.5 rounded-xl transition shadow-sm active:scale-95 flex items-center space-x-1.5">
+          <span>{{ d.id === 'bday' ? '🎂' : (d.id === 'loyalty' ? '💎' : '🌸') }}</span>
+          <span>{{ t(d.title_key) || d.title }}</span>
+          <span class="bg-stone-950 text-amber-300 px-1.5 py-0.2 rounded text-[10px] ml-0.5">-{{ d.percent }}%</span>
+          <span>➔</span>
+        </button>
       </div>
     </div>
 
@@ -476,14 +550,23 @@
 
   <!-- SUCCESS SCREEN WITH ORDER CONFIRMATION & LIVE MASTER CHAT -->
   <section v-if="step === 4" class="p-4 sm:p-6 text-center space-y-4">
+    <!-- Globe Language Switcher on Step 4 -->
+    <div class="flex items-center justify-center pt-1 pb-1">
+      <button @click="showLangModal = true" class="flex items-center space-x-2 bg-white hover:bg-stone-50 border border-stone-200 px-3.5 py-1.5 rounded-full text-xs font-bold text-stone-800 shadow-sm transition active:scale-95">
+        <span class="text-base leading-none">🌐</span>
+        <span>{{ availableLangs[currentLang]?.flag }} {{ availableLangs[currentLang]?.name }}</span>
+        <i class="fa-solid fa-chevron-down text-[10px] text-stone-400"></i>
+      </button>
+    </div>
+
     <!-- Status Banner: Pending vs Confirmed -->
     <div v-if="currentAppStatus === 'confirmed'" class="p-4 bg-emerald-50 border border-emerald-300 rounded-3xl flex items-center space-x-3 text-left shadow-sm">
       <div class="w-10 h-10 rounded-2xl bg-emerald-600 text-white flex items-center justify-center text-lg font-bold flex-shrink-0 shadow">
         <i class="fa-solid fa-check"></i>
       </div>
       <div>
-        <div class="font-extrabold text-sm text-emerald-950">✅ Замовлення підтверджено!</div>
-        <div class="text-[11px] text-emerald-800 leading-tight mt-0.5">Майстер Natali підтвердила ваш запис. Чекаємо на вас у студії!</div>
+        <div class="font-extrabold text-sm text-emerald-950">{{ t('step4_confirmed_title') || '✅ Замовлення підтверджено!' }}</div>
+        <div class="text-[11px] text-emerald-800 leading-tight mt-0.5">{{ t('step4_confirmed_sub') || 'Майстер Natali підтвердила ваш запис. Чекаємо на вас у студії!' }}</div>
       </div>
     </div>
     <div v-else class="p-4 bg-amber-50 border border-amber-300 rounded-3xl flex items-center space-x-3 text-left shadow-sm">
@@ -491,28 +574,28 @@
         <i class="fa-solid fa-hourglass-half"></i>
       </div>
       <div>
-        <div class="font-extrabold text-sm text-amber-950">⏳ Очікує підтвердження майстром</div>
-        <div class="text-[11px] text-amber-800 leading-tight mt-0.5">Майстер щойно отримала бронювання. Як тільки майстер підтвердить запис, цей статус оновиться автоматично!</div>
+        <div class="font-extrabold text-sm text-amber-950">{{ t('step4_pending_title') || '⏳ Очікує підтвердження майстром' }}</div>
+        <div class="text-[11px] text-amber-800 leading-tight mt-0.5">{{ t('step4_pending_sub') || 'Майстер щойно отримала бронювання. Як тільки майстер підтвердить запис, цей статус оновиться автоматично!' }}</div>
       </div>
     </div>
 
     <!-- Booking Summary Card -->
     <div class="bg-white rounded-3xl p-5 border border-stone-200 text-left shadow-sm space-y-3">
       <div class="flex items-center justify-between pb-2 border-b border-stone-100">
-        <span class="text-xs text-stone-400">{{ t('lbl_date_time') || 'Date & Time:' }}</span>
+        <span class="text-xs text-stone-400">{{ t('lbl_date_time') || 'Дата та час:' }}</span>
         <span class="text-xs font-extrabold text-stone-900">{{ formatSummaryDate(bookingDate) }} — {{ bookingTime }}</span>
       </div>
       <div class="flex items-center justify-between pb-2 border-b border-stone-100">
-        <span class="text-xs text-stone-400">{{ t('tab_services') }}:</span>
+        <span class="text-xs text-stone-400">{{ t('tab_services') || 'Послуги:' }}</span>
         <span class="text-xs font-bold text-stone-800 text-right max-w-[200px]">{{ selectedServiceNames }}</span>
       </div>
       <div class="flex items-center justify-between pb-2 border-b border-stone-100">
-        <span class="text-xs text-stone-400">{{ t('lbl_address') || 'Address:' }}</span>
+        <span class="text-xs text-stone-400">{{ t('lbl_address') || 'Адреса студії:' }}</span>
         <span class="text-xs font-semibold text-stone-800 text-right max-w-[200px]">{{ settings.address }}</span>
       </div>
       <div class="flex items-center justify-between">
-        <span class="text-xs text-stone-400">{{ t('to_pay') }}:</span>
-        <span class="text-sm font-black text-rose-600">{{ totalPrice }} {{ settings.currency || '€' }}</span>
+        <span class="text-xs text-stone-400">{{ t('to_pay') || 'До сплати:' }}</span>
+        <span class="text-sm font-black text-rose-600">{{ (createdApp && createdApp.total_price) || finalTotalPrice }} {{ settings.currency || '€' }}</span>
       </div>
     </div>
 
@@ -525,13 +608,13 @@
           </div>
           <div>
             <div class="font-extrabold text-xs text-stone-900 flex items-center">
-              <span>Чат з майстром Natali</span>
+              <span>{{ t('chat_master_full_title') || 'Чат з майстром Natali' }}</span>
               <span class="w-2 h-2 rounded-full bg-emerald-500 ml-1.5 inline-block"></span>
             </div>
-            <p class="text-[10px] text-stone-400">Узгодьте деталі чи зміни часу прямо тут</p>
+            <p class="text-[10px] text-stone-400">{{ t('chat_step4_sub') || 'Узгодьте деталі чи зміни часу прямо тут' }}</p>
           </div>
         </div>
-        <span class="text-[10px] font-bold text-stone-500 bg-stone-100 px-2 py-0.5 rounded-full">онлайн</span>
+        <span class="text-[10px] font-bold text-stone-500 bg-stone-100 px-2 py-0.5 rounded-full">{{ t('badge_online') || 'онлайн' }}</span>
       </div>
 
       <!-- Messages Stream -->
@@ -570,150 +653,17 @@
           <i class="fa-solid fa-crown text-[11px]"></i>
           <span>VIP Beauty Club</span>
         </div>
-        <p class="text-[10px] text-stone-300 mt-0.5">Отримуйте бонуси 💎 за кожен візит та ексклюзивні смайлики</p>
+        <p class="text-[10px] text-stone-300 mt-0.5">{{ t('vip_banner_text') || 'Отримуйте бонуси 💎 за кожен візит та ексклюзивні смайлики' }}</p>
       </div>
       <a href="/vip" class="bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 text-stone-950 font-black text-xs px-3.5 py-2 rounded-xl transition shadow active:scale-95 whitespace-nowrap ml-2">
-        У VIP Клуб ➔
+        {{ t('btn_to_vip_club') || 'У VIP Клуб ➔' }}
       </a>
     </div>
 
     <!-- My Bookings Button -->
     <button @click="openMyAppointmentsModal" class="w-full bg-stone-100 hover:bg-stone-200 text-stone-800 font-bold py-3 rounded-2xl text-xs flex items-center justify-center space-x-2 transition border border-stone-300">
       <i class="fa-regular fa-calendar-check text-rose-500"></i>
-      <span>{{ t('my_bookings') || 'Мої записи' }} (переглянути всі)</span>
-    </button>
-
-    <!-- Calendar & SMS reminder buttons -->
-    <div class="space-y-2 pt-1">
-      <!-- Add to Google / Phone Calendar -->
-      <a :href="calendarUrl" target="_blank" class="w-full bg-gradient-to-r from-stone-900 to-stone-800 hover:from-black text-white font-bold py-3.5 rounded-2xl shadow-lg flex items-center justify-center space-x-2 text-xs transition active:scale-95">
-        <i class="fa-solid fa-calendar-check text-rose-400"></i>
-        <span>{{ t('btn_add_to_calendar') }}</span>
-      </a>
-
-      <!-- Send SMS / WhatsApp reminder -->
-      <a :href="'sms:' + (settings.phone || '') + '?body=' + encodeURIComponent('Привіт! Я записалася на манікюр до Natali Nails на ' + formatSummaryDate(bookingDate) + ' о ' + bookingTime + '. Моє ім\'я: ' + clientName)" class="w-full bg-stone-100 hover:bg-stone-200 text-stone-800 font-bold py-3 rounded-2xl text-xs flex items-center justify-center space-x-2 transition">
-        <i class="fa-solid fa-comment-sms text-rose-500"></i>
-        <span>{{ t('btn_save_sms') }}</span>
-      </a>
-    </div>
-
-    <!-- Free Booking & Cash info banner -->
-    <div class="bg-emerald-50 border border-emerald-200 rounded-2xl p-3.5 flex items-start space-x-3 text-left">
-      <div class="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center text-sm font-bold flex-shrink-0">
-        <i class="fa-solid fa-hand-holding-dollar"></i>
-      </div>
-      <div>
-        <div class="font-extrabold text-xs text-emerald-950">{{ t('free_booking_badge') }}</div>
-        <div class="text-[11px] text-emerald-800 leading-relaxed mt-0.5">
-          {{ t('free_booking_desc') }}
-        </div>
-      </div>
-    </div>
-
-    <!-- Payment Buttons -->
-    <div class="bg-white rounded-3xl p-4 border border-stone-200 text-left space-y-3">
-      <h3 class="text-xs font-bold uppercase tracking-wider text-stone-500">{{ t('payment_methods_title') }}</h3>
-
-      <!-- Cash Payment Badge -->
-      <div v-if="settings.accept_cash" class="flex items-center justify-between p-3 bg-emerald-50/80 border border-emerald-200 rounded-2xl">
-        <div class="flex items-center space-x-2.5">
-          <div class="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center text-xs font-bold">
-            <i class="fa-solid fa-money-bill-wave"></i>
-          </div>
-          <div>
-            <div class="font-extrabold text-xs text-emerald-950">{{ t('cash_payment_title') }}</div>
-            <div class="text-[10px] text-emerald-700">{{ t('cash_payment_desc') }}</div>
-          </div>
-        </div>
-        <span class="bg-emerald-700 text-white text-[10px] font-bold px-2 py-1 rounded-lg">
-          {{ t('badge_on_site') }}
-        </span>
-      </div>
-
-      <!-- Bizum Pay / Copy -->
-      <div v-if="settings.accept_bizum && settings.bizum_phone" class="flex items-center justify-between p-3 bg-sky-50 border border-sky-200 rounded-2xl">
-        <div class="flex items-center space-x-2.5">
-          <div class="w-8 h-8 rounded-xl bg-sky-500 text-white flex items-center justify-center text-xs font-bold">
-            <i class="fa-solid fa-mobile-screen"></i>
-          </div>
-          <div>
-            <div class="font-extrabold text-xs text-sky-900">Bizum: {{ settings.bizum_phone }}</div>
-            <div class="text-[10px] text-sky-700">{{ t('bizum_desc') }}</div>
-          </div>
-        </div>
-        <button @click="copyBizumPhone" class="bg-sky-600 hover:bg-sky-700 text-white text-[11px] font-bold px-3 py-1.5 rounded-xl shadow-sm active:scale-95 transition">
-          Копіювати
-        </button>
-      </div>
-
-      <!-- Spanish Visa Card -->
-      <div v-if="settings.accept_card && settings.card_es" class="flex items-center justify-between p-3 bg-amber-50 border border-amber-200 rounded-2xl">
-        <div class="flex items-center space-x-2.5">
-          <div class="w-8 h-8 rounded-xl bg-amber-600 text-white flex items-center justify-center text-xs font-bold">
-            <i class="fa-brands fa-cc-visa"></i>
-          </div>
-          <div class="overflow-hidden pr-2">
-            <div class="font-extrabold text-xs text-amber-950 flex items-center">
-              <span>{{ t('spanish_card_title') }}</span>
-            </div>
-            <div class="text-[11px] font-mono text-amber-800 truncate select-all">{{ settings.card_es }}</div>
-          </div>
-        </div>
-        <button @click="copyCardEs" class="bg-amber-600 hover:bg-amber-700 text-white text-[11px] font-bold px-3 py-1.5 rounded-xl shadow-sm active:scale-95 transition whitespace-nowrap">
-          Копіювати
-        </button>
-      </div>
-
-      <!-- Ukrainian Card -->
-      <div v-if="settings.accept_card && settings.card_ua" class="flex items-center justify-between p-3 bg-blue-50 border border-blue-200 rounded-2xl">
-        <div class="flex items-center space-x-2.5">
-          <div class="w-8 h-8 rounded-xl bg-blue-600 text-white flex items-center justify-center text-xs font-bold">
-            <i class="fa-solid fa-credit-card"></i>
-          </div>
-          <div class="overflow-hidden pr-2">
-            <div class="font-extrabold text-xs text-blue-950 flex items-center">
-              <span>{{ t('ua_card_title') }}</span>
-            </div>
-            <div class="text-[11px] font-mono text-blue-800 truncate select-all">{{ settings.card_ua }}</div>
-          </div>
-        </div>
-        <button @click="copyCardUa" class="bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-bold px-3 py-1.5 rounded-xl shadow-sm active:scale-95 transition whitespace-nowrap">
-          Копіювати
-        </button>
-      </div>
-
-      <!-- PayPal Link -->
-      <div v-if="settings.accept_paypal && settings.paypal_link" class="flex items-center justify-between p-3 bg-blue-50 border border-blue-200 rounded-2xl">
-        <div class="flex items-center space-x-2.5">
-          <div class="w-8 h-8 rounded-xl bg-blue-600 text-white flex items-center justify-center text-xs font-bold">
-            <i class="fa-brands fa-paypal"></i>
-          </div>
-          <div>
-            <div class="font-extrabold text-xs text-blue-900">PayPal</div>
-            <div class="text-[10px] text-blue-700">{{ t('paypal_desc') }}</div>
-          </div>
-        </div>
-        <a :href="settings.paypal_link.startsWith('http') ? settings.paypal_link : 'https://' + settings.paypal_link" target="_blank" class="bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-bold px-3 py-1.5 rounded-xl shadow-sm active:scale-95 transition">
-          Оплатити
-        </a>
-      </div>
-    </div>
-
-    <!-- Direct contacts -->
-    <div class="space-y-2 pt-1">
-      <a :href="'https://t.me/' + (settings.phone || '').replace('+', '')" target="_blank" class="w-full bg-sky-50 text-sky-700 hover:bg-sky-100 font-bold py-3 rounded-2xl border border-sky-200 text-xs flex items-center justify-center space-x-2 transition">
-        <i class="fa-brands fa-telegram text-sm"></i>
-        <span>{{ t('btn_write_telegram') }}</span>
-      </a>
-      <a :href="'tel:' + settings.phone" class="w-full bg-stone-100 hover:bg-stone-200 text-stone-800 font-bold py-3 rounded-2xl text-xs flex items-center justify-center space-x-2 transition">
-        <i class="fa-solid fa-phone text-xs"></i>
-        <span>{{ t('btn_call_master') }}: {{ settings.phone }}</span>
-      </a>
-    </div>
-
-    <button @click="resetBooking" class="text-xs text-rose-600 font-bold hover:underline pt-2">
-      {{ t('btn_book_again') }}
+      <span>{{ t('btn_view_all_bookings') || 'Мої записи (переглянути всі)' }}</span>
     </button>
   </section>
 
@@ -1141,24 +1091,23 @@ createApp({
   setup() {
     function detectInitialLang() {
       const saved = localStorage.getItem('nail_lang');
-      if (saved && ['uk', 'es', 'en', 'de', 'va', 'ru'].includes(saved)) return saved;
+      if (saved && ['uk', 'ru', 'es', 'en', 'de'].includes(saved)) return saved;
       const nav = (navigator.language || navigator.userLanguage || '').toLowerCase();
+      if (nav.startsWith('ru')) return 'ru';
       if (nav.startsWith('es')) return 'es';
       if (nav.startsWith('de')) return 'de';
-      if (nav.startsWith('ca') || nav.startsWith('va')) return 'va';
-      if (nav.startsWith('uk')) return 'uk';
-      if (nav.startsWith('ru')) return 'ru';
       if (nav.startsWith('en')) return 'en';
+      if (nav.startsWith('uk')) return 'uk';
       return 'uk';
     }
     const currentLang = ref(detectInitialLang());
+    const showLangModal = ref(false);
     const availableLangs = {
       uk: { code: 'uk', flag: '🇺🇦', name: 'Українська' },
+      ru: { code: 'ru', flag: '🌐', name: 'Русский' },
+      es: { code: 'es', flag: '🇪🇸', name: 'Español (Castellano)' },
       en: { code: 'en', flag: '🇬🇧', name: 'English' },
-      es: { code: 'es', flag: '🇪🇸', name: 'Castellano' },
-      va: { code: 'va', flag: '🦇', name: 'Valencià' },
-      de: { code: 'de', flag: '🇩🇪', name: 'Deutsch' },
-      ru: { code: 'ru', flag: '🌐', name: 'Русский' }
+      de: { code: 'de', flag: '🇩🇪', name: 'Deutsch' }
     };
 
     const toast = ref({ show: false, message: '' });
@@ -1314,6 +1263,49 @@ createApp({
       return selectedServices.value.reduce((acc, s) => acc + s.price, 0);
     });
 
+    // --- CLIENT PERSONAL DISCOUNTS SYSTEM ---
+    const appliedDiscount = ref(null);
+    const clientDiscountsList = ref([]);
+
+    const availableDiscounts = computed(() => {
+      return (clientDiscountsList.value || []).filter(d => !d.is_used && d.active !== 0);
+    });
+
+    const discountAmount = computed(() => {
+      if (!appliedDiscount.value || !appliedDiscount.value.percent) return 0;
+      const amount = (totalPrice.value * (Number(appliedDiscount.value.percent) || 0)) / 100;
+      return Math.round(amount * 100) / 100;
+    });
+
+    const finalTotalPrice = computed(() => {
+      if (!appliedDiscount.value) return totalPrice.value;
+      const res = totalPrice.value - discountAmount.value;
+      return Math.max(0, Math.round(res * 100) / 100);
+    });
+
+    async function fetchClientDiscounts(phone) {
+      if (!phone || phone.length < 8) return;
+      try {
+        const res = await fetch(`/api/client/discounts-and-achievements?phone=${encodeURIComponent(phone)}`);
+        if (res.ok) {
+          const data = await res.json();
+          clientDiscountsList.value = data.discounts || [];
+          if (appliedDiscount.value) {
+            const match = clientDiscountsList.value.find(d => d.id === appliedDiscount.value.id);
+            if (match) {
+              if (match.is_used) {
+                appliedDiscount.value = null;
+              } else {
+                appliedDiscount.value = match;
+              }
+            }
+          }
+        }
+      } catch (e) {
+        console.error("Error fetching client discounts:", e);
+      }
+    }
+
     const selectedServiceNames = computed(() => {
       return selectedServices.value.map(s => s.name).join(' + ');
     });
@@ -1365,12 +1357,26 @@ createApp({
     const showMyAppointmentsModal = ref(false);
 
     async function loadClientAppointments() {
-      const p = clientPhone.value || localStorage.getItem('vip_phone') || '';
-      if (!p || p.trim().length < 6) return;
+      const p = clientPhone.value || localStorage.getItem('vip_phone') || localStorage.getItem('client_phone') || (loggedInClient.value && loggedInClient.value.phone) || '';
+      let idsParam = '';
       try {
-        const res = await fetch(`/api/client/appointments?phone=${encodeURIComponent(p.trim())}`);
+        const storedIds = JSON.parse(localStorage.getItem('my_appointment_ids') || '[]');
+        if (Array.isArray(storedIds) && storedIds.length > 0) {
+          idsParam = `&ids=${storedIds.join(',')}`;
+        }
+      } catch (e) {}
+
+      if (!p && !idsParam) return;
+      try {
+        const res = await fetch(`/api/client/appointments?phone=${encodeURIComponent(p ? p.trim() : '')}${idsParam}`);
         if (res.ok) {
           clientAppointments.value = await res.json();
+          try {
+            const curIds = clientAppointments.value.map(a => a.id);
+            const stored = JSON.parse(localStorage.getItem('my_appointment_ids') || '[]');
+            const merged = Array.from(new Set([...stored, ...curIds]));
+            localStorage.setItem('my_appointment_ids', JSON.stringify(merged));
+          } catch (e) {}
         }
       } catch (e) {
         console.error('Failed to load client appointments', e);
@@ -1706,7 +1712,8 @@ createApp({
           client_phone: clientPhone.value.trim(),
           service_names: selectedServiceNames.value,
           total_duration: totalDuration.value,
-          total_price: totalPrice.value,
+          total_price: finalTotalPrice.value,
+          applied_discount_id: appliedDiscount.value ? appliedDiscount.value.id : "",
           date: bookingDate.value,
           time: bookingTime.value,
           notes: clientNotes.value
@@ -1722,16 +1729,31 @@ createApp({
           return;
         }
         const resData = await res.json();
-        createdAppointmentId.value = resData.appointment_id || resData.id;
+        const newAppId = resData.appointment_id || resData.id;
+        createdAppointmentId.value = newAppId;
         currentAppStatus.value = 'pending';
+
+        // 1. Permanently remember this appointment ID
+        try {
+          const storedIds = JSON.parse(localStorage.getItem('my_appointment_ids') || '[]');
+          if (newAppId && !storedIds.includes(newAppId)) {
+            storedIds.push(newAppId);
+            localStorage.setItem('my_appointment_ids', JSON.stringify(storedIds));
+          }
+        } catch (e) {}
+
+        // 2. Save session permanently so user is remembered next time they open the link
+        const pTrim = clientPhone.value.trim();
+        const nTrim = clientName.value.trim();
+        localStorage.setItem('vip_phone', pTrim);
+        localStorage.setItem('client_phone', pTrim);
+        localStorage.setItem('client_name', nTrim);
+        localStorage.setItem('vip_client', JSON.stringify({ name: nTrim, phone: pTrim }));
+        loggedInClient.value = { name: nTrim, phone: pTrim };
+
         step.value = 4;
         startStep4Polling();
-        loadClientAppointments();
-
-        // Save session permanently so user is remembered next time they open the link
-        localStorage.setItem('vip_phone', clientPhone.value.trim());
-        localStorage.setItem('vip_client', JSON.stringify({ name: clientName.value.trim(), phone: clientPhone.value.trim() }));
-        loggedInClient.value = { name: clientName.value.trim(), phone: clientPhone.value.trim() };
+        await loadClientAppointments();
       } catch (e) {
         alert('Server connection error');
       } finally {
@@ -1751,8 +1773,24 @@ createApp({
       if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('/static/sw.js').catch(err => console.log('SW registration error', err));
       }
-      await loadPublicData();
+      // Check URL parameters for pre-selected discount
+      try {
+        const urlParams = new URLSearchParams(window.location.search);
+        const discParam = urlParams.get('discount');
+        if (discParam) {
+          if (discParam === 'bday') appliedDiscount.value = { id: 'bday', percent: 1, title_key: 'disc_birthday_title' };
+          else if (discParam === 'loyalty') appliedDiscount.value = { id: 'loyalty', percent: 1, title_key: 'disc_loyalty_title' };
+          else if (discParam === 'march8') appliedDiscount.value = { id: 'march8', percent: 1, title_key: 'disc_march8_title' };
+          else appliedDiscount.value = { id: discParam, percent: 1, title_key: 'disc_birthday_title' };
+        }
+      } catch (e) {}
+
       await checkSavedLogin();
+      if (clientPhone.value) {
+        await fetchClientDiscounts(clientPhone.value);
+      }
+      await loadPublicData();
+      await loadClientAppointments();
       fetchClientUnreadCounts();
       clientUnreadTimer = setInterval(fetchClientUnreadCounts, 4000);
     });
@@ -1852,6 +1890,7 @@ createApp({
                 localStorage.setItem('vip_phone', data.client.phone);
                 showToast(`Впізнали вас, ${data.client.name}! ✨`);
               }
+              fetchClientDiscounts(newVal.trim());
             }
           } catch (e) {}
         }, 500);
@@ -2102,7 +2141,7 @@ createApp({
       getCategoryName,
       currentLang, availableLangs, setLang, t, toast,
       step, settings, services, categories, selectedCategory, filteredServices,
-      selectedServices, totalDuration, totalPrice, selectedServiceNames,
+      selectedServices, totalDuration, totalPrice, finalTotalPrice, appliedDiscount, availableDiscounts, discountAmount, selectedServiceNames,
       days, bookingDate, bookingTime, availableSlots, loadingSlots,
       clientName, clientPhone, clientNotes, submitting,
       clientRecognized, formatWorkSchedule, isServiceSelected, toggleService, selectDate, goToStep2,
@@ -2113,7 +2152,7 @@ createApp({
       sendModalChatMessage, sendModalQuickChip, createdAppointmentId, currentAppStatus,
       step4ChatMessages, newStep4Msg, quickChips, sendStep4ChatMessage, sendStep4QuickChip,
       formatMsgTime, selectedDayScheduleLabel,
-      showClientPaymentModal, payingApp, paymentSubmitting, openPaymentModalForApp, notifyClientPayment, formatChatMessageText
+      showLangModal, showClientPaymentModal, payingApp, paymentSubmitting, openPaymentModalForApp, notifyClientPayment, formatChatMessageText
     };
   }
 }).mount('#booking-app');

@@ -11,7 +11,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
-  <script src="/static/i18n.js?v=2.6"></script>
+  <script src="/static/i18n.js?v=2.7"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -53,14 +53,45 @@
       </div>
     </div>
 
-    <!-- Language selector -->
-    <div class="flex items-center space-x-1 overflow-x-auto hide-scrollbar bg-black/40 p-1 rounded-full border border-white/10">
-      <button v-for="(cfg, code) in availableLangs" :key="code"
-        @click="setLang(code)"
-        :class="currentLang === code ? 'bg-amber-400 text-stone-950 font-black shadow-md' : 'text-stone-300 hover:text-white'"
-        class="text-xs px-2 py-0.5 rounded-full transition flex items-center space-x-0.5">
-        <span class="text-xs">{{ cfg.flag }}</span>
+    <!-- Language selector with Globe -->
+    <div class="relative flex-shrink-0">
+      <button @click="showLangModal = true" class="flex items-center space-x-1.5 bg-black/40 hover:bg-black/60 text-stone-200 hover:text-white px-2.5 py-1.5 rounded-full border border-white/20 transition active:scale-95 shadow-sm text-xs" title="Вибрати мову / Choose language">
+        <span class="text-base leading-none">🌐</span>
+        <span class="text-sm leading-none">{{ availableLangs[currentLang]?.flag }}</span>
+        <span class="text-[11px] font-bold uppercase tracking-wider text-amber-300">{{ currentLang }}</span>
+        <i class="fa-solid fa-chevron-down text-[9px] opacity-70 ml-0.5"></i>
       </button>
+
+      <!-- GLOBE LANGUAGE SELECTION MODAL -->
+      <div v-if="showLangModal" @click.self="showLangModal = false" class="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-[#1C1715] text-white w-full max-w-xs rounded-3xl p-5 border border-amber-400/30 shadow-2xl space-y-3.5 text-left animate-in fade-in zoom-in-95 duration-150">
+          <div class="flex items-center justify-between pb-2 border-b border-white/10">
+            <div class="flex items-center space-x-2">
+              <span class="text-lg">🌐</span>
+              <h3 class="font-bold text-sm text-white">{{ t('choose_language') || 'Оберіть мову' }}</h3>
+            </div>
+            <button @click="showLangModal = false" class="text-stone-400 hover:text-white p-1">
+              <i class="fa-solid fa-xmark text-base"></i>
+            </button>
+          </div>
+
+          <div class="space-y-1.5">
+            <button v-for="(cfg, code) in availableLangs" :key="code"
+              @click="setLang(code); showLangModal = false;"
+              :class="currentLang === code ? 'bg-amber-400 text-stone-950 font-bold border-amber-300 shadow-md ring-1 ring-amber-300' : 'bg-white/5 hover:bg-white/15 text-stone-200 border-white/10'"
+              class="w-full flex items-center justify-between px-3.5 py-2.5 rounded-2xl border transition active:scale-98 text-xs">
+              <div class="flex items-center space-x-2.5">
+                <span class="text-lg leading-none">{{ cfg.flag }}</span>
+                <span class="font-medium text-xs">{{ cfg.name }}</span>
+              </div>
+              <div class="flex items-center space-x-1.5">
+                <span class="text-[10px] uppercase font-bold tracking-wider opacity-60">{{ code }}</span>
+                <i v-if="currentLang === code" class="fa-solid fa-check text-xs ml-1"></i>
+              </div>
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   </header>
 
@@ -206,14 +237,18 @@
     </div>
 
     <!-- Navigation Tabs inside Club -->
-    <div class="flex space-x-2 bg-white/5 p-1 rounded-2xl border border-white/10 text-xs font-bold">
-      <button @click="activeTab = 'shop'" :class="activeTab === 'shop' ? 'bg-amber-400 text-stone-950 shadow' : 'text-stone-300 hover:text-white'" class="flex-1 py-2 rounded-xl transition text-center">
+    <div class="flex space-x-1.5 bg-white/5 p-1 rounded-2xl border border-white/10 text-xs font-bold overflow-x-auto hide-scrollbar">
+      <button @click="activeTab = 'shop'" :class="activeTab === 'shop' ? 'bg-amber-400 text-stone-950 shadow' : 'text-stone-300 hover:text-white'" class="flex-1 py-2 px-2 rounded-xl transition text-center whitespace-nowrap">
         {{ t('vip_tab_shop') }}
       </button>
-      <button @click="activeTab = 'reviews'" :class="activeTab === 'reviews' ? 'bg-amber-400 text-stone-950 shadow' : 'text-stone-300 hover:text-white'" class="flex-1 py-2 rounded-xl transition text-center">
+      <button @click="activeTab = 'achievements'" :class="activeTab === 'achievements' ? 'bg-amber-400 text-stone-950 shadow' : 'text-stone-300 hover:text-white'" class="flex-1 py-2 px-2 rounded-xl transition text-center whitespace-nowrap flex items-center justify-center space-x-1">
+        <span>🏆</span>
+        <span>{{ t('tab_achievements') || 'Досягнення' }}</span>
+      </button>
+      <button @click="activeTab = 'reviews'" :class="activeTab === 'reviews' ? 'bg-amber-400 text-stone-950 shadow' : 'text-stone-300 hover:text-white'" class="flex-1 py-2 px-2 rounded-xl transition text-center whitespace-nowrap">
         {{ t('vip_tab_reviews') }}
       </button>
-      <button @click="activeTab = 'history'" :class="activeTab === 'history' ? 'bg-amber-400 text-stone-950 shadow' : 'text-stone-300 hover:text-white'" class="flex-1 py-2 rounded-xl transition text-center">
+      <button @click="activeTab = 'history'" :class="activeTab === 'history' ? 'bg-amber-400 text-stone-950 shadow' : 'text-stone-300 hover:text-white'" class="flex-1 py-2 px-2 rounded-xl transition text-center whitespace-nowrap">
         {{ t('vip_tab_visits') }}
       </button>
     </div>
@@ -241,6 +276,86 @@
               class="text-[10px] font-black px-2.5 py-1.5 rounded-lg transition active:scale-95">
               {{ isRewardOwned(reward) ? t('vip_already_owned') : t('vip_btn_claim') }}
             </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB: ACHIEVEMENTS & PERSONAL DISCOUNTS (Робочі досягнення та святкові знижки) -->
+    <div v-if="activeTab === 'achievements'" class="space-y-4 text-left">
+      <!-- 1. PERSONAL DISCOUNTS SECTION -->
+      <div class="space-y-2.5">
+        <div class="flex items-center justify-between px-1">
+          <div>
+            <h3 class="font-extrabold text-sm text-white flex items-center space-x-1.5">
+              <span>🎁</span>
+              <span>{{ t('discounts_title') || 'Персональні знижки (%)' }}</span>
+            </h3>
+            <p class="text-[11px] text-stone-400">{{ t('discounts_sub') || 'Одноразові святкові знижки від майстра Natali' }}</p>
+          </div>
+          <span class="text-[10px] text-amber-300 font-bold bg-amber-400/10 border border-amber-400/30 px-2 py-0.5 rounded-full">
+            {{ clientDiscounts.filter(d => !d.is_used).length }} {{ t('disc_available') || 'доступно' }}
+          </span>
+        </div>
+
+        <div class="grid grid-cols-1 gap-2.5">
+          <div v-for="d in clientDiscounts" :key="d.id" :class="d.is_used ? 'bg-white/[0.03] border-white/5 opacity-60' : 'bg-gradient-to-r from-amber-950/40 via-stone-900 to-amber-950/40 border-amber-400/40 shadow-lg'" class="border rounded-2xl p-3.5 space-y-2 transition">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center space-x-2.5">
+                <span class="text-2xl">{{ d.id === 'bday' ? '🎂' : (d.id === 'loyalty' ? '💎' : (d.id === 'march8' ? '🌸' : '✨')) }}</span>
+                <div>
+                  <h4 class="font-bold text-xs text-white">{{ t(d.title_key) || d.title || 'Святкова знижка' }}</h4>
+                  <p class="text-[10px] text-stone-400">{{ t(d.desc_key) || d.desc || '' }}</p>
+                </div>
+              </div>
+              <div class="text-right">
+                <span class="text-base font-black text-amber-400">-{{ d.percent }}%</span>
+              </div>
+            </div>
+
+            <div class="pt-2 border-t border-white/10 flex items-center justify-between">
+              <span :class="d.is_used ? 'bg-stone-800 text-stone-400 border-stone-700' : 'bg-emerald-950 text-emerald-300 border-emerald-500/40'" class="text-[10px] font-bold px-2.5 py-0.5 rounded-full border">
+                {{ d.is_used ? (t('disc_used') || 'Використано') : (t('disc_available') || 'Доступна для запису') }}
+              </span>
+              <a v-if="!d.is_used" :href="'/book?discount=' + d.id" class="text-xs bg-amber-400 hover:bg-amber-300 text-stone-950 font-black px-3.5 py-1.5 rounded-xl transition active:scale-95 shadow flex items-center space-x-1">
+                <span>{{ t('btn_apply_discount') || 'Застосувати' }}</span>
+                <span>➔</span>
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2. WORKING ACHIEVEMENTS SECTION -->
+      <div class="space-y-2.5 pt-3 border-t border-white/10">
+        <div class="px-1">
+          <h3 class="font-extrabold text-sm text-white flex items-center space-x-1.5">
+            <span>🏆</span>
+            <span>{{ t('achieve_title') || 'Ваші досягнення та рівень' }}</span>
+          </h3>
+          <p class="text-[11px] text-stone-400">{{ t('achieve_sub') || 'Виконуйте завдання краси та підвищуйте свій статус' }}</p>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          <div v-for="a in clientAchievements" :key="a.id" :class="a.unlocked ? 'bg-gradient-to-r from-amber-950/30 to-stone-900 border-amber-400/30 shadow' : 'bg-white/[0.03] border-white/5 opacity-60'" class="border rounded-2xl p-3 flex items-center space-x-3 transition">
+            <div :class="a.unlocked ? 'bg-amber-400/20 text-amber-300 border-amber-400/40' : 'bg-stone-800 text-stone-500 border-stone-700'" class="w-10 h-10 rounded-xl flex items-center justify-center text-xl border shrink-0">
+              {{ a.icon }}
+            </div>
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center justify-between">
+                <h4 :class="a.unlocked ? 'text-white font-extrabold' : 'text-stone-300 font-bold'" class="text-xs truncate">{{ t(a.title_key) || a.title }}</h4>
+                <span v-if="a.progress" class="text-[10px] font-mono font-bold text-amber-300 ml-1">{{ a.progress }}</span>
+              </div>
+              <p class="text-[10px] text-stone-400 leading-tight mt-0.5 line-clamp-2">{{ t(a.desc_key) || a.desc }}</p>
+              <div class="mt-1 flex items-center space-x-1">
+                <span v-if="a.unlocked" class="text-[9px] font-bold text-emerald-400 bg-emerald-950/60 border border-emerald-500/30 px-1.5 py-0.2 rounded">
+                  ✓ {{ t('achieve_unlocked') || 'Отримано' }}
+                </span>
+                <span v-else class="text-[9px] font-bold text-stone-500 bg-stone-800/60 px-1.5 py-0.2 rounded">
+                  🔒 {{ t('achieve_locked') || 'В процесі' }}
+                </span>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -483,13 +598,13 @@ const { createApp, ref, computed, onMounted } = Vue;
 createApp({
   setup() {
     const currentLang = ref(localStorage.getItem('nail_lang') || 'uk');
+    const showLangModal = ref(false);
     const availableLangs = {
-      uk: { code: 'uk', flag: '🇺🇦' },
-      en: { code: 'en', flag: '🇬🇧' },
-      es: { code: 'es', flag: '🇪🇸' },
-      va: { code: 'va', flag: '🦇' },
-      de: { code: 'de', flag: '🇩🇪' },
-      ru: { code: 'ru', flag: '🌐' }
+      uk: { code: 'uk', flag: '🇺🇦', name: 'Українська' },
+      ru: { code: 'ru', flag: '🌐', name: 'Русский' },
+      es: { code: 'es', flag: '🇪🇸', name: 'Español (Castellano)' },
+      en: { code: 'en', flag: '🇬🇧', name: 'English' },
+      de: { code: 'de', flag: '🇩🇪', name: 'Deutsch' }
     };
 
     function setLang(code) {
@@ -714,6 +829,22 @@ createApp({
       await loginWithPhone();
     }
 
+
+    const clientDiscounts = ref([]);
+    const clientAchievements = ref([]);
+
+    async function loadDiscountsAndAchievements() {
+      const p = client.value.phone || localStorage.getItem('vip_phone') || '';
+      if (!p) return;
+      try {
+        const res = await fetch(`/api/client/discounts-and-achievements?phone=${encodeURIComponent(p)}`);
+        if (res.ok) {
+          const data = await res.json();
+          clientDiscounts.value = data.discounts || [];
+          clientAchievements.value = data.achievements || [];
+        }
+      } catch (e) {}
+    }
     async function loadProfile() {
       if (!client.value.phone) return;
       const res = await fetch(`/api/client/profile?phone=${encodeURIComponent(client.value.phone)}`);
@@ -721,6 +852,7 @@ createApp({
         const data = await res.json();
         client.value = data.client;
         appointments.value = data.appointments;
+        await loadDiscountsAndAchievements();
       }
     }
 
@@ -1126,8 +1258,8 @@ createApp({
 
     return {
       getRewardTitle, getRewardDesc,
-      currentLang, availableLangs, setLang, t, allAvailableEmojis,
-      isLoggedIn, loginPhone, activeTab, client, appointments, reviews,
+      showLangModal, currentLang, availableLangs, setLang, t, allAvailableEmojis,
+      isLoggedIn, loginPhone, activeTab, client, appointments, reviews, clientDiscounts, clientAchievements, loadDiscountsAndAchievements,
       toast, rewardsCatalog, newReview, unlockedEmojisList, isRewardOwned,
       loginWithPhone, loginWithSocial, redeem, showInstallModal, triggerInstall, authMode, regForm, socialModal, openSocialModal, submitSocialModal,
       showAvatarModal,

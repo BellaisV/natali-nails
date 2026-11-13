@@ -395,6 +395,19 @@ def init_db():
     except Exception:
         pass
 
+    try:
+        cursor.execute("ALTER TABLE clients ADD COLUMN birthday TEXT DEFAULT ''")
+    except Exception:
+        pass
+    try:
+        cursor.execute("ALTER TABLE clients ADD COLUMN discounts_json TEXT DEFAULT '[]'")
+    except Exception:
+        pass
+    try:
+        cursor.execute("ALTER TABLE clients ADD COLUMN achievements_json TEXT DEFAULT '[]'")
+    except Exception:
+        pass
+
     # Create chat_messages table if not exists
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS chat_messages (
@@ -663,6 +676,7 @@ class PublicBookingRequest(BaseModel):
     date: str
     time: str
     notes: Optional[str] = ""
+    applied_discount_id: Optional[str] = ""
 
 class InstagramLoginRequest(BaseModel):
     instagram: str
@@ -1642,24 +1656,74 @@ def client_login(data: ClientLoginRequest):
         "completed_count": completed_count
     }
 
+def fetch_matching_appointments(cursor, phone: str = "", ids: str = "", client_id: int = 0):
+    safe_phone = sanitize_text(phone).strip() if phone else ""
+    digits = re.sub(r'\D', '', safe_phone) if safe_phone else ""
+    suffix = digits[-9:] if len(digits) >= 9 else digits
+
+    id_list = []
+    if ids:
+        for part in ids.split(','):
+            part = part.strip()
+            if part.isdigit():
+                id_list.append(int(part))
+
+    conditions = []
+    params = []
+
+    if safe_phone and suffix:
+        conditions.append("(client_phone = ? OR client_phone LIKE ?)")
+        params.extend([safe_phone, f"%{suffix}%"])
+    elif safe_phone:
+        conditions.append("client_phone = ?")
+        params.append(safe_phone)
+
+    if client_id and client_id > 0:
+        conditions.append("client_id = ?")
+        params.append(client_id)
+
+    if id_list:
+        placeholders = ",".join(["?"] * len(id_list))
+        conditions.append(f"id IN ({placeholders})")
+        params.extend(id_list)
+
+    if not conditions:
+        return []
+
+    where_clause = " OR ".join(conditions)
+    cursor.execute(f"""
+    SELECT id, client_id, client_name, client_phone, service_names, date, time, end_time, total_price, status, payment_method, notes, created_at
+    FROM appointments
+    WHERE {where_clause}
+    ORDER BY date DESC, time DESC
+    """, tuple(params))
+    return [dict(r) for r in cursor.fetchall()]
+
 @app.get("/api/client/profile")
-def get_client_profile(phone: str):
+def get_client_profile(phone: str = Query(""), ids: str = Query("")):
     conn = get_db()
     cursor = conn.cursor()
     safe_phone = sanitize_text(phone).strip()
-    digits = re.sub(r'\D', '', safe_phone)
+    digits = re.sub(r'\D', '', safe_phone) if safe_phone else ""
     suffix = digits[-9:] if len(digits) >= 9 else digits
 
-    cursor.execute("SELECT * FROM clients WHERE phone = ? OR phone LIKE ?", (safe_phone, f"%{suffix}%"))
-    client_row = cursor.fetchone()
+    client_row = None
+    if safe_phone:
+        cursor.execute("SELECT * FROM clients WHERE phone = ? OR phone LIKE ?", (safe_phone, f"%{suffix}%"))
+        client_row = cursor.fetchone()
 
     client_data = None
+    client_id = 0
     if client_row:
         client_data = dict(client_row)
+        client_id = client_data.get("id") or 0
     else:
         # Fallback: check if client exists in previous appointments!
-        cursor.execute("SELECT client_name, client_phone, client_notes FROM appointments WHERE client_phone LIKE ? ORDER BY id DESC LIMIT 1", (f"%{suffix}%",))
-        app_row = cursor.fetchone()
+        if suffix:
+            cursor.execute("SELECT client_name, client_phone, notes FROM appointments WHERE client_phone LIKE ? ORDER BY id DESC LIMIT 1", (f"%{suffix}%",))
+            app_row = cursor.fetchone()
+        else:
+            app_row = None
         if app_row:
             client_data = {
                 "id": 0,
@@ -1681,8 +1745,7 @@ def get_client_profile(phone: str):
                 "is_vip": 0
             }
 
-    cursor.execute("SELECT * FROM appointments WHERE client_phone = ? OR client_phone LIKE ? ORDER BY date DESC, time DESC", (safe_phone, f"%{suffix}%"))
-    appointments = [dict(r) for r in cursor.fetchall()]
+    appointments = fetch_matching_appointments(cursor, safe_phone, ids, client_id)
 
     conn.close()
     return {
@@ -1691,23 +1754,13 @@ def get_client_profile(phone: str):
     }
 
 @app.get("/api/client/appointments")
-def get_client_appointments(phone: str = Query("")):
+def get_client_appointments(phone: str = Query(""), ids: str = Query("")):
     safe_phone = sanitize_text(phone).strip()
-    if not safe_phone:
-        return []
-    digits = re.sub(r'\D', '', safe_phone)
-    suffix = digits[-9:] if len(digits) >= 9 else digits
     conn = get_db()
     cursor = conn.cursor()
-    cursor.execute("""
-    SELECT id, client_name, client_phone, service_names, date, time, end_time, total_price, status, payment_method, notes, created_at
-    FROM appointments
-    WHERE client_phone = ? OR client_phone LIKE ?
-    ORDER BY date DESC, time DESC
-    """, (safe_phone, f"%{suffix}%"))
-    rows = cursor.fetchall()
+    rows = fetch_matching_appointments(cursor, safe_phone, ids)
     conn.close()
-    return [dict(r) for r in rows]
+    return rows
 
 @app.post("/api/client/appointments/{app_id}/cancel")
 def cancel_client_appointment(app_id: int, phone: str = Query("")):
@@ -2058,6 +2111,26 @@ def public_book(data: PublicBookingRequest, request: Request):
 
     digits = re.sub(r'\D', '', safe_phone)
     suffix = digits[-9:] if len(digits) >= 9 else digits
+    # If a personalized discount was applied, mark it as used in client record
+    if data.applied_discount_id:
+        try:
+            cursor.execute("SELECT id, discounts_json, birthday FROM clients WHERE phone = ? OR phone LIKE ?", (safe_phone, f"%{suffix}%"))
+            c_row = cursor.fetchone()
+            if c_row:
+                try:
+                    d_list = json.loads(c_row["discounts_json"] or "[]")
+                except Exception:
+                    d_list = []
+                if not d_list:
+                    d_list = get_default_discounts_for_client(dict(c_row))
+                for d in d_list:
+                    if d.get("id") == data.applied_discount_id:
+                        d["is_used"] = 1
+                        safe_notes = (safe_notes + f" [🎁 Знижка {d.get('percent', 1)}% {d.get('id')}]").strip()
+                cursor.execute("UPDATE clients SET discounts_json = ? WHERE id = ?", (json.dumps(d_list, ensure_ascii=False), c_row["id"]))
+        except Exception as e:
+            print("Error updating discount:", e)
+
     cursor.execute("SELECT id FROM clients WHERE phone = ? OR phone LIKE ?", (safe_phone, f"%{suffix}%"))
     client_row = cursor.fetchone()
     if client_row:
@@ -2176,3 +2249,156 @@ if __name__ == "__main__":
     import uvicorn
     port = int(os.environ.get("PORT", 8000))
     uvicorn.run("server:app", host="0.0.0.0", port=port, reload=False)
+
+# --- Client Achievements & Personal Discounts Logic ---
+
+def get_default_discounts_for_client(client_row):
+    # Returns standard one-time discounts if none configured
+    return [
+        {"id": "bday", "type": "birthday", "percent": 1, "is_used": 0, "title_key": "disc_birthday_title", "desc_key": "disc_birthday_desc", "active": 1},
+        {"id": "loyalty", "type": "loyalty", "percent": 1, "is_used": 0, "title_key": "disc_loyalty_title", "desc_key": "disc_loyalty_desc", "active": 1},
+        {"id": "march8", "type": "march8", "percent": 1, "is_used": 0, "title_key": "disc_march8_title", "desc_key": "disc_march8_desc", "active": 1}
+    ]
+
+def calculate_client_achievements(client_dict, visits_count: int, reviews_count: int = 0):
+    # Working achievements based on actual client activity
+    achievements = [
+        {
+            "id": "first_visit",
+            "icon": "🌟",
+            "title_key": "achieve_first_visit",
+            "desc_key": "achieve_first_visit_desc",
+            "unlocked": visits_count >= 1,
+            "progress": f"{min(visits_count, 1)}/1"
+        },
+        {
+            "id": "regular",
+            "icon": "💖",
+            "title_key": "achieve_regular",
+            "desc_key": "achieve_regular_desc",
+            "unlocked": visits_count >= 3,
+            "progress": f"{min(visits_count, 3)}/3"
+        },
+        {
+            "id": "queen",
+            "icon": "👑",
+            "title_key": "achieve_queen",
+            "desc_key": "achieve_queen_desc",
+            "unlocked": visits_count >= 5,
+            "progress": f"{min(visits_count, 5)}/5"
+        },
+        {
+            "id": "loyalty",
+            "icon": "💎",
+            "title_key": "achieve_loyalty",
+            "desc_key": "achieve_loyalty_desc",
+            "unlocked": visits_count >= 10,
+            "progress": f"{min(visits_count, 10)}/10"
+        },
+        {
+            "id": "birthday",
+            "icon": "🎂",
+            "title_key": "achieve_birthday",
+            "desc_key": "achieve_birthday_desc",
+            "unlocked": bool(client_dict.get("birthday")),
+            "progress": "1/1" if client_dict.get("birthday") else "0/1"
+        },
+        {
+            "id": "march8",
+            "icon": "🌸",
+            "title_key": "achieve_march8",
+            "desc_key": "achieve_march8_desc",
+            "unlocked": visits_count >= 2,
+            "progress": f"{min(visits_count, 2)}/2"
+        },
+        {
+            "id": "reviewer",
+            "icon": "✍️",
+            "title_key": "achieve_reviewer",
+            "desc_key": "achieve_reviewer_desc",
+            "unlocked": reviews_count >= 1,
+            "progress": f"{min(reviews_count, 1)}/1"
+        }
+    ]
+    return achievements
+
+class AdminDiscountUpdateRequest(BaseModel):
+    discounts: list
+    birthday: Optional[str] = ""
+
+@app.get("/api/admin/clients/{client_id}/discounts")
+def admin_get_client_discounts(client_id: int):
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("SELECT id, name, phone, birthday, discounts_json FROM clients WHERE id = ?", (client_id,))
+    row = cursor.fetchone()
+    if not row:
+        conn.close()
+        raise HTTPException(status_code=404, detail="Client not found")
+    
+    try:
+        discounts = json.loads(row["discounts_json"] or "[]")
+    except Exception:
+        discounts = []
+    
+    if not discounts:
+        discounts = get_default_discounts_for_client(row)
+
+    conn.close()
+    return {
+        "client_id": client_id,
+        "name": row["name"],
+        "birthday": row["birthday"] or "",
+        "discounts": discounts
+    }
+
+@app.post("/api/admin/clients/{client_id}/discounts")
+def admin_update_client_discounts(client_id: int, data: AdminDiscountUpdateRequest):
+    conn = get_db()
+    cursor = conn.cursor()
+    discounts_json = json.dumps(data.discounts, ensure_ascii=False)
+    cursor.execute("UPDATE clients SET discounts_json = ?, birthday = ? WHERE id = ?", (discounts_json, data.birthday or "", client_id))
+    conn.commit()
+    conn.close()
+    return {"status": "ok", "message": "Discounts updated successfully"}
+
+@app.get("/api/client/discounts-and-achievements")
+def client_get_discounts_and_achievements(phone: str = Query("")):
+    safe_phone = sanitize_text(phone).strip()
+    digits = re.sub(r'\D', '', safe_phone) if safe_phone else ""
+    suffix = digits[-9:] if len(digits) >= 9 else digits
+    conn = get_db()
+    cursor = conn.cursor()
+    
+    cursor.execute("SELECT * FROM clients WHERE phone = ? OR phone LIKE ?", (safe_phone, f"%{suffix}%"))
+    client_row = cursor.fetchone()
+    client_dict = dict(client_row) if client_row else {"id": 0, "name": "Клієнтка", "phone": safe_phone, "birthday": ""}
+    
+    # Count visits
+    cursor.execute("SELECT COUNT(*) as cnt FROM appointments WHERE (client_phone = ? OR client_phone LIKE ?) AND status != 'cancelled'", (safe_phone, f"%{suffix}%"))
+    v_row = cursor.fetchone()
+    visits_count = v_row["cnt"] if v_row else 0
+    
+    # Count reviews
+    cursor.execute("SELECT COUNT(*) as cnt FROM reviews WHERE client_phone = ? OR client_phone LIKE ?", (safe_phone, f"%{suffix}%"))
+    r_row = cursor.fetchone()
+    reviews_count = r_row["cnt"] if r_row else 0
+    
+    # Discounts
+    try:
+        discounts = json.loads(client_dict.get("discounts_json") or "[]")
+    except Exception:
+        discounts = []
+    if not discounts:
+        discounts = get_default_discounts_for_client(client_dict)
+    
+    achievements = calculate_client_achievements(client_dict, visits_count, reviews_count)
+    conn.close()
+    
+    return {
+        "client": client_dict,
+        "visits_count": visits_count,
+        "reviews_count": reviews_count,
+        "discounts": discounts,
+        "achievements": achievements
+    }
