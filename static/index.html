@@ -244,9 +244,13 @@
     <!-- Top Header Bar -->
     <header class="sticky top-0 z-30 bg-[#1C1715] text-white px-4 py-3 flex items-center justify-between shadow-md">
       <div class="flex items-center space-x-2.5">
-        <img v-if="settings.master_avatar" :src="settings.master_avatar" class="w-9 h-9 rounded-full object-cover border border-amber-400/50 shadow-md">
-        <div v-else class="w-9 h-9 rounded-full bg-gradient-to-tr from-rose-500 to-amber-400 flex items-center justify-center text-white shadow-md">
-          <i class="fa-solid fa-hand-sparkles text-sm"></i>
+        <div class="relative group cursor-pointer" @click="currentTab = 'settings'" title="Налаштування профілю та аватара">
+          <img v-if="settings.master_avatar" :src="settings.master_avatar" class="w-10 h-10 rounded-full object-cover ring-2 ring-amber-400/80 shadow-lg shadow-amber-500/20">
+          <div v-else class="w-10 h-10 rounded-full bg-gradient-to-br from-[#1C1715] via-stone-900 to-amber-950 border border-amber-400/60 ring-2 ring-amber-400/30 flex items-center justify-center text-amber-300 shadow-xl shadow-amber-950/40 relative overflow-hidden">
+            <div class="absolute inset-0 bg-gradient-to-tr from-amber-400/15 via-transparent to-rose-400/20"></div>
+            <span class="font-serif-luxury font-black text-base text-amber-300 drop-shadow">N</span>
+            <span class="absolute -bottom-1 -right-0.5 text-[9px]">✨</span>
+          </div>
         </div>
         <div>
           <h1 class="font-bold text-sm leading-tight text-white">{{ settings.studio_name || 'Natali Nails' }}</h1>
@@ -816,6 +820,50 @@
           <p class="text-xs text-stone-300 mt-1">
             Створюйте святкові або акційні дні зі знижками, налаштовуйте персональні відсотки та додавайте нові досягнення для мотивації клієнток.
           </p>
+        </div>
+      </div>
+
+      <!-- 1. КЕРУВАННЯ СВЯТКОВИМИ ЗНИЖКАМИ (ДЕНЬ НАРОДЖЕННЯ, 8 БЕРЕЗНЯ, НОВИЙ РІК, 14 ЛЮТОГО, ВИСЛУГА) -->
+      <div class="bg-white rounded-3xl p-5 sm:p-6 border border-stone-200 shadow-sm space-y-4">
+        <div class="flex items-center justify-between border-b border-stone-100 pb-3">
+          <div>
+            <h3 class="font-extrabold text-sm sm:text-base text-stone-900 flex items-center space-x-2">
+              <span>🎁</span>
+              <span>Керування святковими знижками студії</span>
+            </h3>
+            <p class="text-xs text-stone-500 mt-0.5">
+              Вмикайте / вимикайте знижки та задавайте персональні відсотки (%) для кожного календарного свята.
+            </p>
+          </div>
+          <span class="text-xs bg-amber-100 text-amber-900 font-bold px-3 py-1 rounded-full">
+            {{ holidayDiscounts.filter(h => h.is_active).length }} / {{ holidayDiscounts.length }} активні
+          </span>
+        </div>
+
+        <!-- Holiday Cards Grid -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
+          <div v-for="h in holidayDiscounts" :key="h.id" :class="h.is_active ? 'bg-gradient-to-br from-amber-50/70 via-white to-orange-50/50 border-amber-300 shadow-sm' : 'bg-stone-50 border-stone-200 opacity-60'" class="border rounded-2xl p-4 flex flex-col justify-between space-y-3 transition">
+            <div class="space-y-1.5">
+              <div class="flex items-center justify-between">
+                <span class="text-2xl">{{ h.icon || (h.id === 'bday' ? '🎂' : (h.id === 'march8' ? '🌸' : (h.id === 'valentine' ? '❤️' : (h.id === 'newyear' ? '❄️' : '💎')))) }}</span>
+                <button @click="toggleHolidayDiscount(h.id)" type="button" :class="h.is_active ? 'bg-emerald-600 text-white shadow-sm' : 'bg-stone-200 text-stone-600'" class="px-2.5 py-1 rounded-lg text-[10px] font-bold transition">
+                  {{ h.is_active ? '✓ Активна' : 'Вимкнено' }}
+                </button>
+              </div>
+              <h4 class="font-extrabold text-xs text-stone-900 leading-snug">{{ h.title }}</h4>
+              <p class="text-[10px] text-stone-500 leading-tight">
+                {{ h.id === 'bday' ? 'Діє у день народження клієнтки (±3 дні)' : (h.id === 'march8' ? 'Діє з 1 по 10 березня' : (h.id === 'valentine' ? 'Діє з 10 по 16 лютого' : (h.id === 'newyear' ? 'Діє з 20 грудня по 10 січня' : 'Діє на 1-шу річницю або від 10 візитів'))) }}
+              </p>
+            </div>
+
+            <div class="pt-2 border-t border-stone-200/60 flex items-center justify-between">
+              <span class="text-xs font-bold text-stone-700">Знижка:</span>
+              <div class="flex items-center space-x-1.5">
+                <input v-model.number="h.percent" @change="saveHolidayDiscount(h)" type="number" min="1" max="50" class="w-14 bg-white border border-stone-300 rounded-lg p-1 text-xs font-black text-rose-600 text-center focus:ring-2 focus:ring-rose-500 focus:outline-none">
+                <span class="text-xs font-bold text-stone-800">%</span>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -1830,7 +1878,7 @@
 </div>
 
 <script>
-const { createApp, ref, computed, onMounted } = Vue;
+const { createApp, ref, computed, onMounted, watch } = Vue;
 
 createApp({
   setup() {
@@ -2592,6 +2640,9 @@ createApp({
       await loadAppointments();
       await loadClients();
       await loadFinance();
+      await loadHolidayDiscounts();
+      await loadPromoDays();
+      await loadCustomAchievements();
     }
 
     function openPaymentModal(app) {
@@ -3048,7 +3099,57 @@ createApp({
       }
     }
 
+    watch(currentTab, (newTab) => {
+      if (newTab === 'promo') {
+        loadHolidayDiscounts();
+        loadPromoDays();
+        loadCustomAchievements();
+      }
+    });
+
     // --- PROMO DAYS & CUSTOM ACHIEVEMENTS LOGIC ---
+    // --- HOLIDAY DISCOUNTS LOGIC ---
+    const holidayDiscounts = ref([]);
+
+    loadHolidayDiscounts();
+    loadPromoDays();
+    loadCustomAchievements();
+
+    async function loadHolidayDiscounts() {
+      try {
+        const res = await fetch('/api/admin/holiday-discounts');
+        if (res.ok) holidayDiscounts.value = await res.json();
+      } catch (e) {}
+    }
+
+    async function saveHolidayDiscount(h) {
+      try {
+        await fetch('/api/admin/holiday-discounts', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            id: h.id,
+            percent: Number(h.percent) || 1,
+            is_active: h.is_active ? 1 : 0,
+            window_days: h.window_days || 3
+          })
+        });
+        showToast(`Знижку "${h.title}" оновлено! ✨`);
+      } catch (e) {
+        showToast('Помилка збереження');
+      }
+    }
+
+    async function toggleHolidayDiscount(id) {
+      try {
+        const res = await fetch(`/api/admin/holiday-discounts/${id}/toggle`, { method: 'PUT' });
+        if (res.ok) {
+          await loadHolidayDiscounts();
+          showToast('Статус знижки оновлено');
+        }
+      } catch (e) {}
+    }
+
     const promoDays = ref([]);
     const customAchievements = ref([]);
     const savingPromo = ref(false);
@@ -3086,7 +3187,8 @@ createApp({
         });
         if (res.ok) {
           newPromo.value.title = '';
-          await loadPromoDays();
+          await loadHolidayDiscounts();
+      loadPromoDays();
         }
       } catch (e) {}
       savingPromo.value = false;
@@ -3142,6 +3244,7 @@ createApp({
 
     onMounted(async () => {
       loadRewards();
+      loadHolidayDiscounts();
       loadPromoDays();
       loadCustomAchievements();
       // Register PWA service worker
@@ -3165,7 +3268,7 @@ createApp({
       isUnlocked, pinInput, showPassword, pinChange, submitPin, lockApp, changePin, showInstallModal, showAndroidHelp, triggerAndroidInstall, handleIosClick,
       gateMode, directPhoneInput, submitDirectPhoneLogin, authTab, authLoading, showClientPassword, loginForm, regForm, handleClientLogin, handleClientRegister, weekDaysList, isDayActive, toggleWorkingDay, setDaysPreset, clientAuthModal, openSocialClientModal, submitClientSocialAuth,
       currentLang, availableLangs, setLang, t,
-      currentTab, promoDays, customAchievements, savingPromo, savingAchieve, newPromo, newAchieve, loadPromoDays, createPromoDay, deletePromoDay, togglePromoDay, loadCustomAchievements, createCustomAchievement, deleteCustomAchievement, settings, services, clients, appointments, transactions, financeSummary,
+      currentTab, holidayDiscounts, loadHolidayDiscounts, saveHolidayDiscount, toggleHolidayDiscount, promoDays, customAchievements, savingPromo, savingAchieve, newPromo, newAchieve, loadPromoDays, createPromoDay, deletePromoDay, togglePromoDay, loadCustomAchievements, createCustomAchievement, deleteCustomAchievement, settings, services, clients, appointments, transactions, financeSummary,
       todayStr, selectedDate, selectedMonth, clientSearch, daysList, dayAppointments,
       dayTotalSum, filteredClients, modals, formApp, formExpense, formService, formClient,
       selectedServiceId, toast, bookingUrl, payingApp,

@@ -304,6 +304,37 @@ def init_db():
     )
     """)
 
+    # Holiday Discounts Table (Керування святковими знижками адміном)
+    cursor.execute('''
+    CREATE TABLE IF NOT EXISTS holiday_discounts (
+        id TEXT PRIMARY KEY,
+        type TEXT NOT NULL,
+        title TEXT NOT NULL,
+        title_key TEXT,
+        desc_key TEXT,
+        percent INTEGER DEFAULT 1,
+        is_active INTEGER DEFAULT 1,
+        window_days INTEGER DEFAULT 3,
+        start_date_rule TEXT DEFAULT '',
+        end_date_rule TEXT DEFAULT '',
+        icon TEXT DEFAULT '🎁'
+    )
+    ''')
+
+    # Seed default holiday discounts if empty
+    cursor.execute("SELECT COUNT(*) as cnt FROM holiday_discounts")
+    if cursor.fetchone()["cnt"] == 0:
+        cursor.executemany('''
+            INSERT INTO holiday_discounts (id, type, title, title_key, desc_key, percent, is_active, window_days, start_date_rule, end_date_rule, icon)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ''', [
+            ('bday', 'birthday', 'З днем народження!', 'disc_birthday_title', 'disc_birthday_desc', 1, 1, 3, '', '', '🎂'),
+            ('march8', 'march8', '8 Березня / Весняний комплімент', 'disc_march8_title', 'disc_march8_desc', 1, 1, 10, '03-01', '03-10', '🌸'),
+            ('valentine', 'valentine', 'День Закоханих', 'disc_valentine_title', 'disc_valentine_desc', 1, 1, 7, '02-10', '02-16', '❤️'),
+            ('newyear', 'newyear', 'Новий Рік та Різдво', 'disc_newyear_title', 'disc_newyear_desc', 1, 1, 20, '12-20', '01-10', '❄️'),
+            ('loyalty', 'loyalty', 'Вислуга років / Річниця', 'disc_loyalty_title', 'disc_loyalty_desc', 1, 1, 365, '', '', '💎')
+        ])
+
     # Promo Days table
     cursor.execute('''
     CREATE TABLE IF NOT EXISTS promo_days (
@@ -2677,6 +2708,49 @@ def admin_update_client_discounts(client_id: int, data: AdminDiscountUpdateReque
     conn.close()
     return {"status": "ok", "message": "Discounts updated successfully"}
 
+# --- Admin Holiday Discounts Endpoints (Керування святковими знижками) ---
+
+class HolidayDiscountUpdate(BaseModel):
+    id: str
+    percent: int = 1
+    is_active: int = 1
+    window_days: Optional[int] = 3
+
+@app.get("/api/admin/holiday-discounts")
+def get_admin_holiday_discounts():
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM holiday_discounts")
+    rows = [dict(r) for r in cursor.fetchall()]
+    conn.close()
+    return rows
+
+@app.post("/api/admin/holiday-discounts")
+def update_admin_holiday_discount(data: HolidayDiscountUpdate):
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("""
+        UPDATE holiday_discounts 
+        SET percent = ?, is_active = ?, window_days = ?
+        WHERE id = ?
+    """, (max(1, min(50, data.percent)), 1 if data.is_active else 0, data.window_days or 3, data.id.strip()))
+    conn.commit()
+    conn.close()
+    return {"status": "ok", "message": "Знижку оновлено"}
+
+@app.put("/api/admin/holiday-discounts/{discount_id}/toggle")
+def toggle_admin_holiday_discount(discount_id: str):
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("""
+        UPDATE holiday_discounts 
+        SET is_active = CASE WHEN is_active = 1 THEN 0 ELSE 1 END 
+        WHERE id = ?
+    """, (discount_id.strip(),))
+    conn.commit()
+    conn.close()
+    return {"status": "ok"}
+
 # --- Admin Promo Days Endpoints ---
 
 @app.get("/api/admin/promo-days")
@@ -2783,13 +2857,29 @@ def client_get_discounts_and_achievements(phone: str = Query("")):
     cursor.execute("SELECT * FROM custom_achievements WHERE is_active = 1")
     custom_achievements = [dict(r) for r in cursor.fetchall()]
 
-    # Discounts
+    # Load master's configured holiday discounts
+    cursor.execute("SELECT * FROM holiday_discounts")
+    holiday_rows = [dict(r) for r in cursor.fetchall()]
+    if not holiday_rows:
+        holiday_rows = get_default_discounts_for_client(client_dict)
+
+    # Client-specific used records
     try:
-        discounts = json.loads(client_dict.get("discounts_json") or "[]")
+        client_saved = json.loads(client_dict.get("discounts_json") or "[]")
     except Exception:
-        discounts = []
-    if not discounts:
-        discounts = get_default_discounts_for_client(client_dict)
+        client_saved = []
+    used_ids = {d.get("id"): d.get("is_used", 0) for d in client_saved if isinstance(d, dict)}
+
+    # Construct active holiday discounts
+    discounts = []
+    for h in holiday_rows:
+        # If disabled by admin, skip it
+        if h.get("is_active") == 0:
+            continue
+        d_item = dict(h)
+        d_item["is_used"] = used_ids.get(h["id"], 0)
+        d_item["active"] = h.get("is_active", 1)
+        discounts.append(d_item)
 
     # Active Promo Days from Admin
     cursor.execute("SELECT * FROM promo_days WHERE is_active = 1")
