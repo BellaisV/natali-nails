@@ -80,9 +80,9 @@
         <i class="fa-regular fa-calendar-check text-rose-400"></i>
         <span class="hidden sm:inline">{{ t('my_bookings') || 'Мої записи' }}</span>
         <span class="sm:hidden">{{ t('my_bookings_short') || 'Записи' }}</span>
-        <span v-if="clientAppointments.length > 0 && clientUnreadChatTotal === 0" class="w-4 h-4 rounded-full bg-rose-500 text-[10px] font-black flex items-center justify-center text-white ml-0.5">{{ clientAppointments.length }}</span>
+        <span v-if="activeClientAppointments.length > 0 && clientUnreadChatTotal === 0" class="w-4 h-4 rounded-full bg-rose-500 text-[10px] font-black flex items-center justify-center text-white ml-0.5">{{ activeClientAppointments.length }}</span>
         <!-- UNREAD MESSAGES BELL BADGE -->
-        <span v-if="clientAppointments.length > 0 && clientUnreadChatTotal > 0" class="flex items-center space-x-1 bg-gradient-to-r from-rose-500 to-amber-500 text-white text-[10px] font-black px-1.5 py-0.5 rounded-full shadow-md animate-bounce ring-1 ring-white/40">
+        <span v-if="activeClientAppointments.length > 0 && clientUnreadChatTotal > 0" class="flex items-center space-x-1 bg-gradient-to-r from-rose-500 to-amber-500 text-white text-[10px] font-black px-1.5 py-0.5 rounded-full shadow-md animate-bounce ring-1 ring-white/40">
           <i class="fa-solid fa-bell text-[9px] animate-pulse"></i>
           <span>{{ clientUnreadChatTotal }}</span>
         </span>
@@ -217,6 +217,46 @@
         <span class="text-xs font-bold text-rose-600 bg-rose-50 border border-rose-200 px-2.5 py-1 rounded-full">
           {{ t('selected_count') }}: {{ selectedServices.length }}
         </span>
+      </div>
+    </div>
+
+    <!-- ACTIVE APPOINTMENTS BANNER (Shows client's active valid appointments on main page!) -->
+    <div v-if="activeClientAppointments.length > 0" class="bg-gradient-to-r from-[#241C1A] via-stone-900 to-[#241C1A] border border-amber-400/50 rounded-2xl p-3.5 text-white shadow-lg space-y-2.5 animate-in fade-in duration-200">
+      <div class="flex items-center justify-between border-b border-white/10 pb-2">
+        <div class="flex items-center space-x-2">
+          <div class="w-7 h-7 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-xs">
+            <i class="fa-regular fa-calendar-check"></i>
+          </div>
+          <div>
+            <h4 class="font-extrabold text-xs text-white uppercase tracking-wider">{{ t('valid_appointments_title') || 'Ваші дійсні записи на манікюр' }}</h4>
+            <p class="text-[10px] text-emerald-400 font-semibold">{{ t('valid_appointments_sub') || 'Активні візити до майстра Natali' }}</p>
+          </div>
+        </div>
+        <button type="button" @click="openMyAppointmentsModal" class="text-[10px] text-amber-300 hover:text-white font-bold bg-white/10 px-2.5 py-1 rounded-full border border-white/10 transition active:scale-95">
+          {{ t('all_bookings') || 'Всі записи' }} ({{ clientAppointments.length }}) ➔
+        </button>
+      </div>
+
+      <div class="space-y-2">
+        <div v-for="app in activeClientAppointments" :key="app.id" class="bg-white/5 border border-white/10 rounded-xl p-2.5 flex items-center justify-between text-xs">
+          <div class="flex-1 pr-2">
+            <div class="font-extrabold text-amber-300 flex items-center space-x-1.5 flex-wrap">
+              <i class="fa-regular fa-clock text-amber-400 text-xs"></i>
+              <span>{{ app.date }} о {{ app.time }}</span>
+              <span :class="app.status === 'confirmed' ? 'bg-emerald-950 text-emerald-300 border-emerald-500/40' : 'bg-amber-950 text-amber-300 border-amber-500/40'" class="text-[9px] font-black px-1.5 py-0.5 rounded border ml-1">
+                {{ app.status === 'confirmed' ? (t('status_confirmed') || '✅ Підтверджено') : (t('status_pending') || '⏳ Очікує') }}
+              </span>
+            </div>
+            <div class="text-[11px] text-stone-200 mt-1 line-clamp-1"><i class="fa-solid fa-sparkles text-rose-400 mr-1 text-[9px]"></i>{{ app.service_names }}</div>
+          </div>
+          <div class="flex items-center space-x-1.5 flex-shrink-0">
+            <span class="font-black text-rose-400 text-xs mr-1">{{ app.total_price }}€</span>
+            <button type="button" @click="openClientChat(app)" class="bg-gradient-to-r from-rose-500 to-rose-600 hover:from-rose-600 text-white px-2.5 py-1.5 rounded-xl font-bold text-[11px] transition active:scale-95 shadow flex items-center space-x-1">
+              <i class="fa-regular fa-comments text-xs"></i>
+              <span>{{ t('chat') || 'Чат' }}</span>
+            </button>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -968,51 +1008,84 @@
         </button>
       </div>
 
-      <div v-else class="space-y-3">
-        <div v-for="app in clientAppointments" :key="app.id" class="bg-white/5 border border-white/10 rounded-2xl p-4 space-y-2.5">
-          <div class="flex items-center justify-between">
-            <span :class="app.status === 'confirmed' ? 'bg-emerald-950/80 text-emerald-300 border-emerald-500/40' : (app.status === 'cancelled' ? 'bg-stone-800 text-stone-400 border-stone-600' : 'bg-amber-950/80 text-amber-300 border-amber-500/40')" class="text-[10px] font-black px-2 py-0.5 rounded-full border">
-              {{ app.status === 'confirmed' ? (t('status_confirmed') || '✅ Підтверджено') : (app.status === 'cancelled' ? (t('status_cancelled') || '❌ Скасовано') : (t('status_pending') || '⏳ Очікує підтвердження')) }}
-            </span>
-            <span class="text-xs font-black text-rose-400">{{ app.total_price }} {{ settings.currency || '€' }}</span>
+      <div v-else class="space-y-4">
+        <!-- 🟢 Active Valid Bookings Section -->
+        <div v-if="activeClientAppointments.length > 0" class="space-y-2.5">
+          <div class="text-[11px] font-black text-amber-300 uppercase tracking-wider flex items-center space-x-1.5 pb-1 border-b border-white/10">
+            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+            <span>{{ t('section_active_bookings') || '🟢 Дійсні активні записи:' }}</span>
           </div>
 
-          <div>
-            <div class="font-bold text-xs text-white flex items-center space-x-1.5">
-              <i class="fa-regular fa-clock text-amber-400"></i>
-              <span>{{ app.date }} о {{ app.time }}</span>
-            </div>
-            <p class="text-[11px] text-stone-300 mt-1"><i class="fa-solid fa-sparkles text-rose-400 mr-1"></i>{{ app.service_names }}</p>
-          </div>
-
-          <!-- UNREAD MESSAGE NOTICE FROM MASTER -->
-          <div v-if="clientUnreadByApp[app.id]" class="bg-gradient-to-r from-amber-500/20 to-rose-500/20 border border-amber-400/40 rounded-xl px-2.5 py-1 text-[11px] text-amber-200 flex items-center space-x-1.5 animate-pulse">
-            <i class="fa-solid fa-bell text-amber-400"></i>
-            <span class="font-bold">{{ t('chat_new_msg_from_master') }}</span>
-          </div>
-
-          <div class="pt-2 border-t border-white/10 flex items-center justify-between text-xs gap-2 flex-wrap">
-            <div class="flex items-center space-x-1.5 flex-wrap gap-1.5">
-              <!-- Pay Button -->
-              <button v-if="app.status !== 'cancelled'" @click="openPaymentModalForApp(app)" class="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-stone-950 font-bold px-2.5 py-1.5 rounded-xl text-[11px] flex items-center space-x-1 transition active:scale-95 shadow">
-                <i class="fa-regular fa-credit-card"></i>
-                <span>{{ t('btn_pay_now') || 'Оплатити' }} ({{ app.total_price }} {{ settings.currency || '€' }})</span>
-              </button>
-              
-              <!-- Chat Button -->
-              <button @click="openClientChat(app)" class="relative bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-400/40 px-2.5 py-1.5 rounded-xl font-bold text-[11px] flex items-center space-x-1.5 transition active:scale-95">
-                <i class="fa-regular fa-comments text-xs"></i>
-                <span>{{ t('btn_chat_master') || 'Чат з майстром' }}</span>
-                <span v-if="clientUnreadByApp[app.id]" class="bg-gradient-to-r from-rose-500 to-amber-500 text-white font-black text-[10px] px-1.5 py-0.5 rounded-full shadow-md animate-bounce flex items-center space-x-0.5 ring-1 ring-white/50 ml-1">
-                  <i class="fa-solid fa-bell text-[8px]"></i>
-                  <span>{{ clientUnreadByApp[app.id] }}</span>
-                </span>
-              </button>
+          <div v-for="app in activeClientAppointments" :key="app.id" class="bg-gradient-to-r from-white/10 to-white/5 border border-amber-400/40 rounded-2xl p-4 space-y-2.5 shadow-md">
+            <div class="flex items-center justify-between">
+              <span :class="app.status === 'confirmed' ? 'bg-emerald-950/90 text-emerald-300 border-emerald-500/50' : 'bg-amber-950/90 text-amber-300 border-amber-500/50'" class="text-[10px] font-black px-2.5 py-0.5 rounded-full border shadow-sm">
+                {{ app.status === 'confirmed' ? (t('status_confirmed') || '✅ Підтверджено') : (t('status_pending') || '⏳ Очікує підтвердження') }}
+              </span>
+              <span class="text-xs font-black text-rose-400">{{ app.total_price }} {{ settings.currency || '€' }}</span>
             </div>
 
-            <button v-if="app.status !== 'cancelled'" @click="cancelClientAppointment(app)" class="text-stone-400 hover:text-rose-400 text-[11px] font-semibold transition ml-auto">
-              <i class="fa-solid fa-xmark mr-1"></i>{{ t('btn_cancel_app') || 'Скасувати' }}
-            </button>
+            <div>
+              <div class="font-bold text-xs text-white flex items-center space-x-1.5">
+                <i class="fa-regular fa-clock text-amber-400"></i>
+                <span>{{ app.date }} о {{ app.time }}</span>
+              </div>
+              <p class="text-[11px] text-stone-200 mt-1"><i class="fa-solid fa-sparkles text-rose-400 mr-1"></i>{{ app.service_names }}</p>
+            </div>
+
+            <!-- UNREAD MESSAGE NOTICE FROM MASTER -->
+            <div v-if="clientUnreadByApp[app.id]" class="bg-gradient-to-r from-amber-500/20 to-rose-500/20 border border-amber-400/40 rounded-xl px-2.5 py-1 text-[11px] text-amber-200 flex items-center space-x-1.5 animate-pulse">
+              <i class="fa-solid fa-bell text-amber-400"></i>
+              <span class="font-bold">{{ t('chat_new_msg_from_master') }}</span>
+            </div>
+
+            <div class="pt-2 border-t border-white/10 flex items-center justify-between text-xs gap-2 flex-wrap">
+              <div class="flex items-center space-x-1.5 flex-wrap gap-1.5">
+                <!-- Pay Button -->
+                <button @click="openPaymentModalForApp(app)" class="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-stone-950 font-bold px-2.5 py-1.5 rounded-xl text-[11px] flex items-center space-x-1 transition active:scale-95 shadow">
+                  <i class="fa-regular fa-credit-card"></i>
+                  <span>{{ t('btn_pay_now') || 'Оплатити' }} ({{ app.total_price }} {{ settings.currency || '€' }})</span>
+                </button>
+                
+                <!-- Chat Button -->
+                <button @click="openClientChat(app)" class="relative bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-400/40 px-2.5 py-1.5 rounded-xl font-bold text-[11px] flex items-center space-x-1.5 transition active:scale-95">
+                  <i class="fa-regular fa-comments text-xs"></i>
+                  <span>{{ t('btn_chat_master') || 'Чат з майстром' }}</span>
+                  <span v-if="clientUnreadByApp[app.id]" class="bg-gradient-to-r from-rose-500 to-amber-500 text-white font-black text-[10px] px-1.5 py-0.5 rounded-full shadow-md animate-bounce flex items-center space-x-0.5 ring-1 ring-white/50 ml-1">
+                    <i class="fa-solid fa-bell text-[8px]"></i>
+                    <span>{{ clientUnreadByApp[app.id] }}</span>
+                  </span>
+                </button>
+              </div>
+
+              <button @click="cancelClientAppointment(app)" class="text-stone-400 hover:text-rose-400 text-[11px] font-semibold transition ml-auto">
+                <i class="fa-solid fa-xmark mr-1"></i>{{ t('btn_cancel_app') || 'Скасувати' }}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ⚪ Past / Completed / Cancelled Section -->
+        <div v-if="pastClientAppointments.length > 0" class="space-y-2.5 pt-2">
+          <div class="text-[11px] font-bold text-stone-400 uppercase tracking-wider flex items-center space-x-1.5 pb-1 border-b border-white/5">
+            <i class="fa-solid fa-history text-stone-500 text-xs"></i>
+            <span>{{ t('section_past_bookings') || 'Минулі та скасовані візити:' }}</span>
+          </div>
+
+          <div v-for="app in pastClientAppointments" :key="app.id" class="bg-white/5 border border-white/10 rounded-2xl p-3 space-y-2 opacity-75">
+            <div class="flex items-center justify-between">
+              <span :class="app.status === 'completed' ? 'bg-stone-800 text-emerald-400 border-stone-700' : 'bg-stone-800 text-stone-400 border-stone-700'" class="text-[10px] font-bold px-2 py-0.5 rounded-full border">
+                {{ app.status === 'completed' ? (t('status_completed') || '✅ Завершено') : (t('status_cancelled') || '❌ Скасовано') }}
+              </span>
+              <span class="text-xs font-bold text-stone-400">{{ app.total_price }} {{ settings.currency || '€' }}</span>
+            </div>
+
+            <div>
+              <div class="font-semibold text-xs text-stone-300 flex items-center space-x-1.5">
+                <i class="fa-regular fa-clock text-stone-500"></i>
+                <span>{{ app.date }} о {{ app.time }}</span>
+              </div>
+              <p class="text-[11px] text-stone-400 mt-0.5">{{ app.service_names }}</p>
+            </div>
           </div>
         </div>
       </div>
@@ -1527,8 +1600,18 @@ createApp({
     const clientAppointments = ref([]);
     const showMyAppointmentsModal = ref(false);
 
+    const activeClientAppointments = computed(() => {
+      return (clientAppointments.value || []).filter(a => a.status === 'pending' || a.status === 'confirmed' || a.status === 'arrived');
+    });
+
+    const pastClientAppointments = computed(() => {
+      return (clientAppointments.value || []).filter(a => a.status === 'completed' || a.status === 'cancelled');
+    });
+
     async function loadClientAppointments() {
-      const p = clientPhone.value || localStorage.getItem('vip_phone') || localStorage.getItem('client_phone') || (loggedInClient.value && loggedInClient.value.phone) || '';
+      const p = (clientPhone.value && clientPhone.value.trim().length >= 6)
+        ? clientPhone.value.trim()
+        : (localStorage.getItem('vip_phone') || localStorage.getItem('client_phone') || (loggedInClient.value && loggedInClient.value.phone) || '');
       let idsParam = '';
       try {
         const storedIds = JSON.parse(localStorage.getItem('my_appointment_ids') || '[]');
@@ -1539,7 +1622,8 @@ createApp({
 
       if (!p && !idsParam) return;
       try {
-        const res = await fetch(`/api/client/appointments?phone=${encodeURIComponent(p ? p.trim() : '')}${idsParam}`);
+        const queryPhone = (p && p.replace(/\D/g, '').length >= 6) ? p.trim() : '';
+        const res = await fetch(`/api/client/appointments?phone=${encodeURIComponent(queryPhone)}${idsParam}`);
         if (res.ok) {
           clientAppointments.value = await res.json();
           if (clientAppointments.value.length === 0) {
@@ -1547,7 +1631,11 @@ createApp({
           }
           try {
             const curIds = clientAppointments.value.map(a => a.id);
-            localStorage.setItem('my_appointment_ids', JSON.stringify(curIds));
+            if (curIds.length > 0) {
+              const existingStored = JSON.parse(localStorage.getItem('my_appointment_ids') || '[]');
+              const merged = Array.from(new Set([...existingStored, ...curIds]));
+              localStorage.setItem('my_appointment_ids', JSON.stringify(merged));
+            }
           } catch (e) {}
         }
       } catch (e) {
@@ -1556,7 +1644,12 @@ createApp({
     }
 
     function openMyAppointmentsModal() {
-      if (!clientPhone.value || clientPhone.value.trim().length < 6) {
+      const p = (clientPhone.value && clientPhone.value.trim().length >= 6)
+        ? clientPhone.value.trim()
+        : (localStorage.getItem('vip_phone') || localStorage.getItem('client_phone') || (loggedInClient.value && loggedInClient.value.phone) || '');
+      const storedIds = JSON.parse(localStorage.getItem('my_appointment_ids') || '[]');
+
+      if (!p && (!Array.isArray(storedIds) || storedIds.length === 0)) {
         showLoginModal.value = true;
         return;
       }
@@ -2331,7 +2424,7 @@ createApp({
       clientRecognized, formatWorkSchedule, isServiceSelected, toggleService, selectDate, goToStep2,
       formatSummaryDate, submitBooking, resetBooking, copyBizumPhone, copyCardEs, copyCardUa,
       appendNoteTag, calendarUrl, showInstallModal, triggerInstall,
-      clientAppointments, clientUnreadChatTotal, clientUnreadByApp, fetchClientUnreadCounts, showMyAppointmentsModal, openMyAppointmentsModal, loadClientAppointments, cancelClientAppointment,
+      clientAppointments, activeClientAppointments, pastClientAppointments, clientUnreadChatTotal, clientUnreadByApp, fetchClientUnreadCounts, showMyAppointmentsModal, openMyAppointmentsModal, loadClientAppointments, cancelClientAppointment,
       showClientChatModal, activeChatApp, modalChatMessages, newModalMsg, openClientChat, closeClientChat,
       sendModalChatMessage, sendModalQuickChip, createdAppointmentId, currentAppStatus,
       step4ChatMessages, newStep4Msg, quickChips, sendStep4ChatMessage, sendStep4QuickChip,
