@@ -292,8 +292,10 @@ def export_clients_backup():
         cursor.execute("SELECT * FROM clients")
         rows = [dict(r) for r in cursor.fetchall()]
         conn.close()
-        with open(BACKUP_FILE, "w", encoding="utf-8") as f:
+        tmp_f = f"{BACKUP_FILE}.tmp"
+        with open(tmp_f, "w", encoding="utf-8") as f:
             json.dump(rows, f, ensure_ascii=False, indent=2)
+        os.replace(tmp_f, BACKUP_FILE)
         return len(rows)
     except Exception as e:
         print(f"[BACKUP EXPORT ERROR] {e}")
@@ -312,8 +314,10 @@ def export_appointments_backup():
         """)
         rows = [dict(r) for r in cursor.fetchall()]
         conn.close()
-        with open(APPOINTMENTS_BACKUP_FILE, "w", encoding="utf-8") as f:
+        tmp_f = f"{APPOINTMENTS_BACKUP_FILE}.tmp"
+        with open(tmp_f, "w", encoding="utf-8") as f:
             json.dump(rows, f, ensure_ascii=False, indent=2)
+        os.replace(tmp_f, APPOINTMENTS_BACKUP_FILE)
         return len(rows)
     except Exception as e:
         print(f"[APPOINTMENTS BACKUP ERROR] {e}")
@@ -328,8 +332,10 @@ def export_deleted_appointments_backup():
         cursor.execute("SELECT appointment_id, deleted_at FROM deleted_appointments")
         rows = [dict(r) for r in cursor.fetchall()]
         conn.close()
-        with open(DELETED_APPOINTMENTS_FILE, "w", encoding="utf-8") as f:
+        tmp_f = f"{DELETED_APPOINTMENTS_FILE}.tmp"
+        with open(tmp_f, "w", encoding="utf-8") as f:
             json.dump(rows, f, ensure_ascii=False, indent=2)
+        os.replace(tmp_f, DELETED_APPOINTMENTS_FILE)
         return len(rows)
     except Exception as e:
         print(f"[DELETED APPOINTMENTS EXPORT ERROR] {e}")
@@ -370,8 +376,10 @@ def export_settings_backup():
         if row:
             data = dict(row)
             data.pop("session_token", None)
-            with open(SETTINGS_BACKUP_FILE, "w", encoding="utf-8") as f:
+            tmp_f = f"{SETTINGS_BACKUP_FILE}.tmp"
+            with open(tmp_f, "w", encoding="utf-8") as f:
                 json.dump(data, f, ensure_ascii=False, indent=2)
+            os.replace(tmp_f, SETTINGS_BACKUP_FILE)
             return 1
         return 0
     except Exception as e:
