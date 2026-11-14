@@ -2517,9 +2517,8 @@ def get_available_slots(date_str: str, duration: int):
 def public_book(data: PublicBookingRequest, request: Request):
     client_ip = request.client.host if request.client else "unknown"
 
-    # Anti-bot spam rate limiter (max 10 bookings per 10 minutes)
-    if not check_rate_limit(f"book_{client_ip}", max_requests=10, window_seconds=600):
-        raise HTTPException(status_code=429, detail="Забагато запитів з вашого пристрою. Задля безпеки спробуйте через кілька хвилин.")
+    # Client requested unlimited bookings without restrictive IP throttling
+    # Pass through cleanly
 
     safe_name = sanitize_text(data.client_name)
     safe_phone = sanitize_text(data.client_phone)
