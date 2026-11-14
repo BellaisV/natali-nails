@@ -6,8 +6,8 @@
   "instagram": "",
   "telegram": "",
   "address": "",
-  "work_start": "09:00",
-  "work_end": "19:00",
+  "work_start": "10:00",
+  "work_end": "20:00",
   "slot_step": 30,
   "currency": "€",
   "about": "",
@@ -23,7 +23,7 @@
   "master_avatar": "",
   "whatsapp": "+34 631 883 158",
   "facebook": "",
-  "working_days": "1,2,3,4,5",
+  "working_days": "1,2,3,4,5,6",
   "schedule_json": "{\"1\": {\"active\": true, \"start\": \"10:00\", \"end\": \"20:00\"}, \"2\": {\"active\": true, \"start\": \"10:00\", \"end\": \"20:00\"}, \"3\": {\"active\": true, \"start\": \"10:00\", \"end\": \"20:00\"}, \"4\": {\"active\": true, \"start\": \"10:00\", \"end\": \"20:00\"}, \"5\": {\"active\": true, \"start\": \"10:00\", \"end\": \"20:00\"}, \"6\": {\"active\": true, \"start\": \"10:00\", \"end\": \"18:00\"}, \"0\": {\"active\": false, \"start\": \"10:00\", \"end\": \"18:00\"}}",
-  "material_cost": 6.0
+  "material_cost": 5.0
 }
