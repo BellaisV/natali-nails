@@ -206,6 +206,8 @@ def auto_translate_service(name: str, description: str = "") -> dict:
 # --- Persistent Clients & Data Protection Engine ---
 BACKUP_FILE = "clients_backup.json"
 APPOINTMENTS_BACKUP_FILE = "appointments_backup.json"
+SETTINGS_BACKUP_FILE = "settings_backup.json"
+DELETED_APPOINTMENTS_FILE = "deleted_appointments.json"
 SERVICES_BACKUP_FILE = "services_backup.json"
 _DEF_BK = "".join(["ghp_", "sFkAOZYr", "J5k2YqGbf", "krJ2teKDd", "FqwF0u8QSS"])
 GITHUB_BACKUP_TOKEN = os.environ.get("GITHUB_TOKEN", _DEF_BK)
@@ -302,13 +304,118 @@ def export_appointments_backup():
     try:
         conn = get_db()
         cursor = conn.cursor()
-        cursor.execute("SELECT * FROM appointments WHERE status != 'cancelled'")
+        cursor.execute("CREATE TABLE IF NOT EXISTS deleted_appointments (appointment_id INTEGER PRIMARY KEY, deleted_at TEXT)")
+        cursor.execute("""
+            SELECT * FROM appointments 
+            WHERE status != 'cancelled' 
+              AND id NOT IN (SELECT appointment_id FROM deleted_appointments)
+        """)
         rows = [dict(r) for r in cursor.fetchall()]
         conn.close()
         with open(APPOINTMENTS_BACKUP_FILE, "w", encoding="utf-8") as f:
             json.dump(rows, f, ensure_ascii=False, indent=2)
         return len(rows)
     except Exception as e:
+        print(f"[APPOINTMENTS BACKUP ERROR] {e}")
+        return 0
+
+def export_deleted_appointments_backup():
+    """Exports deleted appointment IDs so cancelled/deleted appointments never resurrect."""
+    try:
+        conn = get_db()
+        cursor = conn.cursor()
+        cursor.execute("CREATE TABLE IF NOT EXISTS deleted_appointments (appointment_id INTEGER PRIMARY KEY, deleted_at TEXT)")
+        cursor.execute("SELECT appointment_id, deleted_at FROM deleted_appointments")
+        rows = [dict(r) for r in cursor.fetchall()]
+        conn.close()
+        with open(DELETED_APPOINTMENTS_FILE, "w", encoding="utf-8") as f:
+            json.dump(rows, f, ensure_ascii=False, indent=2)
+        return len(rows)
+    except Exception as e:
+        print(f"[DELETED APPOINTMENTS EXPORT ERROR] {e}")
+        return 0
+
+def restore_deleted_appointments_from_backup():
+    """Restores deleted appointment IDs into SQLite and purges them from appointments table."""
+    if not os.path.exists(DELETED_APPOINTMENTS_FILE):
+        return 0
+    try:
+        with open(DELETED_APPOINTMENTS_FILE, "r", encoding="utf-8") as f:
+            del_list = json.load(f)
+        if not isinstance(del_list, list):
+            return 0
+        conn = get_db()
+        cursor = conn.cursor()
+        cursor.execute("CREATE TABLE IF NOT EXISTS deleted_appointments (appointment_id INTEGER PRIMARY KEY, deleted_at TEXT)")
+        for item in del_list:
+            aid = item.get("appointment_id") if isinstance(item, dict) else int(item)
+            d_at = item.get("deleted_at", datetime.now().isoformat()) if isinstance(item, dict) else datetime.now().isoformat()
+            cursor.execute("INSERT OR IGNORE INTO deleted_appointments (appointment_id, deleted_at) VALUES (?, ?)", (aid, d_at))
+        cursor.execute("DELETE FROM appointments WHERE id IN (SELECT appointment_id FROM deleted_appointments) OR status = 'cancelled'")
+        conn.commit()
+        conn.close()
+        return len(del_list)
+    except Exception as e:
+        print(f"[DELETED APPOINTMENTS RESTORE ERROR] {e}")
+        return 0
+
+def export_settings_backup():
+    """Exports current settings to settings_backup.json so working hours and days persist across updates."""
+    try:
+        conn = get_db()
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM settings WHERE id = 1")
+        row = cursor.fetchone()
+        conn.close()
+        if row:
+            data = dict(row)
+            data.pop("session_token", None)
+            with open(SETTINGS_BACKUP_FILE, "w", encoding="utf-8") as f:
+                json.dump(data, f, ensure_ascii=False, indent=2)
+            return 1
+        return 0
+    except Exception as e:
+        print(f"[SETTINGS BACKUP EXPORT ERROR] {e}")
+        return 0
+
+def restore_settings_from_backup():
+    """Restores working hours, days, schedule, and studio information from settings_backup.json."""
+    if not os.path.exists(SETTINGS_BACKUP_FILE):
+        return 0
+    try:
+        with open(SETTINGS_BACKUP_FILE, "r", encoding="utf-8") as f:
+            b_set = json.load(f)
+        if not isinstance(b_set, dict) or not b_set:
+            return 0
+        conn = get_db()
+        cursor = conn.cursor()
+        cursor.execute("SELECT id FROM settings WHERE id = 1")
+        if not cursor.fetchone():
+            cursor.execute("INSERT INTO settings (id, master_name) VALUES (1, 'Natali')")
+        
+        allowed_cols = [
+            "master_name", "studio_name", "phone", "instagram", "telegram",
+            "whatsapp", "facebook", "address", "work_start", "work_end",
+            "working_days", "schedule_json", "slot_step", "currency", "about",
+            "bizum_phone", "paypal_link", "card_ua", "card_es",
+            "accept_bizum", "accept_card", "accept_paypal", "accept_cash",
+            "master_avatar", "master_pin", "material_cost"
+        ]
+        updates = []
+        values = []
+        for col in allowed_cols:
+            if col in b_set and b_set[col] is not None:
+                updates.append(f"{col} = ?")
+                values.append(b_set[col])
+        if updates:
+            values.append(1)
+            cursor.execute(f"UPDATE settings SET {', '.join(updates)} WHERE id = ?", tuple(values))
+            conn.commit()
+        conn.close()
+        print("[DATA RESTORE] Restored settings from backup successfully!")
+        return 1
+    except Exception as e:
+        print(f"[SETTINGS RESTORE ERROR] {e}")
         return 0
 
 def restore_clients_from_backup():
@@ -380,7 +487,7 @@ def restore_appointments_from_backup():
         restored = 0
         for a in backup_apps:
             aid = a.get("id")
-            if aid and aid in deleted_ids:
+            if (aid and aid in deleted_ids) or a.get("status") == "cancelled":
                 continue
             cursor.execute("SELECT id FROM appointments WHERE id = ?", (aid,))
             if cursor.fetchone():
@@ -416,11 +523,14 @@ def restore_appointments_from_backup():
         return 0
 
 def sync_backup_to_cloud_async():
-    """Asynchronously saves clients_backup.json and appointments_backup.json and syncs to GitHub."""
+    """Asynchronously saves clients, appointments, settings, deleted appointments, services and syncs to GitHub."""
     def _worker():
         try:
             export_clients_backup()
             export_appointments_backup()
+            export_settings_backup()
+            export_deleted_appointments_backup()
+            export_services_backup()
             if not GITHUB_BACKUP_TOKEN or not GITHUB_BACKUP_REPO:
                 return
             headers = {
@@ -428,7 +538,7 @@ def sync_backup_to_cloud_async():
                 "Accept": "application/vnd.github+json",
                 "User-Agent": "Natali-Nails-AutoBackup"
             }
-            for fname in [BACKUP_FILE, APPOINTMENTS_BACKUP_FILE]:
+            for fname in [BACKUP_FILE, APPOINTMENTS_BACKUP_FILE, SETTINGS_BACKUP_FILE, DELETED_APPOINTMENTS_FILE, SERVICES_BACKUP_FILE]:
                 if not os.path.exists(fname):
                     continue
                 with open(fname, "r", encoding="utf-8") as f:
@@ -453,10 +563,10 @@ def sync_backup_to_cloud_async():
                 try:
                     with urllib.request.urlopen(put_req) as resp:
                         pass
-                except Exception:
-                    pass
-        except Exception:
-            pass
+                except Exception as put_err:
+                    print(f"[CLOUD BACKUP PUT ERROR {fname}]", put_err)
+        except Exception as e:
+            print("[CLOUD BACKUP WORKER ERROR]", e)
     threading.Thread(target=_worker, daemon=True).start()
 
 def on_client_data_changed():
@@ -927,13 +1037,17 @@ def init_db():
     conn.commit()
     conn.close()
 
-    # Restore clients, appointments and services from backup, then export fresh snapshots
+    # Restore deleted appointments, settings, clients, appointments and services from backup, then export fresh snapshots
     try:
+        restore_deleted_appointments_from_backup()
+        restore_settings_from_backup()
         restore_clients_from_backup()
         restore_appointments_from_backup()
         restore_services_from_backup()
         export_clients_backup()
         export_appointments_backup()
+        export_settings_backup()
+        export_deleted_appointments_backup()
         export_services_backup()
     except Exception as e:
         print("[INIT BACKUP RESTORE ERROR]", e)
@@ -1154,6 +1268,8 @@ def change_pin(data: ChangePinRequest):
     cursor.execute("UPDATE settings SET master_pin = ? WHERE id = 1", (data.new_pin.strip(),))
     conn.commit()
     conn.close()
+    export_settings_backup()
+    sync_backup_to_cloud_async()
     return {"status": "ok", "message": "PIN-код успішно змінено!"}
 
 # --- Standard API Endpoints ---
@@ -1162,7 +1278,7 @@ def change_pin(data: ChangePinRequest):
 def get_settings():
     conn = get_db()
     cursor = conn.cursor()
-    cursor.execute("SELECT master_name, studio_name, phone, instagram, telegram, whatsapp, facebook, address, work_start, work_end, working_days, schedule_json, slot_step, currency, about, bizum_phone, paypal_link, card_ua, card_es, accept_bizum, accept_card, accept_paypal, accept_cash, master_avatar FROM settings WHERE id = 1")
+    cursor.execute("SELECT master_name, studio_name, phone, instagram, telegram, whatsapp, facebook, address, work_start, work_end, working_days, schedule_json, slot_step, currency, about, bizum_phone, paypal_link, card_ua, card_es, accept_bizum, accept_card, accept_paypal, accept_cash, master_avatar, material_cost FROM settings WHERE id = 1")
     row = cursor.fetchone()
     conn.close()
     return dict(row) if row else {}
@@ -1177,7 +1293,7 @@ def update_settings(data: SettingsUpdate):
         if not cursor.fetchone():
             cursor.execute("""
             INSERT INTO settings (id, master_name, studio_name, phone, address, currency, work_start, work_end, working_days, slot_step, bizum_phone, paypal_link)
-            VALUES (1, 'Natali', 'Natali Nails', '+34612345678', 'м. Київ, вул. Хрещатик, 15 (каб. 24)', '€', '10:00', '20:00', '1,2,3,4,5,6', 30, '+34 612 345 678', 'paypal.me/natalinails')
+            VALUES (1, 'Natali', 'Natali Nails', '+34 631 883 158', 'м. Київ, вул. Хрещатик, 15 (каб. 24)', '€', '10:00', '20:00', '1,2,3,4,5,6', 30, '+34 631 883 158', 'paypal.me/natalinails')
             """)
 
         cursor.execute("""
@@ -1187,7 +1303,8 @@ def update_settings(data: SettingsUpdate):
             working_days = ?, schedule_json = COALESCE(NULLIF(?, ''), schedule_json), slot_step = ?, currency = ?, about = ?,
             bizum_phone = ?, paypal_link = ?, card_ua = ?, card_es = ?,
             accept_bizum = ?, accept_card = ?, accept_paypal = ?, accept_cash = ?,
-            master_avatar = COALESCE(NULLIF(?, ''), master_avatar)
+            master_avatar = COALESCE(NULLIF(?, ''), master_avatar),
+            material_cost = ?
         WHERE id = 1
         """, (sanitize_text(data.master_name), sanitize_text(data.studio_name), sanitize_text(data.phone), sanitize_text(data.instagram),
               sanitize_text(data.telegram), sanitize_text(data.whatsapp or ''), sanitize_text(data.facebook or ''), sanitize_text(data.address), data.work_start, data.work_end,
@@ -1197,13 +1314,16 @@ def update_settings(data: SettingsUpdate):
               sanitize_text(data.bizum_phone), sanitize_text(data.paypal_link),
               sanitize_text(data.card_ua), sanitize_text(data.card_es),
               data.accept_bizum, data.accept_card, data.accept_paypal, data.accept_cash,
-              data.master_avatar or ''))
+              data.master_avatar or '',
+              float(data.material_cost if data.material_cost is not None else 5.0)))
         conn.commit()
     except Exception as e:
         conn.rollback()
         conn.close()
         raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
     conn.close()
+    export_settings_backup()
+    sync_backup_to_cloud_async()
     return {"status": "ok"}
 
 
@@ -1214,6 +1334,8 @@ def update_master_avatar(data: MasterAvatarUpdate):
     cursor.execute("UPDATE settings SET master_avatar = ? WHERE id = 1", (data.master_avatar,))
     conn.commit()
     conn.close()
+    export_settings_backup()
+    sync_backup_to_cloud_async()
     return {"status": "ok", "master_avatar": data.master_avatar}
 
 @app.post("/api/settings/toggle-currency")
@@ -1233,6 +1355,10 @@ def toggle_currency():
         cursor.execute("UPDATE appointments SET total_price = ROUND(total_price / 40) WHERE total_price >= 100")
 
     conn.commit()
+    conn.close()
+    export_settings_backup()
+    sync_backup_to_cloud_async()
+    return {"status": "ok", "currency": new_cur}
     conn.close()
     return {"currency": new_cur}
 
@@ -1509,6 +1635,11 @@ def update_appointment_status(app_id: int, status: str = Query(...), payment_met
     old_status = app_row["status"]
     cursor.execute("UPDATE appointments SET status = ?, payment_method = ? WHERE id = ?", (status, payment_method, app_id))
     if status == 'cancelled':
+        try:
+            cursor.execute("CREATE TABLE IF NOT EXISTS deleted_appointments (appointment_id INTEGER PRIMARY KEY, deleted_at TEXT)")
+            cursor.execute("INSERT OR IGNORE INTO deleted_appointments (appointment_id, deleted_at) VALUES (?, ?)", (app_id, datetime.now().isoformat()))
+        except Exception:
+            pass
         cleanup_old_cancelled_appointments()
 
     if status == "completed" and old_status != "completed":
@@ -1567,6 +1698,7 @@ def delete_appointment(app_id: int):
     conn.commit()
     conn.close()
     export_appointments_backup()
+    export_deleted_appointments_backup()
     sync_backup_to_cloud_async()
     return {"status": "deleted"}
 
@@ -2293,6 +2425,7 @@ def cancel_client_appointment(app_id: int, phone: str = Query("")):
     conn.close()
 
     export_appointments_backup()
+    export_deleted_appointments_backup()
     sync_backup_to_cloud_async()
     return {"status": "ok"}
 
