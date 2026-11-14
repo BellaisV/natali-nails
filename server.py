@@ -298,11 +298,11 @@ def export_clients_backup():
         return 0
 
 def export_appointments_backup():
-    """Exports appointments to appointments_backup.json."""
+    """Exports active appointments to appointments_backup.json."""
     try:
         conn = get_db()
         cursor = conn.cursor()
-        cursor.execute("SELECT * FROM appointments")
+        cursor.execute("SELECT * FROM appointments WHERE status != 'cancelled'")
         rows = [dict(r) for r in cursor.fetchall()]
         conn.close()
         with open(APPOINTMENTS_BACKUP_FILE, "w", encoding="utf-8") as f:
@@ -2280,14 +2280,18 @@ def cancel_client_appointment(app_id: int, phone: str = Query("")):
         conn.close()
         raise HTTPException(status_code=404, detail="Запис не знайдено")
     
-    cursor.execute("UPDATE appointments SET status = 'cancelled' WHERE id = ?", (app_id,))
-    now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    cursor.execute("""
-    INSERT INTO chat_messages (appointment_id, client_phone, sender, sender_name, text, created_at, is_read)
-    VALUES (?, ?, 'client', ?, 'Клієнт скасував цей запис через додаток.', ?, 0)
-    """, (app_id, app_row["client_phone"], app_row["client_name"], now_str))
+    # Completely remove cancelled appointment so it is immediately freed and cleared from admin
+    cursor.execute("DELETE FROM appointments WHERE id = ?", (app_id,))
+    cursor.execute("DELETE FROM transactions WHERE appointment_id = ?", (app_id,))
+    cursor.execute("DELETE FROM chat_messages WHERE appointment_id = ?", (app_id,))
+    try:
+        cursor.execute("CREATE TABLE IF NOT EXISTS deleted_appointments (appointment_id INTEGER PRIMARY KEY, deleted_at TEXT)")
+        cursor.execute("INSERT OR IGNORE INTO deleted_appointments (appointment_id, deleted_at) VALUES (?, ?)", (app_id, datetime.now().isoformat()))
+    except Exception:
+        pass
     conn.commit()
     conn.close()
+
     export_appointments_backup()
     sync_backup_to_cloud_async()
     return {"status": "ok"}

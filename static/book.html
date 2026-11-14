@@ -1665,9 +1665,15 @@ createApp({
       try {
         const res = await fetch(`/api/client/appointments/${app.id}/cancel`, { method: 'POST' });
         if (res.ok) {
-          showToast('Запис скасовано');
+          showToast('Запис успішно скасовано та видалено');
+          try {
+            const storedIds = JSON.parse(localStorage.getItem('my_appointment_ids') || '[]');
+            const filtered = storedIds.filter(id => id !== app.id);
+            localStorage.setItem('my_appointment_ids', JSON.stringify(filtered));
+          } catch (e) {}
           await loadClientAppointments();
           if (createdAppointmentId.value === app.id) {
+            createdAppointmentId.value = null;
             currentAppStatus.value = 'cancelled';
           }
         }
