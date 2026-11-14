@@ -9,7 +9,7 @@
     "time": "12:30",
     "end_time": "14:00",
     "total_price": 36.0,
-    "status": "confirmed",
+    "status": "cancelled",
     "notes": "Дійсний активний запис",
     "source": "client",
     "created_at": "2026-11-13 10:16:44",
