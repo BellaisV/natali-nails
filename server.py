@@ -256,8 +256,8 @@ def restore_services_from_backup():
             tr_str = json.dumps(tr_obj, ensure_ascii=False) if isinstance(tr_obj, dict) else str(tr_obj)
             if not existing:
                 cursor.execute("""
-                    INSERT INTO services (name, category, price, duration_minutes, description, is_active, translations)
-                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                    INSERT INTO services (name, category, price, duration_minutes, description, is_active, translations, badge)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                 """, (
                     name,
                     s.get("category") or "Манікюр",
@@ -265,7 +265,8 @@ def restore_services_from_backup():
                     int(s.get("duration_minutes") or 60),
                     s.get("description") or "",
                     int(s.get("is_active", 1)),
-                    tr_str
+                    tr_str,
+                    s.get("badge") or ""
                 ))
                 restored += 1
             else:
@@ -274,9 +275,10 @@ def restore_services_from_backup():
                     SET category = COALESCE(?, category),
                         price = COALESCE(?, price),
                         duration_minutes = COALESCE(?, duration_minutes),
-                        description = COALESCE(?, description)
+                        description = COALESCE(?, description),
+                        badge = COALESCE(?, badge)
                     WHERE id = ?
-                """, (s.get("category"), s.get("price"), s.get("duration_minutes"), s.get("description"), existing[0]))
+                """, (s.get("category"), s.get("price"), s.get("duration_minutes"), s.get("description"), s.get("badge"), existing[0]))
         conn.commit()
         conn.close()
         return restored
@@ -884,9 +886,13 @@ def init_db():
     except Exception:
         pass
 
-    # Ensure service translations column exists
+    # Ensure service translations and badge columns exist
     try:
         cursor.execute("ALTER TABLE services ADD COLUMN translations TEXT DEFAULT '{}'")
+    except Exception:
+        pass
+    try:
+        cursor.execute("ALTER TABLE services ADD COLUMN badge TEXT DEFAULT ''")
     except Exception:
         pass
 
@@ -1078,6 +1084,7 @@ class ServiceCreate(BaseModel):
     description: Optional[str] = ""
     is_active: Optional[int] = 1
     translations: Optional[str] = "{}"
+    badge: Optional[str] = ""
 
 class ClientCreate(BaseModel):
     name: str = Field(..., min_length=2, max_length=100)
@@ -1396,17 +1403,19 @@ def create_service(data: ServiceCreate):
     cursor = conn.cursor()
     safe_name = sanitize_text(data.name)
     safe_desc = sanitize_text(data.description)
+    safe_badge = sanitize_text(data.badge or "").strip()
     tr_obj = auto_translate_service(safe_name, safe_desc)
     tr_json = json.dumps(tr_obj, ensure_ascii=False)
     cursor.execute("""
-    INSERT INTO services (name, category, price, duration_minutes, description, is_active, translations)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
-    """, (safe_name, sanitize_text(data.category), data.price, data.duration_minutes, safe_desc, data.is_active, tr_json))
+    INSERT INTO services (name, category, price, duration_minutes, description, is_active, translations, badge)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    """, (safe_name, sanitize_text(data.category), data.price, data.duration_minutes, safe_desc, data.is_active, tr_json, safe_badge))
     conn.commit()
     new_id = cursor.lastrowid
     conn.close()
     export_services_backup()
-    return {"id": new_id, "status": "created", "translations": tr_obj}
+    sync_backup_to_cloud_async()
+    return {"id": new_id, "status": "created", "translations": tr_obj, "badge": safe_badge}
 
 @app.put("/api/services/{service_id}")
 def update_service(service_id: int, data: ServiceCreate):
@@ -1414,17 +1423,19 @@ def update_service(service_id: int, data: ServiceCreate):
     cursor = conn.cursor()
     safe_name = sanitize_text(data.name)
     safe_desc = sanitize_text(data.description)
+    safe_badge = sanitize_text(data.badge or "").strip()
     tr_obj = auto_translate_service(safe_name, safe_desc)
     tr_json = json.dumps(tr_obj, ensure_ascii=False)
     cursor.execute("""
     UPDATE services SET
-        name = ?, category = ?, price = ?, duration_minutes = ?, description = ?, is_active = ?, translations = ?
+        name = ?, category = ?, price = ?, duration_minutes = ?, description = ?, is_active = ?, translations = ?, badge = ?
     WHERE id = ?
-    """, (safe_name, sanitize_text(data.category), data.price, data.duration_minutes, safe_desc, data.is_active, tr_json, service_id))
+    """, (safe_name, sanitize_text(data.category), data.price, data.duration_minutes, safe_desc, data.is_active, tr_json, safe_badge, service_id))
     conn.commit()
     conn.close()
     export_services_backup()
-    return {"status": "ok", "translations": tr_obj}
+    sync_backup_to_cloud_async()
+    return {"status": "ok", "translations": tr_obj, "badge": safe_badge}
 
 @app.delete("/api/services/{service_id}")
 def delete_service(service_id: int):
@@ -2634,7 +2645,7 @@ def get_public_info():
     cursor = conn.cursor()
     cursor.execute("SELECT master_name, studio_name, phone, instagram, telegram, whatsapp, facebook, address, work_start, work_end, working_days, schedule_json, currency, about, bizum_phone, paypal_link, card_ua, card_es, accept_bizum, accept_card, accept_paypal, accept_cash, master_avatar FROM settings WHERE id = 1")
     settings = dict(cursor.fetchone() or {})
-    cursor.execute("SELECT id, name, category, price, duration_minutes, description, translations FROM services WHERE is_active = 1 ORDER BY category, price")
+    cursor.execute("SELECT id, name, category, price, duration_minutes, description, translations, badge FROM services WHERE is_active = 1 ORDER BY category, price")
     services = []
     for r in cursor.fetchall():
         d = dict(r)
@@ -2642,6 +2653,7 @@ def get_public_info():
             d["translations"] = json.loads(d.get("translations") or "{}")
         except Exception:
             d["translations"] = {}
+        d["badge"] = d.get("badge") or ""
         services.append(d)
     conn.close()
     return {"settings": settings, "services": services}

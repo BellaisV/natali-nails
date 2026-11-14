@@ -995,7 +995,10 @@
         <div v-for="s in services" :key="s.id" class="bg-white rounded-2xl p-4 border border-stone-200 shadow-sm space-y-2">
           <div class="flex items-start justify-between">
             <div>
-              <span class="text-[10px] font-bold text-rose-700 uppercase bg-rose-50 px-2 py-0.5 rounded-md">{{ s.category }}</span>
+              <div class="flex items-center space-x-1.5 flex-wrap gap-1">
+                <span class="text-[10px] font-bold text-rose-700 uppercase bg-rose-50 px-2 py-0.5 rounded-md">{{ s.category }}</span>
+                <span v-if="s.badge" class="text-[10px] font-black px-2 py-0.5 rounded-md border" :class="getServiceBadgeClass(s.badge)">{{ s.badge }}</span>
+              </div>
               <h3 class="font-bold text-stone-900 text-sm mt-1">{{ s.name }}</h3>
               <p v-if="s.description" class="text-xs text-stone-400 mt-0.5">{{ s.description }}</p>
             </div>
@@ -1975,6 +1978,19 @@
               class="px-2 py-0.5 rounded-md text-[10px] bg-stone-100 hover:bg-stone-200 text-stone-700 font-medium whitespace-nowrap transition active:scale-95">
               + {{ cat }}
             </button>
+          </div>
+        </div>
+        <div>
+          <label class="block font-semibold text-stone-700 mb-1">
+            Значок / Бейдж (напр. Хіт 2026-2027, Новинки, Гарячі новинки)
+          </label>
+          <input v-model="formService.badge" placeholder="напр. Хіт 2026-2027 🔥, Новинки, Гарячі новинки..." class="w-full bg-stone-50 border border-stone-200 rounded-xl p-2.5">
+          <div class="flex items-center space-x-1.5 overflow-x-auto pt-1.5 hide-scrollbar">
+            <button type="button" @click="formService.badge = 'Хіт 2026-2027 🔥'" class="px-2 py-0.5 rounded-md text-[10px] bg-amber-50 hover:bg-amber-100 text-amber-800 font-bold border border-amber-200 whitespace-nowrap active:scale-95 transition">+ Хіт 2026-2027 🔥</button>
+            <button type="button" @click="formService.badge = 'Гарячі новинки 💥'" class="px-2 py-0.5 rounded-md text-[10px] bg-rose-50 hover:bg-rose-100 text-rose-800 font-bold border border-rose-200 whitespace-nowrap active:scale-95 transition">+ Гарячі новинки 💥</button>
+            <button type="button" @click="formService.badge = 'Новинка ✨'" class="px-2 py-0.5 rounded-md text-[10px] bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-bold border border-emerald-200 whitespace-nowrap active:scale-95 transition">+ Новинка ✨</button>
+            <button type="button" @click="formService.badge = 'Тренд 2026 ✨'" class="px-2 py-0.5 rounded-md text-[10px] bg-purple-50 hover:bg-purple-100 text-purple-700 font-bold border border-purple-200 whitespace-nowrap active:scale-95 transition">+ Тренд 2026 ✨</button>
+            <button type="button" v-if="formService.badge" @click="formService.badge = ''" class="px-2 py-0.5 rounded-md text-[10px] bg-stone-100 hover:bg-stone-200 text-stone-500 whitespace-nowrap">✕ Очистити</button>
           </div>
         </div>
         <div class="grid grid-cols-2 gap-3">
@@ -3806,13 +3822,31 @@ createApp({
     }
 
     function openNewServiceModal() {
-      formService.value = { id: null, name: '', category: 'Манікюр', price: 30, duration_minutes: 60, description: '' };
+      formService.value = { id: null, name: '', category: 'Манікюр', price: 30, duration_minutes: 60, description: '', badge: '' };
       modals.value.newService = true;
     }
 
     function editService(s) {
-      formService.value = { ...s };
+      formService.value = { ...s, badge: s.badge || '' };
       modals.value.newService = true;
+    }
+
+    function getServiceBadgeClass(badge) {
+      if (!badge) return '';
+      const b = String(badge).toLowerCase();
+      if (b.includes('новин') || b.includes('new')) {
+        return 'bg-rose-50 text-rose-800 border-rose-300';
+      }
+      if (b.includes('хіт') || b.includes('хит') || b.includes('hit')) {
+        return 'bg-amber-50 text-amber-900 border-amber-300';
+      }
+      if (b.includes('тренд') || b.includes('trend')) {
+        return 'bg-purple-50 text-purple-800 border-purple-300';
+      }
+      if (b.includes('акція') || b.includes('знижк') || b.includes('promo')) {
+        return 'bg-emerald-50 text-emerald-800 border-emerald-300';
+      }
+      return 'bg-amber-50 text-amber-900 border-amber-300';
     }
 
     async function saveService() {
@@ -4165,7 +4199,7 @@ createApp({
       openIncomeModal, onIncomeServiceChange, saveIncome, formIncome, openExpenseModal, saveExpense, deleteTransaction, resetFinanceCash,
       openNewClientModal, saveClient, editClient, deleteClient, toggleClientVip, quickBookClient,
       pointsClient, pointsAmount, openPointsModal, savePoints, discountsModal, openClientDiscountsModal, saveClientDiscounts,
-      openNewServiceModal, editService, saveService, deleteService,
+      openNewServiceModal, editService, saveService, deleteService, getServiceBadgeClass,
       saveSettings,
       onMasterAvatarUpload,
       removeMasterAvatar, loadFinance, toggleCurrency, getMethodTotal,

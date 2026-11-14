@@ -312,14 +312,18 @@
 
         <div class="flex items-start justify-between">
           <div class="pr-3">
-            <div class="flex items-center space-x-2 mb-1">
+            <div class="flex items-center space-x-2 mb-1 flex-wrap gap-1">
               <span class="text-[10px] font-bold text-rose-700 uppercase tracking-wider bg-rose-50 px-2 py-0.5 rounded-md">
                 {{ getCategoryName(s.category) }}
               </span>
-              <span v-if="s.name.includes('Комплекс') || s.name.includes('Нюд') || s.name.includes('Gel')" class="text-[9px] font-bold bg-amber-50 text-amber-800 border border-amber-200 px-1.5 py-0.5 rounded-md">
+              <!-- Custom Service Badge from Admin (Хіт 2026-2027, Новинки, Гарячі новинки...) -->
+              <span v-if="s.badge" class="text-[9px] font-black px-2 py-0.5 rounded-md border shadow-xs" :class="getServiceBadgeClass(s.badge)">
+                {{ s.badge }}
+              </span>
+              <span v-else-if="s.name.includes('Комплекс') || s.name.includes('Нюд') || s.name.includes('Gel')" class="text-[9px] font-bold bg-amber-50 text-amber-800 border border-amber-200 px-1.5 py-0.5 rounded-md">
                 {{ t('tag_hit') }}
               </span>
-              <span v-if="s.name.includes('Японський') || s.name.includes('Velvet') || s.name.includes('French')" class="text-[9px] font-bold bg-purple-50 text-purple-700 border border-purple-200 px-1.5 py-0.5 rounded-md">
+              <span v-else-if="s.name.includes('Японський') || s.name.includes('Velvet') || s.name.includes('French')" class="text-[9px] font-bold bg-purple-50 text-purple-700 border border-purple-200 px-1.5 py-0.5 rounded-md">
                 {{ t('tag_trend') }}
               </span>
             </div>
@@ -1463,6 +1467,24 @@ createApp({
       return s.description || '';
     }
 
+    function getServiceBadgeClass(badge) {
+      if (!badge) return '';
+      const b = String(badge).toLowerCase();
+      if (b.includes('новин') || b.includes('new')) {
+        return 'bg-rose-50 text-rose-800 border-rose-300';
+      }
+      if (b.includes('хіт') || b.includes('хит') || b.includes('hit')) {
+        return 'bg-amber-50 text-amber-900 border-amber-300';
+      }
+      if (b.includes('тренд') || b.includes('trend')) {
+        return 'bg-purple-50 text-purple-800 border-purple-300';
+      }
+      if (b.includes('акція') || b.includes('знижк') || b.includes('promo')) {
+        return 'bg-emerald-50 text-emerald-800 border-emerald-300';
+      }
+      return 'bg-amber-50 text-amber-900 border-amber-300';
+    }
+
     function isServiceSelected(id) {
       return selectedServices.value.some(s => s.id === id);
     }
@@ -2425,6 +2447,7 @@ createApp({
       getServiceName,
       getServiceDesc,
       getCategoryName,
+      getServiceBadgeClass,
       currentLang, availableLangs, setLang, t, toast,
       step, settings, services, categories, selectedCategory, filteredServices,
       selectedServices, totalDuration, totalPrice, finalTotalPrice, appliedDiscount, availableDiscounts, upcomingDiscounts, clientRedeemedPerks, selectedPerk, perkDiscountAmount, discountAmount, selectedServiceNames,
