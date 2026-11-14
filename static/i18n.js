@@ -365,6 +365,12 @@ const I18N = {
     btn_book_another: '✨ Зробити ще один запис',
     btn_book_new_service: '➕ Зробити ще один запис',
     btn_view_all_bookings: 'Мої записи',
+    valid_appointments_title: 'Ваші дійсні записи на манікюр',
+    valid_appointments_sub: 'Активні візити до майстра Natali',
+    all_bookings: 'Всі записи',
+    chat: 'Чат',
+    section_active_bookings: '🟢 Дійсні активні записи:',
+    section_past_bookings: 'Минулі та скасовані візити:',
     months_short: ['січ', 'лют', 'бер', 'кві', 'тра', 'чер', 'лип', 'сер', 'вер', 'жов', 'лис', 'гру']
   },
 
@@ -720,6 +726,12 @@ const I18N = {
     btn_book_another: '✨ Book another',
     btn_book_new_service: '➕ Book another appointment',
     btn_view_all_bookings: 'My bookings',
+    valid_appointments_title: 'Your active appointments',
+    valid_appointments_sub: 'Active visits with Natali',
+    all_bookings: 'All bookings',
+    chat: 'Chat',
+    section_active_bookings: '🟢 Active bookings:',
+    section_past_bookings: 'Past and cancelled visits:',
     months_short: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
   },
 
@@ -1075,6 +1087,12 @@ const I18N = {
     btn_book_another: '✨ Otra reserva',
     btn_book_new_service: '➕ Reservar otra cita',
     btn_view_all_bookings: 'Mis citas',
+    valid_appointments_title: 'Tus citas activas',
+    valid_appointments_sub: 'Citas programadas con Natali',
+    all_bookings: 'Todas las citas',
+    chat: 'Chat',
+    section_active_bookings: '🟢 Citas activas:',
+    section_past_bookings: 'Citas pasadas y canceladas:',
     months_short: ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic']
   },
 
@@ -1430,6 +1448,12 @@ const I18N = {
     btn_book_another: '✨ Weiterer Termin',
     btn_book_new_service: '➕ Weiteren Termin buchen',
     btn_view_all_bookings: 'Meine Termine',
+    valid_appointments_title: 'Ihre aktiven Termine',
+    valid_appointments_sub: 'Aktive Termine bei Natali',
+    all_bookings: 'Alle Termine',
+    chat: 'Chat',
+    section_active_bookings: '🟢 Aktive Termine:',
+    section_past_bookings: 'Vergangene und stornierte Termine:',
     months_short: ['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez']
   },
 
@@ -1785,6 +1809,12 @@ const I18N = {
     btn_book_another: '✨ Сделать ещё одну запись',
     btn_book_new_service: '➕ Сделать ещё одну запись',
     btn_view_all_bookings: 'Мои записи',
+    valid_appointments_title: 'Ваши действующие записи на маникюр',
+    valid_appointments_sub: 'Активные визиты к мастеру Natali',
+    all_bookings: 'Все записи',
+    chat: 'Чат',
+    section_active_bookings: '🟢 Действующие активные записи:',
+    section_past_bookings: 'Прошедшие и отмененные визиты:',
     months_short: ['янв', 'фев', 'мар', 'апр', 'май', 'июн', 'іюл', 'авг', 'сен', 'окт', 'ноя', 'дек']
   }
 };

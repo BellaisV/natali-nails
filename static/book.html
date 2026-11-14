@@ -11,7 +11,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
-  <script src="/static/i18n.js?v=2.8"></script>
+  <script src="/static/i18n.js?v=2.9"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -228,12 +228,12 @@
             <i class="fa-regular fa-calendar-check"></i>
           </div>
           <div>
-            <h4 class="font-extrabold text-xs text-white uppercase tracking-wider">{{ t('valid_appointments_title') || 'Ваші дійсні записи на манікюр' }}</h4>
-            <p class="text-[10px] text-emerald-400 font-semibold">{{ t('valid_appointments_sub') || 'Активні візити до майстра Natali' }}</p>
+            <h4 class="font-extrabold text-xs text-white tracking-wide">{{ t('valid_appointments_title', 'Ваші дійсні записи на манікюр') }}</h4>
+            <p class="text-[10px] text-emerald-400 font-semibold">{{ t('valid_appointments_sub', 'Активні візити до майстра Natali') }}</p>
           </div>
         </div>
         <button type="button" @click="openMyAppointmentsModal" class="text-[10px] text-amber-300 hover:text-white font-bold bg-white/10 px-2.5 py-1 rounded-full border border-white/10 transition active:scale-95">
-          {{ t('all_bookings') || 'Всі записи' }} ({{ clientAppointments.length }}) ➔
+          {{ t('all_bookings', 'Всі записи') }} ({{ clientAppointments.length }}) ➔
         </button>
       </div>
 
@@ -1309,10 +1309,13 @@ createApp({
       }
     }
 
-    function t(key) {
-      if (typeof I18N === 'undefined') return key;
-      const dict = I18N[currentLang.value] || I18N['uk'] || {};
-      return dict[key] !== undefined ? dict[key] : ((I18N['uk'] && I18N['uk'][key]) || key);
+    function t(key, fallback = '') {
+      if (typeof I18N === 'undefined') return fallback || key;
+      const langDict = I18N[currentLang.value] || {};
+      if (langDict[key] !== undefined) return langDict[key];
+      const ukDict = I18N['uk'] || {};
+      if (ukDict[key] !== undefined) return ukDict[key];
+      return fallback || key;
     }
 
     const step = ref(1);
