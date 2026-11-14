@@ -24,7 +24,8 @@
         "de": "Komplex mit hauchdünnem Micro-French oder samtigem Samt-Akzent",
         "ru": "Комплекс с тончайшим изящным френчем или бархатным акцентом"
       }
-    }
+    },
+    "badge": "Тренд 2026 ✨"
   },
   {
     "id": 12,
@@ -51,7 +52,8 @@
         "de": "Mehrdimensionaler magnetischer Schimmer mit weichem Seiden-/Satin-Effekt",
         "ru": "Многослойный магнитный блик с эффектом мягкого шелка/сатина"
       }
-    }
+    },
+    "badge": "Тренд 2026 ✨"
   },
   {
     "id": 16,
@@ -78,7 +80,8 @@
         "de": "Tiefenwirksame Pflege und samtweiche Haut mit Kaltparaffin-Therapie",
         "ru": "Глубокое питание и шелковистость кожи ручек после маникюра"
       }
-    }
+    },
+    "badge": ""
   },
   {
     "id": 17,
@@ -105,7 +108,8 @@
         "de": "Rissreparatur mit Seide oder Wiederaufbau einer abgebrochenen Nagelkante",
         "ru": "Ремонт трещины шелком или донаращивание сломанного ноготка"
       }
-    }
+    },
+    "badge": ""
   },
   {
     "id": 9,
@@ -132,7 +136,8 @@
         "de": "Entfernung + Combi-Maniküre + Verstärkung + trendiger milchiger/nude Glanz",
         "ru": "Снятие + комби-маникюр + укрепление + трендовый полупрозрачный молочный/нюд глянец"
       }
-    }
+    },
+    "badge": "Хіт 🔥"
   },
   {
     "id": 10,
@@ -159,7 +164,8 @@
         "de": "Natürliche Nagelregeneration ohne Lack. Bienenwachs-Politur, natürlicher Diamantglanz",
         "ru": "Оздоровление ногтей без покрытия. Втирание пчелиного воска, бриллиантовый натуральный блеск"
       }
-    }
+    },
+    "badge": ""
   },
   {
     "id": 13,
@@ -186,7 +192,8 @@
         "de": "Makellose Nagelhautreinigung, Formgebung, Pflegeserum und Handmassage",
         "ru": "Безупречная чистка кутикулы, форма, сыворотка и уходовый массаж"
       }
-    }
+    },
+    "badge": ""
   },
   {
     "id": 14,
@@ -213,7 +220,8 @@
         "de": "Perfekte Nagelmodellage & Architektur, Länge 1-3, Maniküre und Nude-Gel",
         "ru": "Правильная архитектура, длина 1-3, маникюр и однотонный нюд"
       }
-    }
+    },
+    "badge": ""
   },
   {
     "id": 15,
@@ -240,7 +248,8 @@
         "de": "Korrektur der Nagelarchitektur, Verstärkung und neue Farbe",
         "ru": "Восстановление архитектуры ногтей, поднятие клюющих, укрепление и цвет"
       }
-    }
+    },
+    "badge": ""
   },
   {
     "id": 19,
@@ -267,6 +276,7 @@
         "de": "Комплексний спа-педикюр з класичним френчем",
         "ru": "Комплексний спа-педикюр з класичним френчем"
       }
-    }
+    },
+    "badge": ""
   }
 ]
