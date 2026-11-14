@@ -15,5 +15,22 @@
     "created_at": "2026-11-14T01:03:28.251273",
     "payment_method": "cash",
     "design_photo_url": ""
+  },
+  {
+    "id": 13,
+    "client_id": 10,
+    "client_name": "Viktor",
+    "client_phone": "643225627",
+    "service_names": "Японський еко-манікюр (P.Shine / Masura)",
+    "date": "2026-11-16",
+    "time": "12:30",
+    "end_time": "13:20",
+    "total_price": 25.0,
+    "status": "pending",
+    "notes": "",
+    "source": "client",
+    "created_at": "2026-11-14T01:03:44.522043",
+    "payment_method": "cash",
+    "design_photo_url": ""
   }
 ]
