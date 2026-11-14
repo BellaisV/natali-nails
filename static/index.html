@@ -335,16 +335,41 @@
         </div>
       </div>
 
-      <div class="flex items-center justify-between px-1">
+      <div class="flex items-center justify-between px-1 flex-wrap gap-2">
         <div>
           <h2 class="font-extrabold text-base text-stone-900">{{ formatDateHeader(selectedDate) }}</h2>
-          <p class="text-xs text-stone-500">{{ t('appointments_count') }}: <b class="text-stone-800">{{ dayAppointments.length }}</b> • {{ t('total_amount') }}: <b class="text-rose-600">{{ dayTotalSum }} {{ settings.currency || '€' }}</b></p>
+          <div class="flex items-center space-x-2 text-xs flex-wrap mt-0.5">
+            <span class="text-stone-500">{{ t('appointments_count') }}: <b class="text-stone-800">{{ dayAppointments.length }}</b></span>
+            <span class="text-stone-300">•</span>
+            <span class="text-stone-500">Каса: <b class="text-stone-900">{{ dayTotalSum }} {{ settings.currency || '€' }}</b></span>
+            <span class="text-stone-300">•</span>
+            <span class="bg-emerald-50 text-emerald-800 border border-emerald-200 px-2 py-0.5 rounded-md font-bold text-[11px]" title="Чистий заробіток за вирахуванням ~5€ витратних матеріалів на процедуру">
+              💎 Прибуток: ~{{ dayEstimatedProfit }} {{ settings.currency || '€' }}
+              <span class="text-[9px] text-stone-400 font-normal ml-0.5">(-{{ dayEstimatedMaterialCost }}€ мат.)</span>
+            </span>
+          </div>
         </div>
-        <button @click="openNewAppointmentModal" class="bg-stone-900 hover:bg-black text-white text-xs font-bold px-3.5 py-2 rounded-xl shadow-md flex items-center space-x-1.5 active:scale-95 transition">
-          <i class="fa-solid fa-plus text-xs"></i>
-          <span>{{ t('btn_new_appointment') }}</span>
-        </button>
+        <div class="flex items-center space-x-2">
+          <!-- View switcher: Список vs Графік тижня 📅 (як у DIKIDI на скріншоті) -->
+          <div class="bg-stone-200 p-0.5 rounded-xl flex items-center text-xs font-bold">
+            <button type="button" @click="appointmentViewMode = 'list'" :class="appointmentViewMode === 'list' ? 'bg-white text-stone-900 shadow-sm' : 'text-stone-600'" class="px-2.5 py-1.5 rounded-lg flex items-center space-x-1 transition">
+              <i class="fa-solid fa-list-ul text-[10px]"></i>
+              <span class="hidden sm:inline">Список</span>
+            </button>
+            <button type="button" @click="appointmentViewMode = 'grid'" :class="appointmentViewMode === 'grid' ? 'bg-white text-stone-900 shadow-sm' : 'text-stone-600'" class="px-2.5 py-1.5 rounded-lg flex items-center space-x-1 transition">
+              <i class="fa-solid fa-calendar-week text-[10px] text-rose-500"></i>
+              <span>Графік 📅</span>
+            </button>
+          </div>
+          <button @click="openNewAppointmentModal" class="bg-stone-900 hover:bg-black text-white text-xs font-bold px-3.5 py-2 rounded-xl shadow-md flex items-center space-x-1.5 active:scale-95 transition">
+            <i class="fa-solid fa-plus text-xs"></i>
+            <span>{{ t('btn_new_appointment') }}</span>
+          </button>
+        </div>
       </div>
+
+      <!-- VIEW 1: СПИСОК ЗАПИСІВ -->
+      <div v-if="appointmentViewMode === 'list'" class="space-y-3">
 
       <div v-if="dayAppointments.length === 0" class="bg-white rounded-2xl p-8 text-center border border-stone-200 shadow-sm space-y-3">
         <div class="w-14 h-14 bg-rose-50 text-rose-400 rounded-full flex items-center justify-center mx-auto text-xl">
@@ -359,12 +384,32 @@
 
       <div v-else class="space-y-3">
         <div v-for="app in dayAppointments" :key="app.id"
-          class="bg-white rounded-2xl p-4 shadow-sm border border-stone-200/80 hover:border-rose-300 transition space-y-3">
+          class="bg-white rounded-2xl p-4 shadow-sm border transition space-y-3 relative overflow-hidden"
+          :class="[
+            getAppTimeState(app) === 'current' ? 'border-emerald-500 ring-2 ring-emerald-500/80 bg-emerald-50/20 shadow-emerald-100 shadow-md border-l-[6px] border-l-emerald-600' :
+            getAppTimeState(app) === 'visited' ? 'border-rose-200 bg-rose-50/15 border-l-[6px] border-l-rose-500' :
+            'border-emerald-200 bg-white border-l-[6px] border-l-emerald-500'
+          ]">
           <div class="flex items-center justify-between">
             <div class="flex items-center space-x-2">
               <span class="text-sm font-extrabold text-stone-900 bg-stone-100 px-2.5 py-1 rounded-lg">
                 {{ app.time }} - {{ app.end_time }}
               </span>
+
+              <!-- Realtime Colored Status Stripe/Badge requested by user -->
+              <span v-if="getAppTimeState(app) === 'current'" class="text-[10px] bg-emerald-500 text-white font-black px-2 py-0.5 rounded-full flex items-center space-x-1 animate-pulse shadow-sm">
+                <i class="fa-solid fa-bolt-lightning text-[9px]"></i>
+                <span>ЗАРАЗ У СТУДІЇ</span>
+              </span>
+              <span v-else-if="getAppTimeState(app) === 'visited'" class="text-[10px] bg-rose-100 text-rose-800 font-bold px-2 py-0.5 rounded-full border border-rose-200 flex items-center space-x-1">
+                <i class="fa-solid fa-circle-check text-[9px] text-rose-600"></i>
+                <span>Вже була</span>
+              </span>
+              <span v-else class="text-[10px] bg-emerald-50 text-emerald-800 font-bold px-2 py-0.5 rounded-full border border-emerald-200 flex items-center space-x-1">
+                <i class="fa-solid fa-clock text-[9px] text-emerald-600"></i>
+                <span>Ще прийде</span>
+              </span>
+
               <span v-if="app.source === 'client'" class="text-[10px] bg-purple-50 text-purple-700 font-bold px-2 py-0.5 rounded-full border border-purple-200 flex items-center space-x-1">
                 <i class="fa-solid fa-globe text-[9px]"></i>
                 <span>{{ t('badge_online') }}</span>
@@ -399,8 +444,8 @@
                 <i class="fa-solid fa-bell"></i>
               </div>
               <div>
-                <span class="block text-xs font-black text-amber-950">Нова онлайн-бронь!</span>
-                <span class="block text-[11px] text-stone-600">Підтвердіть замовлення або змініть час:</span>
+                <span class="block text-xs font-black text-amber-950">Нова онлайн-бронь! ({{ app.total_price }}€)</span>
+                <span class="block text-[11px] text-stone-600">Чистий заробіток: ~{{ Math.max(0, (app.total_price || 0) - (settings.material_cost || 5)) }}€ (-{{ settings.material_cost || 5 }}€ на мат.)</span>
               </div>
             </div>
             <div class="flex items-center space-x-2 flex-shrink-0 pt-1 sm:pt-0">
@@ -410,7 +455,11 @@
               </button>
               <button type="button" @click="openEditAppModal(app)" class="flex-1 sm:flex-none bg-stone-900 hover:bg-black text-white font-bold text-xs px-3 py-2 rounded-xl shadow-md transition active:scale-95 flex items-center justify-center space-x-1">
                 <i class="fa-solid fa-pen text-[10px]"></i>
-                <span>Змінити час</span>
+                <span>Змінити</span>
+              </button>
+              <button type="button" @click="deleteApp(app.id)" class="flex-1 sm:flex-none bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs px-3 py-2 rounded-xl border border-rose-200 transition active:scale-95 flex items-center justify-center space-x-1" title="Відхилити та видалити онлайн-бронь">
+                <i class="fa-regular fa-trash-can text-[10px]"></i>
+                <span>Відхилити</span>
               </button>
             </div>
           </div>
@@ -424,7 +473,13 @@
                 </span>
                 <span v-else class="text-xs text-stone-500 font-medium">({{ app.client_phone }})</span>
               </div>
-              <span class="text-base font-extrabold text-rose-600">{{ app.total_price }} {{ settings.currency || '€' }}</span>
+              <div class="text-right">
+                <div class="text-base font-extrabold text-stone-900">{{ app.total_price }} {{ settings.currency || '€' }}</div>
+                <div class="text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md mt-0.5 flex items-center justify-end space-x-1" title="Орієнтовний чистий заробіток за вирахуванням витратних матеріалів (~5€ на процедуру)">
+                  <span>💎 Прибуток: ~{{ Math.max(0, (app.total_price || 0) - (settings.material_cost || 5)) }} {{ settings.currency || '€' }}</span>
+                  <span class="text-[9px] text-stone-400 font-normal">(-{{ settings.material_cost || 5 }}€ мат.)</span>
+                </div>
+              </div>
             </div>
             <p class="text-xs text-stone-600 mt-0.5"><i class="fa-solid fa-sparkles text-rose-400 mr-1"></i>{{ app.service_names }}</p>
             <p v-if="app.notes" class="text-xs text-stone-600 italic mt-1.5 bg-rose-50/60 p-2.5 rounded-xl border border-rose-100/80">
@@ -499,6 +554,13 @@
             </div>
 
             <div class="flex items-center space-x-1.5 flex-wrap gap-y-1 justify-end">
+              <!-- Manual status buttons requested by user -->
+              <button type="button" @click="setAppTimeState(app, 'current')" class="px-2 py-1.5 rounded-lg text-xs font-bold border transition active:scale-95" :class="app.status === 'arrived' ? 'bg-emerald-600 text-white border-emerald-600 shadow' : 'bg-emerald-50 text-emerald-800 border-emerald-300 hover:bg-emerald-100'" title="Клієнт прийшов (загорається пульсуючим зеленим)">
+                ⚡ Прийшла
+              </button>
+              <button type="button" @click="setAppTimeState(app, 'completed')" class="px-2 py-1.5 rounded-lg text-xs font-bold border transition active:scale-95" :class="app.status === 'completed' ? 'bg-rose-600 text-white border-rose-600 shadow' : 'bg-rose-50 text-rose-800 border-rose-300 hover:bg-rose-100'" title="Клієнт уже був (червоний)">
+                🔴 Вже була
+              </button>
               <button type="button" @click="openChatModal(app)" class="bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 text-xs font-bold px-2.5 py-1.5 rounded-lg transition active:scale-95 shadow-sm flex items-center space-x-1 relative" title="Відкрити чат з клієнтом">
                 <i class="fa-regular fa-comment-dots text-amber-700"></i>
                 <span>Чат</span>
@@ -518,6 +580,117 @@
               <button @click="deleteApp(app.id)" class="text-xs text-rose-500 hover:text-rose-700 p-1.5 rounded-lg">
                 <i class="fa-regular fa-trash-can"></i>
               </button>
+            </div>
+          </div>
+        </div>
+      </div>
+      </div>
+
+      <!-- VIEW 2: ТИЖНЕВИЙ ГРАФІК (як у DIKIDI / Altegio на скріншоті) -->
+      <div v-else-if="appointmentViewMode === 'grid'" class="bg-white rounded-3xl p-3 sm:p-4 border border-stone-200 shadow-sm space-y-3">
+        <!-- Week Navigator -->
+        <div class="flex items-center justify-between border-b border-stone-100 pb-2.5">
+          <div class="flex items-center space-x-2">
+            <button @click="changeWeekOffset(-1)" class="w-8 h-8 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-700 flex items-center justify-center text-xs transition active:scale-95" title="Попередній тиждень">
+              <i class="fa-solid fa-chevron-left"></i>
+            </button>
+            <span class="font-black text-sm text-stone-900">{{ currentWeekLabel }}</span>
+            <button @click="changeWeekOffset(1)" class="w-8 h-8 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-700 flex items-center justify-center text-xs transition active:scale-95" title="Наступний тиждень">
+              <i class="fa-solid fa-chevron-right"></i>
+            </button>
+          </div>
+          <div class="flex items-center space-x-2">
+            <button @click="weekOffset = 0" class="text-xs font-bold px-3 py-1.5 rounded-xl bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100 transition active:scale-95">
+              Сьогодні
+            </button>
+            <button @click="openNewAppointmentModal" class="bg-stone-900 hover:bg-black text-white text-xs font-bold px-3 py-1.5 rounded-xl flex items-center space-x-1 shadow-sm active:scale-95 transition">
+              <i class="fa-solid fa-plus text-[10px]"></i>
+              <span class="hidden sm:inline">Запис</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Legend / Color Guide requested by user -->
+        <div class="flex items-center space-x-3 text-[11px] font-semibold text-stone-600 bg-stone-50 p-2.5 rounded-2xl flex-wrap gap-y-1.5 border border-stone-200/60">
+          <span class="flex items-center space-x-1.5">
+            <span class="w-3.5 h-3.5 rounded-md bg-emerald-500 border-l-2 border-emerald-700"></span>
+            <span>🟢 Зелений: ще прийдуть</span>
+          </span>
+          <span class="flex items-center space-x-1.5">
+            <span class="w-3.5 h-3.5 rounded-md bg-emerald-400 ring-2 ring-emerald-500 animate-pulse"></span>
+            <span>⚡ Загорається зеленим: час візиту настав / зараз у студії</span>
+          </span>
+          <span class="flex items-center space-x-1.5">
+            <span class="w-3.5 h-3.5 rounded-md bg-rose-400 border-l-2 border-rose-700"></span>
+            <span>🔴 Червоний: клієнт уже був / завершено</span>
+          </span>
+        </div>
+
+        <!-- Weekly Timetable Table / Grid -->
+        <div class="overflow-x-auto hide-scrollbar">
+          <div class="min-w-[720px] select-none">
+            <!-- Days Header Row -->
+            <div class="grid grid-cols-8 border-b border-stone-200 pb-2 text-center items-center">
+              <div class="text-[10px] font-bold text-stone-400 py-1">Година</div>
+              <div v-for="day in currentWeekDays" :key="day.dateStr" class="py-1 cursor-pointer transition hover:bg-stone-50 rounded-xl" @click="selectDate(day.dateStr); appointmentViewMode = 'list'" :title="'Відкрити список за ' + day.dateStr">
+                <div class="text-[11px] font-bold flex items-center justify-center space-x-1" :class="day.isToday ? 'text-rose-600' : 'text-stone-500'">
+                  <span>{{ day.dayName }}</span>
+                  <span v-if="day.appointments.length > 0" class="inline-flex items-center justify-center w-4 h-4 rounded-full bg-rose-500 text-white text-[9px] font-black">
+                    {{ day.appointments.length }}
+                  </span>
+                </div>
+                <div class="inline-flex items-center justify-center w-7 h-7 rounded-full text-xs font-black mt-0.5" :class="day.isToday ? 'bg-rose-500 text-white shadow-sm ring-2 ring-rose-200' : 'text-stone-900'">
+                  {{ day.dayNum }}
+                </div>
+              </div>
+            </div>
+
+            <!-- Time Slots Grid -->
+            <div class="relative grid grid-cols-8 divide-x divide-stone-100">
+              <!-- Left Time Column (09:00 - 20:00) -->
+              <div class="space-y-[38px] pt-1 text-[10px] font-semibold text-stone-400 text-right pr-2">
+                <div v-for="hour in gridHours" :key="hour" class="h-6">
+                  {{ hour }}
+                </div>
+              </div>
+
+              <!-- 7 Day Columns -->
+              <div v-for="day in currentWeekDays" :key="day.dateStr" class="relative min-h-[744px] bg-stone-50/20">
+                <!-- If day is Day Off according to master's schedule -->
+                <div v-if="day.isDayOff" class="absolute inset-0 bg-stone-100/60 flex items-center justify-center p-2 text-center pointer-events-none z-0">
+                  <span class="text-stone-400 font-bold text-xs [writing-mode:vertical-lr] tracking-widest uppercase">
+                    Вихідний день
+                  </span>
+                </div>
+
+                <!-- Horizontal Hour Dividing Lines -->
+                <div v-for="hour in gridHours" :key="hour" class="border-b border-stone-200/50 h-[62px]"></div>
+
+                <!-- Positioned Appointment Cards in Day Column -->
+                <div
+                  v-for="app in day.appointments"
+                  :key="app.id"
+                  @click="openAppDetails(app)"
+                  class="absolute left-1 right-1 rounded-xl p-2 cursor-pointer shadow-sm transition active:scale-95 overflow-hidden z-10 text-left border"
+                  :style="getAppGridStyle(app)"
+                  :class="[
+                    getAppTimeState(app) === 'current' ? 'border-emerald-600 ring-2 ring-emerald-500 bg-emerald-100/95 text-emerald-950 font-bold border-l-4 border-l-emerald-600 animate-pulse shadow-md' :
+                    getAppTimeState(app) === 'visited' ? 'border-rose-300 bg-rose-50/95 text-rose-950 border-l-4 border-l-rose-500' :
+                    'border-emerald-300 bg-emerald-50/95 text-emerald-950 border-l-4 border-l-emerald-500'
+                  ]"
+                  :title="app.client_name + ' (' + app.time + ' - ' + app.end_time + ') ' + app.total_price + '€'"
+                >
+                  <div class="flex items-center justify-between text-[10px] leading-tight font-extrabold">
+                    <span>{{ app.time }}-{{ app.end_time }}</span>
+                    <span class="text-[9px] opacity-75">{{ formatDurationSimple(app) }}</span>
+                  </div>
+                  <div class="font-extrabold text-xs truncate mt-0.5 leading-tight">{{ app.client_name }}</div>
+                  <div class="flex items-center justify-between mt-1 text-[10px] leading-tight font-bold">
+                    <span :class="getAppTimeState(app) === 'visited' ? 'text-rose-700' : 'text-emerald-700'">{{ app.total_price }}€</span>
+                    <span class="text-[9px] opacity-75 font-normal">💎~{{ Math.max(0, (app.total_price || 0) - (settings.material_cost || 5)) }}€</span>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -1252,6 +1425,23 @@
           <div>
             <label class="block font-semibold text-stone-700 mb-1">Адреса кабінету</label>
             <input v-model="settings.address" class="w-full bg-stone-50 border border-stone-200 rounded-xl p-2.5 font-medium">
+          </div>
+
+          <!-- Material Cost Setting requested by user -->
+          <div class="p-3.5 bg-amber-50/70 rounded-2xl border border-amber-200/80 space-y-1.5">
+            <div class="flex items-center justify-between">
+              <label class="block font-bold text-amber-950 text-xs flex items-center">
+                <span>💅 Собівартість витратних матеріалів на 1 манікюр (€)</span>
+              </label>
+              <span class="text-xs font-black text-amber-900 bg-amber-200/60 px-2 py-0.5 rounded-md">{{ settings.material_cost || 5 }} €</span>
+            </div>
+            <p class="text-[11px] text-stone-500">
+              Ця сума автоматично вираховується при розрахунку чистого заробітку в записах, графіку та касі (за замовчуванням 5€).
+            </p>
+            <div class="flex items-center space-x-2">
+              <input v-model.number="settings.material_cost" type="number" step="0.5" min="0" placeholder="5.0" class="w-28 bg-white border border-amber-300 rounded-xl p-2 font-bold text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none">
+              <span class="text-xs font-bold text-stone-600">€ за процедуру</span>
+            </div>
           </div>
           <!-- Interactive Working Days & Hours Card (Custom hours for EACH day) -->
           <div class="bg-stone-50 rounded-2xl p-4 border border-stone-200/80 space-y-3">
@@ -2695,13 +2885,171 @@ createApp({
     const dayAppointments = computed(() => {
       return appointments.value
         .filter(a => a.date === selectedDate.value)
-        .sort((a, b) => a.time.localeCompare(b.time));
+        .sort((a, b) => (a.time || '').localeCompare(b.time || ''));
     });
 
     const dayTotalSum = computed(() => {
       return dayAppointments.value
         .filter(a => a.status !== 'cancelled')
         .reduce((sum, a) => sum + (a.total_price || 0), 0);
+    });
+
+    const dayEstimatedMaterialCost = computed(() => {
+      const activeCount = dayAppointments.value.filter(a => a.status !== 'cancelled').length;
+      return activeCount * (settings.value.material_cost || 5);
+    });
+
+    const dayEstimatedProfit = computed(() => {
+      return Math.max(0, dayTotalSum.value - dayEstimatedMaterialCost.value);
+    });
+
+    // --- TIMETABLE & WEEKLY GRID SCHEDULE (DIKIDI / Altegio style) ---
+    const appointmentViewMode = ref('list'); // 'list' | 'grid'
+    const weekOffset = ref(0);
+    const gridHours = ['09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00', '20:00'];
+
+    function changeWeekOffset(delta) {
+      weekOffset.value += delta;
+    }
+
+    function timeToMin(tStr) {
+      if (!tStr) return 0;
+      const parts = tStr.split(':');
+      return (parseInt(parts[0]) || 0) * 60 + (parseInt(parts[1]) || 0);
+    }
+
+    function formatDurationSimple(app) {
+      const dur = timeToMin(app.end_time || '10:00') - timeToMin(app.time || '09:00');
+      if (dur <= 0) return '60 хв';
+      const h = Math.floor(dur / 60);
+      const m = dur % 60;
+      if (h > 0 && m > 0) return `${h} год ${m} хв`;
+      if (h > 0) return h === 1 ? '1 год' : `${h} год`;
+      return `${m} хв`;
+    }
+
+    function getAppGridStyle(app) {
+      const baseMin = 9 * 60; // 09:00
+      const startMin = timeToMin(app.time || '09:00');
+      const endMin = timeToMin(app.end_time || '10:00');
+      const dur = Math.max(30, endMin - startMin);
+
+      // 62px per 60 minutes
+      const top = Math.max(0, Math.round(((startMin - baseMin) / 60) * 62));
+      const height = Math.max(40, Math.round((dur / 60) * 62) - 2);
+      return {
+        top: `${top}px`,
+        height: `${height}px`
+      };
+    }
+
+    function getAppTimeState(app) {
+      if (!app) return 'upcoming';
+      if (app.status === 'completed') return 'visited';
+      if (app.status === 'arrived') return 'current';
+
+      const now = new Date();
+      const todayIso = now.toISOString().split('T')[0];
+      if (app.date < todayIso) return 'visited';
+      if (app.date > todayIso) return 'upcoming';
+
+      // If today: check appointment time vs current wall clock
+      const nowMin = now.getHours() * 60 + now.getMinutes();
+      const [sH, sM] = (app.time || '10:00').split(':').map(Number);
+      const [eH, eM] = (app.end_time || '11:00').split(':').map(Number);
+      const startMin = (sH || 0) * 60 + (sM || 0);
+      const endMin = (eH || 0) * 60 + (eM || 0);
+
+      if (nowMin >= startMin && nowMin <= endMin) {
+        return 'current';
+      } else if (nowMin > endMin) {
+        return 'visited';
+      } else {
+        return 'upcoming';
+      }
+    }
+
+    async function setAppTimeState(app, state) {
+      if (!app) return;
+      let targetStatus = 'confirmed';
+      if (state === 'current') targetStatus = 'arrived';
+      else if (state === 'completed') targetStatus = 'completed';
+      else if (state === 'upcoming') targetStatus = 'confirmed';
+
+      await fetch(`/api/appointments/${app.id}/status?status=${targetStatus}`, { method: 'PATCH' });
+      await loadAppointments();
+      await loadFinance();
+      if (state === 'current') showToast('Клієнт відмічений: Зараз у студії ⚡');
+      else if (state === 'completed') showToast('Візит відмічено як завершений 🔴');
+      else showToast('Статус оновлено 🟢');
+    }
+
+    function openAppDetails(app) {
+      openEditAppModal(app);
+    }
+
+    const currentWeekDays = computed(() => {
+      const res = [];
+      const now = new Date();
+      const dayOfWeek = now.getDay();
+      const distToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+      const monday = new Date(now);
+      monday.setDate(now.getDate() + distToMonday + weekOffset.value * 7);
+
+      const dict = (typeof I18N !== 'undefined' && (I18N[currentLang.value] || I18N['uk'])) || {};
+      const dayNamesShort = dict.days_short || ['Нд', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
+      const todayIso = now.toISOString().split('T')[0];
+
+      let sched = null;
+      try {
+        if (settings.value.schedule_json) {
+          sched = typeof settings.value.schedule_json === 'string' ? JSON.parse(settings.value.schedule_json) : settings.value.schedule_json;
+        }
+      } catch (e) {}
+
+      for (let i = 0; i < 7; i++) {
+        const cur = new Date(monday);
+        cur.setDate(monday.getDate() + i);
+        const dateStr = cur.toISOString().split('T')[0];
+        const jsDay = cur.getDay();
+        const dayName = dayNamesShort[jsDay];
+        const dayNum = cur.getDate();
+        const isToday = (dateStr === todayIso);
+
+        let isDayOff = false;
+        if (sched && sched[String(jsDay)]) {
+          isDayOff = !sched[String(jsDay)].active;
+        } else if (settings.value.working_days) {
+          const activeDays = String(settings.value.working_days).split(',').map(s => s.trim());
+          isDayOff = !activeDays.includes(String(jsDay));
+        }
+
+        const dayApps = (appointments.value || [])
+          .filter(a => a.date === dateStr && a.status !== 'cancelled')
+          .sort((a, b) => (a.time || '').localeCompare(b.time || ''));
+
+        res.push({
+          dateStr,
+          dayName,
+          dayNum,
+          isToday,
+          isDayOff,
+          appointments: dayApps
+        });
+      }
+      return res;
+    });
+
+    const currentWeekLabel = computed(() => {
+      if (!currentWeekDays.value.length) return '';
+      const first = currentWeekDays.value[0];
+      const last = currentWeekDays.value[6];
+      const dict = (typeof I18N !== 'undefined' && (I18N[currentLang.value] || I18N['uk'])) || {};
+      const months = dict.months_short || ['січ', 'лют', 'бер', 'кві', 'тра', 'чер', 'лип', 'сер', 'вер', 'жов', 'лис', 'гру'];
+
+      const d1 = new Date(first.dateStr + 'T00:00:00');
+      const d2 = new Date(last.dateStr + 'T00:00:00');
+      return `${d1.getDate()} ${months[d1.getMonth()]}. - ${d2.getDate()} ${months[d2.getMonth()]}. ${d2.getFullYear()}`;
     });
 
     function getDaysSinceLastVisit(c) {
@@ -3801,7 +4149,8 @@ createApp({
       currentLang, availableLangs, setLang, t,
       currentTab, holidayDiscounts, loadHolidayDiscounts, saveHolidayDiscount, toggleHolidayDiscount, promoDays, customAchievements, savingPromo, savingAchieve, newPromo, newAchieve, loadPromoDays, createPromoDay, deletePromoDay, togglePromoDay, loadCustomAchievements, createCustomAchievement, deleteCustomAchievement, settings, services, clients, appointments, transactions, financeSummary,
       todayStr, selectedDate, selectedMonth, clientSearch, clientFilterTab, photoLightbox, openPhotoLightbox, getDaysSinceLastVisit, getReturnClientWhatsAppLink, sleepingClientsCount, vipClientsCount, daysList, dayAppointments,
-      dayTotalSum, filteredClients, modals, formApp, formExpense, formService, formClient,
+      dayTotalSum, dayEstimatedMaterialCost, dayEstimatedProfit, appointmentViewMode, weekOffset, gridHours, changeWeekOffset, currentWeekDays, currentWeekLabel, getAppTimeState, setAppTimeState, getAppGridStyle, formatDurationSimple, openAppDetails,
+      filteredClients, modals, formApp, formExpense, formService, formClient,
       selectedServiceId, toast, bookingUrl, payingApp,
       selectedAppCategory, adminBookingCategories, filteredAppServices, servicesByCategory,
       selectAppCategory, selectServiceDirect, onEditAppServiceChange, isRealPhone,

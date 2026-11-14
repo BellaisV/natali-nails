@@ -852,6 +852,20 @@ def init_db():
         """)
     except Exception:
         pass
+    try:
+        cursor.execute("ALTER TABLE settings ADD COLUMN material_cost REAL DEFAULT 5.0")
+    except Exception:
+        pass
+    try:
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS deleted_appointments (
+            appointment_id INTEGER PRIMARY KEY,
+            deleted_at TEXT
+        )
+        """)
+        cursor.execute("DELETE FROM appointments WHERE id IN (SELECT appointment_id FROM deleted_appointments)")
+    except Exception:
+        pass
     conn.commit()
     conn.close()
 
@@ -937,6 +951,7 @@ class SettingsUpdate(BaseModel):
     master_avatar: Optional[str] = ""
     working_days: Optional[str] = "1,2,3,4,5,6"
     schedule_json: Optional[str] = ""
+    material_cost: Optional[float] = 5.0
 
 class EditAppointmentRequest(BaseModel):
     date: str
@@ -1417,7 +1432,7 @@ def create_appointment(data: AppointmentCreate):
 
 @app.patch("/api/appointments/{app_id}/status")
 def update_appointment_status(app_id: int, status: str = Query(...), payment_method: Optional[str] = Query("cash")):
-    if status not in ["pending", "confirmed", "completed", "cancelled"]:
+    if status not in ["pending", "confirmed", "completed", "cancelled", "arrived"]:
         raise HTTPException(status_code=400, detail="Invalid status")
     conn = get_db()
     cursor = conn.cursor()
@@ -1433,12 +1448,27 @@ def update_appointment_status(app_id: int, status: str = Query(...), payment_met
         cleanup_old_cancelled_appointments()
 
     if status == "completed" and old_status != "completed":
-        cursor.execute("SELECT id FROM transactions WHERE appointment_id = ?", (app_id,))
+        cursor.execute("SELECT id FROM transactions WHERE appointment_id = ? AND type = 'income'", (app_id,))
         if not cursor.fetchone():
             cursor.execute("""
             INSERT INTO transactions (type, category, amount, date, payment_method, appointment_id, description, created_at)
             VALUES ('income', 'Послуги', ?, ?, ?, ?, ?, ?)
             """, (app_row["total_price"], app_row["date"], payment_method, app_id, f"Візит: {app_row['client_name']} ({app_row['service_names']})", datetime.now().isoformat()))
+
+        # Automatically record material expense (~5.0 € per manicure)
+        try:
+            cursor.execute("SELECT material_cost FROM settings WHERE id = 1")
+            s_row = cursor.fetchone()
+            mat_cost = float(s_row["material_cost"]) if (s_row and s_row["material_cost"] is not None) else 5.0
+            if mat_cost > 0:
+                cursor.execute("SELECT id FROM transactions WHERE appointment_id = ? AND type = 'expense' AND category = 'Матеріали'", (app_id,))
+                if not cursor.fetchone():
+                    cursor.execute("""
+                    INSERT INTO transactions (type, category, amount, date, payment_method, appointment_id, description, created_at)
+                    VALUES ('expense', 'Матеріали', ?, ?, ?, ?, ?, ?)
+                    """, (mat_cost, app_row["date"], payment_method, app_id, f"Витрати на матеріали: {app_row['client_name']}", datetime.now().isoformat()))
+        except Exception:
+            pass
 
         # Award 50 bonus points to verified client
         cursor.execute("UPDATE clients SET points = COALESCE(points, 0) + 50 WHERE phone = ?", (app_row["client_phone"],))
@@ -1457,8 +1487,21 @@ def delete_appointment(app_id: int):
     cursor = conn.cursor()
     cursor.execute("DELETE FROM appointments WHERE id = ?", (app_id,))
     cursor.execute("DELETE FROM transactions WHERE appointment_id = ?", (app_id,))
+    cursor.execute("DELETE FROM chat_messages WHERE appointment_id = ?", (app_id,))
+    try:
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS deleted_appointments (
+            appointment_id INTEGER PRIMARY KEY,
+            deleted_at TEXT
+        )
+        """)
+        cursor.execute("INSERT OR IGNORE INTO deleted_appointments (appointment_id, deleted_at) VALUES (?, ?)", (app_id, datetime.now().isoformat()))
+    except Exception:
+        pass
     conn.commit()
     conn.close()
+    export_appointments_backup()
+    sync_backup_to_cloud_async()
     return {"status": "deleted"}
 
 @app.get("/api/appointments/{app_id}")
@@ -1604,7 +1647,19 @@ def get_unread_counts(viewer: Optional[str] = "master", phone: Optional[str] = N
     cursor = conn.cursor()
     target_sender = 'master' if viewer == 'client' else 'client'
 
-    query = "SELECT appointment_id, client_phone, COUNT(*) as unread FROM chat_messages WHERE sender = ? AND is_read = 0"
+    # Clean up orphan messages from deleted appointments
+    try:
+        cursor.execute("DELETE FROM chat_messages WHERE appointment_id IS NOT NULL AND appointment_id NOT IN (SELECT id FROM appointments)")
+        conn.commit()
+    except Exception:
+        pass
+
+    query = """
+        SELECT m.appointment_id, m.client_phone, COUNT(*) as unread
+        FROM chat_messages m
+        INNER JOIN appointments a ON a.id = m.appointment_id
+        WHERE m.sender = ? AND m.is_read = 0 AND a.status != 'cancelled'
+    """
     params = [target_sender]
 
     if phone:
@@ -1612,10 +1667,10 @@ def get_unread_counts(viewer: Optional[str] = "master", phone: Optional[str] = N
         digits = re.sub(r'\D', '', safe_phone)
         suffix = digits[-9:] if len(digits) >= 9 else digits
         if suffix:
-            query += " AND client_phone LIKE ?"
+            query += " AND m.client_phone LIKE ?"
             params.append(f"%{suffix}%")
 
-    query += " GROUP BY appointment_id, client_phone"
+    query += " GROUP BY m.appointment_id, m.client_phone"
     cursor.execute(query, tuple(params))
     rows = cursor.fetchall()
     total_unread = 0

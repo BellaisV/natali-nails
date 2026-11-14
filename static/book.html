@@ -82,7 +82,7 @@
         <span class="sm:hidden">{{ t('my_bookings_short') || 'Записи' }}</span>
         <span v-if="clientAppointments.length > 0 && clientUnreadChatTotal === 0" class="w-4 h-4 rounded-full bg-rose-500 text-[10px] font-black flex items-center justify-center text-white ml-0.5">{{ clientAppointments.length }}</span>
         <!-- UNREAD MESSAGES BELL BADGE -->
-        <span v-if="clientUnreadChatTotal > 0" class="flex items-center space-x-1 bg-gradient-to-r from-rose-500 to-amber-500 text-white text-[10px] font-black px-1.5 py-0.5 rounded-full shadow-md animate-bounce ring-1 ring-white/40">
+        <span v-if="clientAppointments.length > 0 && clientUnreadChatTotal > 0" class="flex items-center space-x-1 bg-gradient-to-r from-rose-500 to-amber-500 text-white text-[10px] font-black px-1.5 py-0.5 rounded-full shadow-md animate-bounce ring-1 ring-white/40">
           <i class="fa-solid fa-bell text-[9px] animate-pulse"></i>
           <span>{{ clientUnreadChatTotal }}</span>
         </span>
@@ -1527,6 +1527,9 @@ createApp({
         const res = await fetch(`/api/client/appointments?phone=${encodeURIComponent(p ? p.trim() : '')}${idsParam}`);
         if (res.ok) {
           clientAppointments.value = await res.json();
+          if (clientAppointments.value.length === 0) {
+            clientUnreadChatTotal.value = 0;
+          }
           try {
             const curIds = clientAppointments.value.map(a => a.id);
             localStorage.setItem('my_appointment_ids', JSON.stringify(curIds));
