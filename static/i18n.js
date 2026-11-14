@@ -360,6 +360,11 @@ const I18N = {
     disc_available: 'Доступна для запису',
     disc_used: 'Використано',
     btn_apply_discount: 'Застосувати знижку',
+    btn_make_another_booking: '✨ Зробити ще один запис',
+    btn_back_to_services: '✨ Зробити ще один запис',
+    btn_book_another: '✨ Зробити ще один запис',
+    btn_book_new_service: '➕ Зробити ще один запис',
+    btn_view_all_bookings: 'Мої записи',
     months_short: ['січ', 'лют', 'бер', 'кві', 'тра', 'чер', 'лип', 'сер', 'вер', 'жов', 'лис', 'гру']
   },
 
@@ -710,6 +715,11 @@ const I18N = {
     disc_available: 'Available for booking',
     disc_used: 'Used',
     btn_apply_discount: 'Apply discount',
+    btn_make_another_booking: '✨ Book another appointment',
+    btn_back_to_services: '✨ Book another appointment',
+    btn_book_another: '✨ Book another',
+    btn_book_new_service: '➕ Book another appointment',
+    btn_view_all_bookings: 'My bookings',
     months_short: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
   },
 
@@ -1060,6 +1070,11 @@ const I18N = {
     disc_available: 'Disponible para tu cita',
     disc_used: 'Utilizado',
     btn_apply_discount: 'Aplicar descuento',
+    btn_make_another_booking: '✨ Reservar otra cita',
+    btn_back_to_services: '✨ Reservar otra cita',
+    btn_book_another: '✨ Otra reserva',
+    btn_book_new_service: '➕ Reservar otra cita',
+    btn_view_all_bookings: 'Mis citas',
     months_short: ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic']
   },
 
@@ -1410,6 +1425,11 @@ const I18N = {
     disc_available: 'Verfügbar für Ihren Termin',
     disc_used: 'Eingelöst',
     btn_apply_discount: 'Rabatt anwenden',
+    btn_make_another_booking: '✨ Weiteren Termin buchen',
+    btn_back_to_services: '✨ Weiteren Termin buchen',
+    btn_book_another: '✨ Weiterer Termin',
+    btn_book_new_service: '➕ Weiteren Termin buchen',
+    btn_view_all_bookings: 'Meine Termine',
     months_short: ['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez']
   },
 
@@ -1760,6 +1780,11 @@ const I18N = {
     disc_available: 'Доступна для записи',
     disc_used: 'Использована',
     btn_apply_discount: 'Применить скидку',
+    btn_make_another_booking: '✨ Сделать ещё одну запись',
+    btn_back_to_services: '✨ Сделать ещё одну запись',
+    btn_book_another: '✨ Сделать ещё одну запись',
+    btn_book_new_service: '➕ Сделать ещё одну запись',
+    btn_view_all_bookings: 'Мои записи',
     months_short: ['янв', 'фев', 'мар', 'апр', 'май', 'июн', 'іюл', 'авг', 'сен', 'окт', 'ноя', 'дек']
   }
 };

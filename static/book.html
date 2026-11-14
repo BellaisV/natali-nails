@@ -11,7 +11,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
-  <script src="/static/i18n.js?v=2.7"></script>
+  <script src="/static/i18n.js?v=2.8"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -636,11 +636,11 @@
 
   <!-- SUCCESS SCREEN WITH ORDER CONFIRMATION & LIVE MASTER CHAT -->
   <section v-if="step === 4" class="p-4 sm:p-6 text-center space-y-4">
-    <!-- Top Action Bar: Back to Services & Language Switcher -->
+    <!-- Top Action Bar: Make Another Booking & Language Switcher -->
     <div class="flex items-center justify-between gap-2 pt-1 pb-1">
       <button @click="resetBooking" class="flex-1 bg-gradient-to-r from-stone-900 to-stone-800 hover:from-black hover:to-stone-900 text-white font-bold py-3 px-4 rounded-2xl text-xs flex items-center justify-center space-x-2 transition shadow-md active:scale-95 border border-stone-700">
-        <i class="fa-solid fa-arrow-left text-xs text-rose-400"></i>
-        <span>{{ t('btn_back_to_services') || '✨ Повернутися до послуг / Записатися ще' }}</span>
+        <i class="fa-solid fa-plus-circle text-xs text-rose-400"></i>
+        <span>{{ t('btn_make_another_booking') || '✨ Зробити ще один запис' }}</span>
       </button>
       <button @click="showLangModal = true" class="flex items-center space-x-1.5 bg-white hover:bg-stone-50 border border-stone-200 px-3 py-3 rounded-2xl text-xs font-bold text-stone-800 shadow-sm transition active:scale-95">
         <span class="text-sm leading-none">🌐</span>
@@ -750,11 +750,11 @@
       </a>
     </div>
 
-    <!-- Action buttons: Return to Services & My Bookings -->
+    <!-- Action buttons: Make Another Booking & My Bookings -->
     <div class="grid grid-cols-2 gap-2 pt-1">
       <button @click="resetBooking" class="bg-gradient-to-r from-rose-500 to-rose-600 hover:from-rose-600 hover:to-rose-700 text-white font-bold py-3.5 px-3 rounded-2xl text-xs flex items-center justify-center space-x-1.5 transition shadow-md active:scale-95">
         <i class="fa-solid fa-plus-circle text-xs"></i>
-        <span>{{ t('btn_book_another') || '✨ Новий запис' }}</span>
+        <span>{{ t('btn_make_another_booking') || '✨ Зробити ще один запис' }}</span>
       </button>
       <button @click="openMyAppointmentsModal" class="bg-stone-100 hover:bg-stone-200 text-stone-800 font-bold py-3.5 px-3 rounded-2xl text-xs flex items-center justify-center space-x-1.5 transition border border-stone-300 active:scale-95">
         <i class="fa-regular fa-calendar-check text-rose-500"></i>
@@ -953,18 +953,18 @@
         </button>
       </div>
 
-      <!-- Action: Book New Service -->
+      <!-- Action: Make Another Booking -->
       <button @click="showMyAppointmentsModal = false; resetBooking();" class="w-full bg-gradient-to-r from-rose-500 to-rose-600 hover:from-rose-600 hover:to-rose-700 text-white font-bold py-3 rounded-2xl text-xs flex items-center justify-center space-x-2 transition shadow-md active:scale-95">
         <i class="fa-solid fa-plus-circle text-xs"></i>
-        <span>{{ t('btn_book_new_service') || '➕ Записатися на нову послугу' }}</span>
+        <span>{{ t('btn_make_another_booking') || '➕ Зробити ще один запис' }}</span>
       </button>
 
       <!-- Appointments List -->
       <div v-if="clientAppointments.length === 0" class="text-center py-8 text-stone-400 text-xs space-y-2">
         <div class="text-2xl text-stone-500"><i class="fa-regular fa-calendar-xmark"></i></div>
         <p>У вас поки немає збережених записів.</p>
-        <button @click="showMyAppointmentsModal = false; step = 1" class="text-rose-400 font-bold hover:underline text-xs">
-          Записатися на манікюр ➔
+        <button @click="showMyAppointmentsModal = false; resetBooking();" class="text-rose-400 font-bold hover:underline text-xs">
+          {{ t('btn_make_another_booking') || '✨ Зробити ще один запис ➔' }}
         </button>
       </div>
 
