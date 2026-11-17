@@ -14,5 +14,9 @@
   {
     "appointment_id": 14,
     "deleted_at": "2026-11-14T02:14:54.138679"
+  },
+  {
+    "appointment_id": 15,
+    "deleted_at": "2026-11-17T13:26:10.968320"
   }
 ]
